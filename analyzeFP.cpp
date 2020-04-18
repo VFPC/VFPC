@@ -35,7 +35,7 @@ CVFPCPlugin::CVFPCPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_
 	// Get Path of the Sid.txt
 	GetModuleFileNameA(HINSTANCE(&__ImageBase), DllPathFile, sizeof(DllPathFile));
 	pfad = DllPathFile;
-	pfad.resize(pfad.size() - strlen("EDFFCheckFP.dll"));
+	pfad.resize(pfad.size() - strlen("VFPC.dll"));
 	pfad += "Sid.txt";
 
 	debugMode = false;
@@ -319,7 +319,7 @@ bool CVFPCPlugin::OnCompileCommand(const char * sCommandLine) {
 	}
 	if (startsWith(".vfpc load", sCommandLine)) {
 		string buffer{ sCommandLine };
-		buffer.erase(0, 14);
+		buffer.erase(0, 11);
 		getSids(buffer);
 		return true;
 	}
