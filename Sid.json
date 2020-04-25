@@ -1,0 +1,593 @@
+[
+   {
+      "icao": "EDDH",
+      "sids": {
+         "VCT": [
+            {
+               "direction": "ANY"
+            }
+         ],
+         "AMLUH": [
+            {
+               "direction": "ODD",
+               "max_fl": 290,
+               "destinations": [
+                  "EDDF",
+                  "EDFH"
+               ]
+            },
+            {
+               "direction": "ODD",
+               "min_fl": 0,
+               "max_fl": 0,
+               "destinations": [
+
+               ],
+               "airways": [
+
+               ]
+            }
+         ],
+         "BASUM": [
+            {
+               "direction": "EVEN"
+            }
+         ],
+         "EKERN": [
+            {
+               "direction": "ODD"
+            }
+         ],
+         "IDEKO": [
+            {
+               "direction": "EVEN",
+               "destinations": [
+                  "EDDK",
+                  "EDDL",
+                  "EDDG",
+                  "EDLW",
+                  "EDLN",
+                  "EDLP",
+                  "EDGS",
+                  "EDLV"
+               ]
+            },
+            {
+               "direction": "ODD",
+               "max_fl": 230,
+               "destinations": [
+                  "EDDF",
+                  "EDFH"
+               ]
+            },
+            {
+               "direction": "EVEN",
+               "max_fl": 100,
+               "destinations": [
+                  "EDDV"
+               ]
+            },
+            {
+               "direction": "ODD"
+            }
+         ],
+         "LBV": [
+            {
+               "direction": "EVEN",
+               "airways": [
+                  "L619",
+                  "P992"
+               ]
+            },
+            {
+               "direction": "ODD"
+            }
+         ],
+         "LUB": [
+            {
+               "direction": "ODD"
+            }
+         ],
+         "RAMAR": [
+            {
+               "direction": "ODD"
+            }
+         ],
+         "WSN": [
+            {
+               "direction": "EVEN",
+               "max_fl": 100,
+               "destinations": [
+                  "EDDW"
+               ]
+            },
+            {
+               "direction": "EVEN"
+            }
+         ]
+      }
+   },
+   {
+      "icao": "EDDW",
+      "sids": {
+         "VCT": [
+            {
+               "direction": "ANY"
+            }
+         ],
+         "BASUM": [
+            {
+               "direction": "EVEN"
+            }
+         ],
+         "EEL": [
+            {
+               "direction": "EVEN"
+            }
+         ],
+         "ERLAD": [
+            {
+               "direction": "ODD"
+            }
+         ],
+         "GESTO": [
+            {
+               "direction": "ODD"
+            }
+         ],
+         "NIE": [
+            {
+               "direction": "ODD",
+               "max_fl": 90,
+               "destinations": [
+                  "EDDV",
+                  "EDVE"
+               ]
+            },
+            {
+               "direction": "ODD"
+            }
+         ],
+         "WSN": [
+            {
+               "direction": "ODD",
+               "max_fl": 90,
+               "destinations": [
+                  "EDDH"
+               ]
+            },
+            {
+               "direction": "ODD"
+            }
+         ]
+      }
+   },
+   {
+      "icao": "EDDV",
+      "sids": {
+         "VCT": [
+            {
+               "direction": "ANY"
+            }
+         ],
+         "CEL": [
+            {
+               "direction": "ODD"
+            }
+         ],
+         "MULDO": [
+            {
+               "direction": "ODD"
+            }
+         ],
+         "NIE": [
+            {
+               "direction": "EVEN"
+            }
+         ],
+         "POVEL": [
+            {
+               "direction": "ODD"
+            }
+         ],
+         "TOLTA": [
+            {
+               "direction": "ODD"
+            }
+         ],
+         "VAXEV": [
+            {
+               "direction": "EVEN"
+            }
+         ],
+         "WERRA": [
+            {
+               "direction": "ODD"
+            }
+         ],
+         "WRB": [
+            {
+               "direction": "EVEN",
+               "airways": [
+                  "T858",
+                  "P12"
+               ]
+            },
+            {
+               "direction": "ODD"
+            }
+         ]
+      }
+   },
+   {
+      "icao": "EDDT",
+      "sids": {
+         "VCT": [
+            {
+               "direction": "ANY"
+            }
+         ],
+         "BKD": [
+            {
+               "direction": "EVEN"
+            }
+         ],
+         "BRANE": [
+            {
+               "direction": "EVEN"
+            }
+         ],
+         "GERGA": [
+            {
+               "direction": "EVEN",
+               "destinations": [
+                  "EDDM"
+               ]
+            },
+            {
+               "direction": "ODD"
+            }
+         ],
+         "RAKIT": [
+            {
+               "direction": "EVEN",
+               "airways": [
+                  "M725",
+                  "UM725"
+               ]
+            },
+            {
+               "direction": "ODD"
+            }
+         ],
+         "LANUM": [
+            {
+               "direction": "ANY",
+               "destinations": [
+                  "EDDT",
+                  "EDDB",
+                  "EDDI"
+               ]
+            }
+         ],
+         "TERDA": [
+            {
+               "direction": "ANY",
+               "destinations": [
+                  "EDDT",
+                  "EDDB",
+                  "EDDI"
+               ]
+            }
+         ]
+      }
+   },
+   {
+      "icao": "EDDB",
+      "sids": {
+         "VCT": [
+            {
+               "direction": "ANY"
+            }
+         ],
+         "BELID": [
+            {
+               "direction": "EVEN"
+            }
+         ],
+         "BKD": [
+            {
+               "direction": "EVEN"
+            }
+         ],
+         "GERGA": [
+            {
+               "direction": "ODD",
+               "airways": [
+                  "RENKI L132",
+                  "Y218"
+               ]
+            },
+            {
+               "direction": "EVEN"
+            }
+         ],
+         "TUVAD": [
+            {
+               "direction": "EVEN",
+               "destinations": [
+                  "EDDM"
+               ]
+            },
+            {
+               "direction": "ODD"
+            }
+         ],
+         "KLF": [
+            {
+               "direction": "ANY",
+               "destinations": [
+                  "EDDT",
+                  "EDDB",
+                  "EDDI"
+               ]
+            }
+         ]
+      }
+   },
+   {
+      "icao": "EDDP",
+      "sids": {
+         "VCT": [
+            {
+               "direction": "ANY"
+            }
+         ],
+         "LELMA": [
+            {
+               "direction": "ODD"
+            }
+         ],
+         "MAG": [
+            {
+               "direction": "EVEN"
+            }
+         ],
+         "NAMUB": [
+            {
+               "direction": "EVEN"
+            }
+         ],
+         "ODLUN": [
+            {
+               "direction": "ODD"
+            }
+         ],
+         "ORTAG": [
+            {
+               "direction": "ODD"
+            }
+         ],
+         "TORPU": [
+            {
+               "direction": "ODD"
+            }
+         ],
+         "UMBAL": [
+            {
+               "direction": "ODD"
+            }
+         ]
+      }
+   },
+   {
+      "icao": "EDDF",
+      "sids": {
+         "VCT": [
+            {
+               "direction": "ANY"
+            }
+         ],
+         "ANEKI": [
+            {
+               "direction": "ODD"
+            }
+         ],
+         "CINDY": [
+            {
+               "direction": "ODD"
+            }
+         ],
+         "KOMIB": [
+            {
+               "direction": "ODD"
+            }
+         ],
+         "MARUN": [
+            {
+               "direction": "EVEN"
+            }
+         ],
+         "OBOKA": [
+            {
+               "direction": "EVEN"
+            }
+         ],
+         "SOBRA": [
+            {
+               "direction": "EVEN",
+               "min_fl": 290
+            }
+         ],
+         "SULUS": [
+            {
+               "direction": "ODD"
+            }
+         ],
+         "TOBAK": [
+            {
+               "direction": "ODD"
+            }
+         ],
+         "ULKIG": [
+            {
+               "direction": "EVEN",
+               "min_fl": 250
+            }
+         ]
+      }
+   },
+   {
+      "icao": "EDDL",
+      "sids": {
+         "VCT": [
+            {
+               "direction": "ANY"
+            }
+         ],
+         "COL": [
+            {
+               "direction": "ODD"
+            }
+         ],
+         "DODEN": [
+            {
+               "direction": "ODD",
+               "min_fl": 250
+            }
+         ],
+         "GMH": [
+            {
+               "direction": "ODD",
+               "max_fl": 140
+            }
+         ],
+         "KUMIK": [
+            {
+               "direction": "ODD",
+               "min_fl": 150
+            }
+         ],
+         "LMA": [
+            {
+               "direction": "EVEN"
+            }
+         ],
+         "MEVEL": [
+            {
+               "direction": "ODD"
+            }
+         ],
+         "MODRU": [
+            {
+               "direction": "EVEN",
+               "min_fl": 210
+            }
+         ],
+         "NETEX": [
+            {
+               "direction": "EVEN",
+               "min_fl": 100,
+               "max_fl": 200
+            }
+         ],
+         "NUDGO": [
+            {
+               "direction": "ODD",
+               "max_fl": 245
+            }
+         ],
+         "NVO": [
+            {
+               "direction": "EVEN",
+               "max_fl": 90
+            }
+         ],
+         "SONEB": [
+            {
+               "direction": "EVEN",
+               "min_fl": 140
+            }
+         ]
+      }
+   },
+   {
+      "icao": "EDDS",
+      "sids": {
+         "VCT": [
+            {
+               "direction": "ANY"
+            }
+         ],
+         "ABTAL": [
+            {
+               "direction": "ODD"
+            }
+         ],
+         "DKB": [
+            {
+               "direction": "ODD"
+            }
+         ],
+         "ETASA": [
+            {
+               "direction": "EVEN"
+            }
+         ],
+         "GEBNO": [
+            {
+               "direction": "EVEN",
+               "max_fl": 180
+            }
+         ],
+         "KRH": [
+            {
+               "direction": "EVEN",
+               "max_fl": 80
+            }
+         ],
+         "KUNOD": [
+            {
+               "direction": "ODD"
+            }
+         ],
+         "OKIBA": [
+            {
+               "direction": "EVEN",
+               "min_fl": 200
+            }
+         ],
+         "ROTWE": [
+            {
+               "direction": "EVEN"
+            }
+         ],
+         "STG": [
+            {
+               "direction": "ODD"
+            }
+         ],
+         "SUL": [
+            {
+               "direction": "ODD"
+            }
+         ],
+         "TAGIK": [
+            {
+               "direction": "EVEN",
+               "max_fl": 240
+            }
+         ],
+         "TEDGO": [
+            {
+               "direction": "ODD"
+            }
+         ],
+         "VESID": [
+            {
+               "direction": "EVEN"
+            }
+         ]
+      }
+   }
+]
