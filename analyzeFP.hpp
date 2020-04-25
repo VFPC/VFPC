@@ -73,8 +73,6 @@ public:
 	bool routeContains(string s, const Value& a) {
 		for (SizeType i = 0; i < a.Size(); i++) {
 			bool dd = contains(s, a[i].GetString());
-			if (contains(s, "BRANE"))
-				int a = 1;
 			if (contains(s, a[i].GetString()))
 				return true;
 		}

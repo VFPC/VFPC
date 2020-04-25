@@ -22,7 +22,7 @@ using namespace EuroScopePlugIn;
 
 	// Run on Plugin Initialization
 CVFPCPlugin::CVFPCPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_PLUGIN_VERSION, MY_PLUGIN_DEVELOPER, MY_PLUGIN_COPYRIGHT)
-{	
+{
 	string loadingMessage = "Version: ";
 	loadingMessage += MY_PLUGIN_VERSION;
 	loadingMessage += " loaded.";
@@ -324,10 +324,7 @@ void CVFPCPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget,
 		}
 		else {
 			vector<string> messageBuffer{ validizeSid(FlightPlan) };	// 0 = Callsign, 1 = valid/invalid SID, 2 = SID Name, 3 = Even/Odd, 4 = Minimum Flight Level, 5 = Maximum Flight Level, 6 = Passed
-
-			if (messageBuffer.size() < 9)
-				int a = 1; // DEBUG BREAK
-
+			
 			if (messageBuffer.at(8) == "Passed") {
 				*pRGB = TAG_GREEN;
 				strcpy_s(sItemString, 16, "OK!");
