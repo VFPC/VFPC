@@ -415,8 +415,7 @@
          ],
          "SOBRA": [
             {
-               "direction": "EVEN",
-               "min_fl": 290
+               "direction": "EVEN"
             }
          ],
          "SULUS": [
@@ -431,8 +430,7 @@
          ],
          "ULKIG": [
             {
-               "direction": "EVEN",
-               "min_fl": 250
+               "direction": "EVEN"
             }
          ]
       }
