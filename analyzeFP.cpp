@@ -238,7 +238,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 				passed[3] = true;
 			}
 			else {
-				returnValid.push_back("Failed Minimum Flight Level");
+				returnValid.push_back("Failed Minimum Flight Level. Min FL: " + to_string(min_fl));
 			}
 		}
 		else {
@@ -252,7 +252,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 				passed[4] = true;
 			}
 			else {
-				returnValid.push_back("Failed Maximum Flight Level");
+				returnValid.push_back("Failed Maximum Flight Level. Max FL: " + to_string(max_fl));
 			}
 		}
 		else {
