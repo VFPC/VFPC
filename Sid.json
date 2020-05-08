@@ -127,6 +127,19 @@
          ],
          "ERLAD": [
             {
+               "direction": "EVEN",
+               "destinations": [
+                  "EDDK",
+                  "EDDL",
+                  "EDDG",
+                  "EDLW",
+                  "EDLN",
+                  "EDLP",
+                  "EDGS",
+                  "EDLV"
+               ]
+            },
+            {
                "direction": "ODD"
             }
          ],
