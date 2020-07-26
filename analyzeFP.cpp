@@ -94,7 +94,8 @@ void CVFPCPlugin::getSids() {
 
 // Does the checking and magic stuff, so everything will be alright, when this is finished! Or not. Who knows?
 vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
-	vector<string> returnValid{};		// 0 = Callsign, 1 = valid/invalid SID, 2 = SID Name, 3 = Even/Odd, 4 = Minimum Flight Level, 5 = Maximum Flight Level, 6 = Passed
+	vector<string> returnValid{}; // 0 = Callsign, 1 = valid/invalid SID, 2 = SID Name, 3 = Destination, 4 = Airway, 5 = Engine Type, 6 = Even/Odd, 7 = Minimum Flight Level, 8 = Maximum Flight Level, 9 = Passed
+
 	returnValid.push_back(flightPlan.GetCallsign());
 	bool valid{ false };
 
@@ -122,7 +123,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	if (airports.find(origin) == airports.end()) {
 		returnValid.push_back("Invalid");
 		returnValid.push_back("No valid Airport found!");
-		for (int i = 0; i < 5; i++) {
+		for (int i = 0; i < 6; i++) {
 			returnValid.push_back("-");
 		}
 		returnValid.push_back("Failed");
@@ -135,7 +136,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	if (!config[origin_int].HasMember("sids") || config[origin_int]["sids"].IsArray()) {
 		returnValid.push_back("Invalid");
 		returnValid.push_back("No SIDs defined!");
-		for (int i = 0; i < 5; i++) {
+		for (int i = 0; i < 6; i++) {
 			returnValid.push_back("-");
 		}
 		returnValid.push_back("Failed");
@@ -146,7 +147,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	if (!config[origin_int]["sids"].HasMember(first_wp.c_str()) || !config[origin_int]["sids"][first_wp.c_str()].IsArray()) {
 		returnValid.push_back("Invalid");
 		returnValid.push_back("No valid SID found!");
-		for (int i = 0; i < 5; i++) {
+		for (int i = 0; i < 6; i++) {
 			returnValid.push_back("-");
 		}
 		returnValid.push_back("Failed");
@@ -157,14 +158,17 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	for (SizeType i = 0; i < conditions.Size(); i++) {
 		returnValid.clear();
 		returnValid.push_back(flightPlan.GetCallsign());
-		bool passed[5]{ false };
+		bool passed[6]{ false };
 		valid = false;
 
 
 		// Does Condition contain our destination if it's limited
 		if (conditions[i]["destinations"].IsArray() && conditions[i]["destinations"].Size()) {
-			if (arrayContains(conditions[i]["destinations"], destination.c_str())) {
-				returnValid.push_back("Passed Destination");
+			string dest;
+			if ((dest = destArrayContains(conditions[i]["destinations"], destination.c_str())).size()) {
+				if (dest.size() < 4)
+					dest += string(4 - dest.size(), '*');
+				returnValid.push_back("Passed Destination (" + dest + ")");
 				passed[0] = true;
 			}
 			else {
@@ -193,18 +197,43 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			passed[1] = true;
 		}
 
+		// Is Engine Type if it's limited (P=piston, T=turboprop, J=jet, E=electric)
+		if (conditions[i]["engine"].IsString()) {
+			if (conditions[i]["engine"].GetString()[0] == flightPlan.GetFlightPlanData().GetEngineType()) {
+				returnValid.push_back("Passed Engine type");
+				passed[2] = true;
+			}
+			else {
+				returnValid.push_back("Failed Engine type. Needed Type: " + (string)conditions[i]["engine"].GetString());
+			}
+		}
+		else if (conditions[i]["engine"].IsArray() && conditions[i]["engine"].Size()) {
+			if (arrayContains(conditions[i]["engine"], flightPlan.GetFlightPlanData().GetEngineType())) {
+				returnValid.push_back("Passed Engine type");
+				passed[2] = true;
+			}
+			else {
+				returnValid.push_back("Failed Engine type. Needed Type: " + arrayToString(conditions[i]["engine"], ','));
+			}
+		}
+		else {
+			returnValid.push_back("No Engine type restriction");
+			passed[2] = true;
+		}
+
+
 		valid = true;
 		returnValid.insert(returnValid.begin() + 1, "Valid");
 		returnValid.insert(returnValid.begin() + 2, first_wp);
 
-		// Direction of condition
+		// Direction of condition (EVEN, ODD, ANY)
 		string direction = conditions[i]["direction"].GetString();
 		boost::to_upper(direction);
 
 		if (direction == "EVEN") {
 			if ((RFL / 1000) % 2 == 0) {
 				returnValid.push_back("Passed Even");
-				passed[2] = true;
+				passed[3] = true;
 			}
 			else {
 				returnValid.push_back("Failed Even");
@@ -213,7 +242,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		else if (direction == "ODD") {
 			if ((RFL / 1000) % 2 != 0) {
 				returnValid.push_back("Passed Odd");
-				passed[2] = true;
+				passed[3] = true;
 			}
 			else {
 				returnValid.push_back("Failed Odd");
@@ -221,7 +250,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		}
 		else if (direction == "ANY") {
 			returnValid.push_back("No Direction restriction");
-			passed[2] = true;
+			passed[3] = true;
 		}
 		else {
 			string errorText{ "Config Error for Even/Odd on SID: " };
@@ -230,12 +259,12 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			returnValid.push_back("Config Error for Even/Odd on this SID!");
 		}
 		
-		// Flight level
+		// Flight level (min_fl, max_fl)
 		int min_fl, max_fl;
 		if (conditions[i].HasMember("min_fl") && (min_fl = conditions[i]["min_fl"].GetInt()) > 0) {
 			if ((RFL / 100) >= min_fl) {
 				returnValid.push_back("Passed Minimum Flight Level");
-				passed[3] = true;
+				passed[4] = true;
 			}
 			else {
 				returnValid.push_back("Failed Minimum Flight Level. Min FL: " + to_string(min_fl));
@@ -243,13 +272,13 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		}
 		else {
 			returnValid.push_back("No Minimum Flight Level");
-			passed[3] = true;
+			passed[4] = true;
 		}
 
 		if (conditions[i].HasMember("max_fl") && (max_fl = conditions[i]["max_fl"].GetInt()) > 0) {
 			if ((RFL / 100) <= max_fl) {
 				returnValid.push_back("Passed Maximum Flight Level");
-				passed[4] = true;
+				passed[5] = true;
 			}
 			else {
 				returnValid.push_back("Failed Maximum Flight Level. Max FL: " + to_string(max_fl));
@@ -257,13 +286,13 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		}
 		else {
 			returnValid.push_back("No Maximum Flight Level");
-			passed[4] = true;
+			passed[5] = true;
 		}
 
 
 
 		bool passedVeri{ false };
-		for (int i = 0; i < 5; i++) {
+		for (int i = 0; i < 6; i++) {
 			if (passed[i])
 			{
 				passedVeri = true;
@@ -323,9 +352,9 @@ void CVFPCPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget,
 			strcpy_s(sItemString, 16, "VFR");
 		}
 		else {
-			vector<string> messageBuffer{ validizeSid(FlightPlan) };	// 0 = Callsign, 1 = valid/invalid SID, 2 = SID Name, 3 = Even/Odd, 4 = Minimum Flight Level, 5 = Maximum Flight Level, 6 = Passed
+			vector<string> messageBuffer{ validizeSid(FlightPlan) }; // 0 = Callsign, 1 = valid/invalid SID, 2 = SID Name, 3 = Destination, 4 = Airway, 5 = Engine Type, 6 = Even/Odd, 7 = Minimum Flight Level, 8 = Maximum Flight Level, 9 = Passed
 			
-			if (messageBuffer.at(8) == "Passed") {
+			if (messageBuffer.at(9) == "Passed") {
 				*pRGB = TAG_GREEN;
 				strcpy_s(sItemString, 16, "OK!");
 			}
@@ -386,7 +415,7 @@ void CVFPCPlugin::checkFPDetail() {
 			buffer += messageBuffer.at(i);
 			buffer += ", ";
 		}
-		buffer += messageBuffer.at(8);
+		buffer += messageBuffer.at(9);
 		buffer += " FlightPlan Check. Check complete.";
 	} else {
 		buffer += " ";
@@ -409,14 +438,17 @@ string CVFPCPlugin::getFails(vector<string> messageBuffer) {
 	if (messageBuffer.at(4).find_first_of("Failed") == 0) {
 		fail.push_back("AWY");
 	}
-
 	if (messageBuffer.at(5).find_first_of("Failed") == 0) {
+		fail.push_back("ENG");
+	}
+
+	if (messageBuffer.at(6).find_first_of("Failed") == 0) {
 		fail.push_back("E/O");
 	}
-	if (messageBuffer.at(6).find_first_of("Failed") == 0) {
+	if (messageBuffer.at(7).find_first_of("Failed") == 0) {
 		fail.push_back("MIN");
 	}
-	if (messageBuffer.at(7).find_first_of("Failed") == 0) {
+	if (messageBuffer.at(8).find_first_of("Failed") == 0) {
 		fail.push_back("MAX");
 	}
 

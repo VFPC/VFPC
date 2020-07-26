@@ -12,7 +12,7 @@
 #include "rapidjson/stringbuffer.h"
 
 #define MY_PLUGIN_NAME      "VFPC"
-#define MY_PLUGIN_VERSION   "2.0.1"
+#define MY_PLUGIN_VERSION   "2.0.3"
 #define MY_PLUGIN_DEVELOPER "Jan Fries, Hendrik Peter"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO  "Vatsim FlightPlan Checker"
@@ -62,6 +62,16 @@ public:
 		return elems;
 	}
 
+	string destArrayContains(const Value& a, string s) {
+		for (SizeType i = 0; i < a.Size(); i++) {
+			string test = a[i].GetString();
+			SizeType x = s.rfind(test, 0);
+			if (s.rfind(a[i].GetString(), 0) != -1)
+				return a[i].GetString();
+		}
+		return "";
+	}
+
 	bool arrayContains(const Value& a, string s) {
 		for (SizeType i = 0; i < a.Size(); i++) {
 			if (a[i].GetString() == s)
@@ -70,6 +80,23 @@ public:
 		return false;
 	}
 
+	bool arrayContains(const Value& a, char s) {
+		for (SizeType i = 0; i < a.Size(); i++) {
+			if (a[i].GetString()[0] == s)
+				return true;
+		}
+		return false;
+	}
+
+	string arrayToString(const Value& a, char delimiter) {
+		string s;
+		for (SizeType i = 0; i < a.Size(); i++) {
+			s += a[i].GetString()[0];
+			if (i != a.Size() - 1)
+				s += delimiter;
+		}
+		return s;
+	}
 	bool routeContains(string s, const Value& a) {
 		for (SizeType i = 0; i < a.Size(); i++) {
 			bool dd = contains(s, a[i].GetString());

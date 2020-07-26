@@ -21,11 +21,13 @@
                "min_fl": 0,
                "max_fl": 0,
                "destinations": [
-
+                  "ED"
                ],
-               "airways": [
-
-               ]
+               "airways": [],
+               "engine": []
+            },
+            {
+               "direction": "ODD"
             }
          ],
          "BASUM": [
