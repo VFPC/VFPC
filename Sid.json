@@ -35,9 +35,26 @@
                "direction": "EVEN"
             }
          ],
+         "ELSOB": [
+            {
+               "direction": "EVEN",
+               "airways": [
+                  "L619",
+                  "P992"
+               ]
+            },
+            {
+               "direction": "ODD"
+            }
+         ],
          "EKERN": [
             {
                "direction": "ODD"
+            }
+         ],
+         "HAM": [
+            {
+               "direction": "ANY"
             }
          ],
          "IDEKO": [
@@ -86,6 +103,11 @@
             }
          ],
          "LUB": [
+            {
+               "direction": "ODD"
+            }
+         ],
+         "LUGEG": [
             {
                "direction": "ODD"
             }
