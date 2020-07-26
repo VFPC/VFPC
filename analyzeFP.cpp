@@ -98,24 +98,24 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	returnValid.push_back(flightPlan.GetCallsign());
 	bool valid{ false };
 
-	string origin = flightPlan.GetFlightPlanData().GetOrigin(); to_upper(origin);
-	string destination = flightPlan.GetFlightPlanData().GetDestination(); to_upper(destination);
+	string origin = flightPlan.GetFlightPlanData().GetOrigin(); boost::to_upper(origin);
+	string destination = flightPlan.GetFlightPlanData().GetDestination(); boost::to_upper(destination);
 	SizeType origin_int;
 	int RFL = flightPlan.GetFlightPlanData().GetFinalAltitude();
 	
 	vector<string> route = split(flightPlan.GetFlightPlanData().GetRoute(), ' ');
 	for (int i = 0; i < route.size(); i++) {
-		to_upper(route[i]);
+		boost::to_upper(route[i]);
 	}
 
-	string sid = flightPlan.GetFlightPlanData().GetSidName(); to_upper(sid);
-	string first_wp = sid.substr(0, sid.find_first_of("0123456789")); to_upper(first_wp);
+	string sid = flightPlan.GetFlightPlanData().GetSidName(); boost::to_upper(sid);
+	string first_wp = sid.substr(0, sid.find_first_of("0123456789")); boost::to_upper(first_wp);
 	string first_airway;
 
 	vector<string>::iterator it = find(route.begin(), route.end(), first_wp);
 	if (it != route.end() && (it - route.begin()) != route.size() - 1) {
 		first_airway = route[(it - route.begin()) + 1];
-		to_upper(first_airway);
+		boost::to_upper(first_airway);
 	}
 
 	// Airport defined
@@ -199,7 +199,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 		// Direction of condition
 		string direction = conditions[i]["direction"].GetString();
-		to_upper(direction);
+		boost::to_upper(direction);
 
 		if (direction == "EVEN") {
 			if ((RFL / 1000) % 2 == 0) {
