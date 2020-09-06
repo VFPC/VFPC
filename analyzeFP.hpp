@@ -12,8 +12,8 @@
 #include "rapidjson/stringbuffer.h"
 
 #define MY_PLUGIN_NAME      "VFPC"
-#define MY_PLUGIN_VERSION   "2.0.3"
-#define MY_PLUGIN_DEVELOPER "Jan Fries, Hendrik Peter"
+#define MY_PLUGIN_VERSION   "2.0.4"
+#define MY_PLUGIN_DEVELOPER "Jan Fries, Hendrik Peter, Sven Czarnian"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO  "Vatsim FlightPlan Checker"
 
