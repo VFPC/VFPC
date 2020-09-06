@@ -324,50 +324,49 @@
       "sids": {
          "VCT": [
             {
-               "direction": "ANY"
+                "direction": "ANY"
             }
          ],
-         "BELID": [
+         "ARSAP": [
             {
-               "direction": "EVEN"
-            }
-         ],
-         "BKD": [
+                "engine": "J",
+                "suffix": "1B",
+                "direction": "ODD"
+            },
             {
-               "direction": "EVEN"
+                "engine": "T",
+                "suffix": "1D",
+                "direction": "ODD"
             }
          ],
          "GERGA": [
             {
-               "direction": "ODD",
-               "airways": [
-                  "RENKI L132",
-                  "Y218"
-               ]
-            },
-            {
-               "direction": "EVEN"
+                "direction": "ODD"
             }
          ],
-         "TUVAD": [
+         "POVEL": [
             {
-               "direction": "EVEN",
-               "destinations": [
-                  "EDDM"
-               ]
-            },
-            {
-               "direction": "ODD"
+                "direction": "EVEN"
             }
          ],
-         "KLF": [
+         "HLZ": [
             {
-               "direction": "ANY",
-               "destinations": [
-                  "EDDT",
-                  "EDDB",
-                  "EDDI"
-               ]
+                "direction": "EVEN"
+            }
+         ],
+         "MAXAN": [
+            {
+                "direction": "EVEN"
+            }
+         ],
+         "ODLUN": [
+            {
+                "direction": "EVEN"
+            }
+         ],
+         "SOGMA": [
+            {
+                "direction": "EVEN"
             }
          ]
       }

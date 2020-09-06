@@ -111,6 +111,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 	string sid = flightPlan.GetFlightPlanData().GetSidName(); boost::to_upper(sid);
 	string first_wp = sid.substr(0, sid.find_first_of("0123456789")); boost::to_upper(first_wp);
+	string sid_suffix = sid.substr(sid.find_first_of("0123456789"), sid.length()); boost::to_upper(sid_suffix);
 	string first_airway;
 
 	vector<string>::iterator it = find(route.begin(), route.end(), first_wp);
@@ -161,6 +162,10 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		bool passed[6]{ false };
 		valid = false;
 
+		// Skip SID if the check is suffix-related
+		if (conditions[i]["suffix"].IsString() && conditions[i]["suffix"].GetString() != sid_suffix) {
+			continue;
+		}
 
 		// Does Condition contain our destination if it's limited
 		if (conditions[i]["destinations"].IsArray() && conditions[i]["destinations"].Size()) {
