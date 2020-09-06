@@ -105,7 +105,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	int RFL = flightPlan.GetFlightPlanData().GetFinalAltitude();
 	
 	vector<string> route = split(flightPlan.GetFlightPlanData().GetRoute(), ' ');
-	for (int i = 0; i < route.size(); i++) {
+	for (std::size_t i = 0; i < route.size(); i++) {
 		boost::to_upper(route[i]);
 	}
 
@@ -452,7 +452,7 @@ string CVFPCPlugin::getFails(vector<string> messageBuffer) {
 		fail.push_back("MAX");
 	}
 
-	int couldnt = disCount;
+	std::size_t couldnt = disCount;
 	while (couldnt >= fail.size())
 		couldnt -= fail.size();
 	return fail[couldnt];
