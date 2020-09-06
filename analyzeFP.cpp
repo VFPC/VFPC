@@ -94,7 +94,7 @@ void CVFPCPlugin::getSids() {
 
 // Does the checking and magic stuff, so everything will be alright, when this is finished! Or not. Who knows?
 vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
-	vector<string> returnValid{}; // 0 = Callsign, 1 = valid/invalid SID, 2 = SID Name, 3 = Destination, 4 = Airway, 5 = Engine Type, 6 = Even/Odd, 7 = Minimum Flight Level, 8 = Maximum Flight Level, 9 = Passed
+	vector<string> returnValid{}; // 0 = Callsign, 1 = valid/invalid SID, 2 = SID Name, 3 = Destination, 4 = Airway, 5 = Engine Type, 6 = Even/Odd, 7 = Minimum Flight Level, 8 = Maximum Flight Level, 9 = Navigation restriction, 10 = Passed
 
 	returnValid.push_back(flightPlan.GetCallsign());
 	bool valid{ false };
@@ -105,12 +105,13 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	int RFL = flightPlan.GetFlightPlanData().GetFinalAltitude();
 	
 	vector<string> route = split(flightPlan.GetFlightPlanData().GetRoute(), ' ');
-	for (int i = 0; i < route.size(); i++) {
+	for (std::size_t i = 0; i < route.size(); i++) {
 		boost::to_upper(route[i]);
 	}
 
 	string sid = flightPlan.GetFlightPlanData().GetSidName(); boost::to_upper(sid);
 	string first_wp = sid.substr(0, sid.find_first_of("0123456789")); boost::to_upper(first_wp);
+	string sid_suffix = sid.substr(sid.find_first_of("0123456789"), sid.length()); boost::to_upper(sid_suffix);
 	string first_airway;
 
 	vector<string>::iterator it = find(route.begin(), route.end(), first_wp);
@@ -123,7 +124,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	if (airports.find(origin) == airports.end()) {
 		returnValid.push_back("Invalid");
 		returnValid.push_back("No valid Airport found!");
-		for (int i = 0; i < 6; i++) {
+		for (int i = 0; i < 7; i++) {
 			returnValid.push_back("-");
 		}
 		returnValid.push_back("Failed");
@@ -158,9 +159,13 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	for (SizeType i = 0; i < conditions.Size(); i++) {
 		returnValid.clear();
 		returnValid.push_back(flightPlan.GetCallsign());
-		bool passed[6]{ false };
+		bool passed[7]{ false };
 		valid = false;
 
+		// Skip SID if the check is suffix-related
+		if (conditions[i]["suffix"].IsString() && conditions[i]["suffix"].GetString() != sid_suffix) {
+			continue;
+		}
 
 		// Does Condition contain our destination if it's limited
 		if (conditions[i]["destinations"].IsArray() && conditions[i]["destinations"].Size()) {
@@ -179,7 +184,6 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			returnValid.push_back("No Destination restriction");
 			passed[0] = true;
 		}
-
 
 		// Does Condition contain our first airway if it's limited
 		if (conditions[i]["airways"].IsArray() && conditions[i]["airways"].Size()) {
@@ -289,10 +293,25 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			passed[5] = true;
 		}
 
-
+		// Special navigation requirements needed
+		if (conditions[i]["navigation"].IsString()) {
+			std::string navigation_constraints(conditions[i]["navigation"].GetString());
+			if (std::string::npos == navigation_constraints.find_first_of(flightPlan.GetFlightPlanData().GetCapibilities())) {
+				returnValid.push_back("Failed navigation capability restriction. Req. capability: " + navigation_constraints);
+				passed[6] = false;
+			}
+			else {
+				returnValid.push_back("No navigation capability restriction");
+				passed[6] = true;
+			}
+		}
+		else {
+			returnValid.push_back("No navigation capability restriction");
+			passed[6] = true;
+		}
 
 		bool passedVeri{ false };
-		for (int i = 0; i < 6; i++) {
+		for (int i = 0; i < 7; i++) {
 			if (passed[i])
 			{
 				passedVeri = true;
@@ -318,7 +337,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	if (!valid) {
 		returnValid.push_back("Invalid");
 		returnValid.push_back("No valid SID found!");
-		for (int i = 0; i < 5; i++) {
+		for (int i = 0; i < 7; i++) {
 			returnValid.push_back("-");
 		}
 		returnValid.push_back("Failed");
@@ -352,9 +371,9 @@ void CVFPCPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget,
 			strcpy_s(sItemString, 16, "VFR");
 		}
 		else {
-			vector<string> messageBuffer{ validizeSid(FlightPlan) }; // 0 = Callsign, 1 = valid/invalid SID, 2 = SID Name, 3 = Destination, 4 = Airway, 5 = Engine Type, 6 = Even/Odd, 7 = Minimum Flight Level, 8 = Maximum Flight Level, 9 = Passed
+			vector<string> messageBuffer{ validizeSid(FlightPlan) }; // 0 = Callsign, 1 = valid/invalid SID, 2 = SID Name, 3 = Destination, 4 = Airway, 5 = Engine Type, 6 = Even/Odd, 7 = Minimum Flight Level, 8 = Maximum Flight Level, 9 = Navigation restriction, 10 = Passed
 			
-			if (messageBuffer.at(9) == "Passed") {
+			if (messageBuffer.at(10) == "Passed") {
 				*pRGB = TAG_GREEN;
 				strcpy_s(sItemString, 16, "OK!");
 			}
@@ -411,11 +430,11 @@ void CVFPCPlugin::checkFPDetail() {
 	string buffer{ messageBuffer.at(1) };
 	if (messageBuffer.at(1) == "Valid") {
 		buffer += ", found SID: ";
-		for (int i = 2; i < 8; i++) {
+		for (int i = 2; i < 10; i++) {
 			buffer += messageBuffer.at(i);
 			buffer += ", ";
 		}
-		buffer += messageBuffer.at(9);
+		buffer += messageBuffer.at(10);
 		buffer += " FlightPlan Check. Check complete.";
 	} else {
 		buffer += " ";
@@ -451,8 +470,11 @@ string CVFPCPlugin::getFails(vector<string> messageBuffer) {
 	if (messageBuffer.at(8).find_first_of("Failed") == 0) {
 		fail.push_back("MAX");
 	}
+	if (messageBuffer.at(9).find_first_of("Failed") == 0) {
+		fail.push_back("NAV");
+	}
 
-	int couldnt = disCount;
+	std::size_t couldnt = disCount;
 	while (couldnt >= fail.size())
 		couldnt -= fail.size();
 	return fail[couldnt];

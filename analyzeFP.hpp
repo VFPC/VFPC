@@ -65,7 +65,7 @@ public:
 	string destArrayContains(const Value& a, string s) {
 		for (SizeType i = 0; i < a.Size(); i++) {
 			string test = a[i].GetString();
-			SizeType x = s.rfind(test, 0);
+			SizeType x = static_cast<rapidjson::SizeType>(s.rfind(test, 0));
 			if (s.rfind(a[i].GetString(), 0) != -1)
 				return a[i].GetString();
 		}
