@@ -30,6 +30,7 @@ Each SID can contain multiple objects with defined options based on restrictions
 Available restrictions:
 - "destinations" - Array of strings. The object only applies to FPL with one of the given destination ICAOs. Partials are possible, ex. "ED"
 - "engine" - Either string or array of strings. The object only applies to AC with one of the given Engine Types. Options are "P" (piston), "T" (turboprop/turboshaft), "J" (jet) and "E" (electric), as defined by Euroscope
+- "navigation" - A string which contains the equipment codes which defines all allowed capabilities for the SID
 - "airways" - Array of strings. The object only applies to FPL if route contains any of the given airways
 
 Available options:
