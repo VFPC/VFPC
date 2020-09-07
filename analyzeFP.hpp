@@ -8,6 +8,7 @@
 #include <vector>
 #include <map>
 #include <boost/algorithm/string.hpp>
+#include <boost/format.hpp>
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 

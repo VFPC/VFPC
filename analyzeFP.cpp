@@ -76,10 +76,10 @@ void CVFPCPlugin::getSids() {
 	ifs.close();
 
 	if (config.Parse<0>(ss.str().c_str()).HasParseError()) {
-		string error{ pfad };
-		error += " couldn't be opened!";
-		sendMessage("Error", error.c_str());
-		return;
+		string msg = str(boost::format("An error parsing VFPC configuration occurred. Error: %s (Offset: %i)\nOnce fixed, reload the config by typing '.vfpc reload'") % config.GetParseError() % config.GetErrorOffset());
+		sendMessage(msg);
+
+		config.Parse<0>("[{\"icao\": \"XXXX\"}]");
 	}
 
 	airports.clear();
