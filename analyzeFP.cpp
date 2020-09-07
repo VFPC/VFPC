@@ -279,7 +279,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		int min_fl, max_fl;
 		if (conditions[i].HasMember("min_fl") && (min_fl = conditions[i]["min_fl"].GetInt()) > 0) {
 			if ((RFL / 100) >= min_fl) {
-				returnValid.push_back("Passed Minimum Flight Level (" + (string)conditions[i]["min_fl"].GetString() + ')');
+				returnValid.push_back("Passed Minimum Flight Level (" + to_string(conditions[i]["min_fl"].GetInt()) + ')');
 				passed[4] = true;
 			}
 			else {
@@ -293,7 +293,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 		if (conditions[i].HasMember("max_fl") && (max_fl = conditions[i]["max_fl"].GetInt()) > 0) {
 			if ((RFL / 100) <= max_fl) {
-				returnValid.push_back("Passed Maximum Flight Level (" + (string)conditions[i]["max_fl"].GetString() + ')');
+				returnValid.push_back("Passed Maximum Flight Level (" + to_string(conditions[i]["max_fl"].GetInt()) + ')');
 				passed[5] = true;
 			}
 			else {
