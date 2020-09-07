@@ -216,7 +216,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		// Is Engine Type if it's limited (P=piston, T=turboprop, J=jet, E=electric)
 		if (conditions[i]["engine"].IsString()) {
 			if (conditions[i]["engine"].GetString()[0] == flightPlan.GetFlightPlanData().GetEngineType()) {
-				returnValid.push_back("Passed Engine type");
+				returnValid.push_back("Passed Engine type (" + (string)conditions[i]["engine"].GetString() + ')');
 				passed[2] = true;
 			}
 			else {
@@ -225,7 +225,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		}
 		else if (conditions[i]["engine"].IsArray() && conditions[i]["engine"].Size()) {
 			if (arrayContains(conditions[i]["engine"], flightPlan.GetFlightPlanData().GetEngineType())) {
-				returnValid.push_back("Passed Engine type");
+				returnValid.push_back("Passed Engine type (" + arrayToString(conditions[i]["engine"], ',') + ")");
 				passed[2] = true;
 			}
 			else {
@@ -279,7 +279,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		int min_fl, max_fl;
 		if (conditions[i].HasMember("min_fl") && (min_fl = conditions[i]["min_fl"].GetInt()) > 0) {
 			if ((RFL / 100) >= min_fl) {
-				returnValid.push_back("Passed Minimum Flight Level");
+				returnValid.push_back("Passed Minimum Flight Level (" + (string)conditions[i]["min_fl"].GetString() + ')');
 				passed[4] = true;
 			}
 			else {
@@ -293,7 +293,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 		if (conditions[i].HasMember("max_fl") && (max_fl = conditions[i]["max_fl"].GetInt()) > 0) {
 			if ((RFL / 100) <= max_fl) {
-				returnValid.push_back("Passed Maximum Flight Level");
+				returnValid.push_back("Passed Maximum Flight Level (" + (string)conditions[i]["max_fl"].GetString() + ')');
 				passed[5] = true;
 			}
 			else {
