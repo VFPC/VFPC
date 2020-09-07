@@ -124,7 +124,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	if (airports.find(origin) == airports.end()) {
 		returnValid.push_back("Invalid");
 		returnValid.push_back("No valid Airport found!");
-		for (int i = 0; i < 8; i++) {
+		for (int i = 0; i < 7; i++) {
 			returnValid.push_back("-");
 		}
 		returnValid.push_back("Failed");
