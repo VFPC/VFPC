@@ -124,7 +124,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	if (airports.find(origin) == airports.end()) {
 		returnValid.push_back("Invalid");
 		returnValid.push_back("No valid Airport found!");
-		for (int i = 0; i < 7; i++) {
+		for (int i = 0; i < 8; i++) {
 			returnValid.push_back("-");
 		}
 		returnValid.push_back("Failed");
@@ -137,7 +137,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	if (!config[origin_int].HasMember("sids") || config[origin_int]["sids"].IsArray()) {
 		returnValid.push_back("Invalid");
 		returnValid.push_back("No SIDs defined!");
-		for (int i = 0; i < 6; i++) {
+		for (int i = 0; i < 7; i++) {
 			returnValid.push_back("-");
 		}
 		returnValid.push_back("Failed");
@@ -148,7 +148,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	if (!config[origin_int]["sids"].HasMember(first_wp.c_str()) || !config[origin_int]["sids"][first_wp.c_str()].IsArray()) {
 		returnValid.push_back("Invalid");
 		returnValid.push_back("No valid SID found!");
-		for (int i = 0; i < 6; i++) {
+		for (int i = 0; i < 7; i++) {
 			returnValid.push_back("-");
 		}
 		returnValid.push_back("Failed");
