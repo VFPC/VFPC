@@ -295,8 +295,8 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 		// Special navigation requirements needed
 		if (conditions[i]["navigation"].IsString()) {
-			std::string navigation_constraints(conditions[i]["navigation"].GetString());
-			if (std::string::npos == navigation_constraints.find_first_of(flightPlan.GetFlightPlanData().GetCapibilities())) {
+			string navigation_constraints(conditions[i]["navigation"].GetString());
+			if (string::npos == navigation_constraints.find_first_of(flightPlan.GetFlightPlanData().GetCapibilities())) {
 				returnValid.push_back("Failed navigation capability restriction. Req. capability: " + navigation_constraints);
 				passed[6] = false;
 			}
