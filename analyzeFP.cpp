@@ -110,6 +110,18 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	}
 
 	string sid = flightPlan.GetFlightPlanData().GetSidName(); boost::to_upper(sid);
+
+	// Flightplan has SID
+	if (!sid.length()) {
+		returnValid.push_back("Invalid");
+		returnValid.push_back("Flightplan doesn't have SID set!");
+		for (int i = 0; i < 7; i++) {
+			returnValid.push_back("-");
+		}
+		returnValid.push_back("Failed");
+		return returnValid;
+	}
+
 	string first_wp = sid.substr(0, sid.find_first_of("0123456789")); boost::to_upper(first_wp);
 	string sid_suffix = sid.substr(sid.find_first_of("0123456789"), sid.length()); boost::to_upper(sid_suffix);
 	string first_airway;
