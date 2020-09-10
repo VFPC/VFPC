@@ -122,9 +122,26 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		return returnValid;
 	}
 
-	string first_wp = sid.substr(0, sid.find_first_of("0123456789")); boost::to_upper(first_wp);
-	string sid_suffix = sid.substr(sid.find_first_of("0123456789"), sid.length()); boost::to_upper(sid_suffix);
+	string first_wp = sid.substr(0, sid.find_first_of("0123456789"));
+	if (0 != first_wp.length())
+		boost::to_upper(first_wp);
+	string sid_suffix;
+	if (first_wp.length() != sid.length()) {
+		sid_suffix = sid.substr(sid.find_first_of("0123456789"), sid.length());
+		boost::to_upper(sid_suffix);
+	}
 	string first_airway;
+
+	// Did not find a valid SID
+	if (0 == sid_suffix.length() && "VCT" != first_wp) {
+		returnValid.push_back("Invalid");
+		returnValid.push_back("Flightplan doesn't have SID set!");
+		for (int i = 0; i < 7; i++) {
+			returnValid.push_back("-");
+		}
+		returnValid.push_back("Failed");
+		return returnValid;
+	}
 
 	vector<string>::iterator it = find(route.begin(), route.end(), first_wp);
 	if (it != route.end() && (it - route.begin()) != route.size() - 1) {

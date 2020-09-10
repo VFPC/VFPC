@@ -329,333 +329,509 @@
          ],
          "ARSAP": [
             {
+                "suffix": "1A",
+                "engine": "J",
+                "navigation": "MNPYLCIEFGRWHQS",
+                "direction": "ODD"
+            },
+            {
                 "suffix": "1B",
                 "engine": "J",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "ODD"
             },
             {
                 "suffix": "1D",
                 "engine": "T",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
+                "direction": "ODD"
+            },
+            {
+                "suffix": "1M",
+                "engine": "J",
+                "navigation": "MNPYLCIEFGRWHQS",
+                "direction": "ODD"
+            },
+            {
+                "suffix": "1N",
+                "engine": "J",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "ODD"
             },
             {
                 "suffix": "1Q",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "ODD"
             },
             {
                 "suffix": "1Z",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "ODD"
             }
          ],
          "GERGA": [
             {
+                "suffix": "1A",
+                "engine": "J",
+                "navigation": "MNPYLCIEFGRWHQS",
+                "direction": "ODD"
+            },
+            {
                 "suffix": "1B",
                 "engine": "J",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "ODD"
             },
             {
                 "suffix": "1D",
                 "engine": "T",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
+                "direction": "ODD"
+            },
+            {
+                "suffix": "1M",
+                "engine": "J",
+                "navigation": "MNPYLCIEFGRWHQS",
+                "direction": "ODD"
+            },
+            {
+                "suffix": "1N",
+                "engine": "J",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "ODD"
             },
             {
                 "suffix": "1Q",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "ODD"
             },
             {
                 "suffix": "1Z",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "ODD"
             }
          ],
          "LUROS": [
             {
+                "suffix": "1A",
+                "engine": "J",
+                "navigation": "MNPYLCIEFGRWHQS",
+                "direction": "ODD"
+            },
+            {
                 "suffix": "1B",
                 "engine": "J",
-                "navigation": "MNPYCIEFGRW",
-                "direction": "EVEN"
+                "navigation": "MNPYLCIEFGRWHQS",
+                "direction": "ODD"
             },
             {
                 "suffix": "1D",
                 "engine": "T",
-                "navigation": "MNPYCIEFGRW",
-                "direction": "EVEN"
+                "navigation": "MNPYLCIEFGRWHQS",
+                "direction": "ODD"
+            },
+            {
+                "suffix": "1M",
+                "engine": "J",
+                "navigation": "MNPYLCIEFGRWHQS",
+                "direction": "ODD"
+            },
+            {
+                "suffix": "1N",
+                "engine": "J",
+                "navigation": "MNPYLCIEFGRWHQS",
+                "direction": "ODD"
             },
             {
                 "suffix": "1Q",
-                "navigation": "MNPYCIEFGRW",
-                "direction": "EVEN"
+                "navigation": "MNPYLCIEFGRWHQS",
+                "direction": "ODD"
             },
             {
                 "suffix": "1Z",
-                "navigation": "MNPYCIEFGRW",
-                "direction": "EVEN"
+                "navigation": "MNPYLCIEFGRWHQS",
+                "direction": "ODD"
             }
          ],
          "POVEL": [
             {
+                "suffix": "1A",
+                "engine": "J",
+                "navigation": "MNPYLCIEFGRWHQS",
+                "direction": "EVEN"
+            },
+            {
                 "suffix": "1B",
                 "engine": "J",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
+                "direction": "EVEN"
+            },
+            {
+                "suffix": "1C",
+                "engine": "T",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1D",
                 "engine": "T",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1K",
                 "engine": "J",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1J",
                 "engine": "T",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
+                "direction": "EVEN"
+            },
+            {
+                "suffix": "1N",
+                "engine": "J",
+                "navigation": "MNPYLCIEFGRWHQS",
+                "direction": "EVEN"
+            },
+            {
+                "suffix": "1P",
+                "engine": "T",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1Q",
                 "engine": "J",
                 "min_fl": 120,
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1R",
-                "engine": "P",
+                "engine": "T",
                 "min_fl": 120,
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1Y",
                 "engine": "T",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1Z",
                 "engine": "J",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             }
          ],
          "HLZ": [
             {
+                "suffix": "1A",
+                "engine": "J",
+                "navigation": "MNPYLCIEFGRWHQS",
+                "direction": "EVEN"
+            },
+            {
                 "suffix": "1B",
                 "engine": "J",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
+                "direction": "EVEN"
+            },
+            {
+                "suffix": "1C",
+                "engine": "T",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1D",
                 "engine": "T",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1K",
                 "engine": "J",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1J",
                 "engine": "T",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
+                "direction": "EVEN"
+            },
+            {
+                "suffix": "1N",
+                "engine": "J",
+                "navigation": "MNPYLCIEFGRWHQS",
+                "direction": "EVEN"
+            },
+            {
+                "suffix": "1P",
+                "engine": "T",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1Q",
                 "engine": "J",
                 "min_fl": 120,
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1R",
-                "engine": "P",
+                "engine": "T",
                 "min_fl": 120,
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1Y",
                 "engine": "T",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1Z",
                 "engine": "J",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             }
          ],
          "MAXAN": [
             {
+                "suffix": "1A",
+                "engine": "J",
+                "navigation": "MNPYLCIEFGRWHQS",
+                "direction": "EVEN"
+            },
+            {
                 "suffix": "1B",
                 "engine": "J",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
+                "direction": "EVEN"
+            },
+            {
+                "suffix": "1C",
+                "engine": "T",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1D",
                 "engine": "T",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1K",
                 "engine": "J",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1J",
                 "engine": "T",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
+                "direction": "EVEN"
+            },
+            {
+                "suffix": "1N",
+                "engine": "J",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1Q",
                 "engine": "J",
                 "min_fl": 120,
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1R",
-                "engine": "P",
+                "engine": "T",
                 "min_fl": 120,
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1Y",
                 "engine": "T",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1Z",
                 "engine": "J",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             }
          ],
          "ODLUN": [
             {
+                "suffix": "1A",
+                "engine": "J",
+                "navigation": "MNPYLCIEFGRWHQS",
+                "direction": "EVEN"
+            },
+            {
                 "suffix": "1B",
                 "engine": "J",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
+                "direction": "EVEN"
+            },
+            {
+                "suffix": "1C",
+                "engine": "T",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1D",
                 "engine": "T",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1K",
                 "engine": "J",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1J",
                 "engine": "T",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
+                "direction": "EVEN"
+            },
+            {
+                "suffix": "1N",
+                "engine": "J",
+                "navigation": "MNPYLCIEFGRWHQS",
+                "direction": "EVEN"
+            },
+            {
+                "suffix": "1P",
+                "engine": "T",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1Q",
                 "engine": "J",
                 "min_fl": 120,
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1R",
-                "engine": "P",
+                "engine": "T",
                 "min_fl": 120,
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1Y",
                 "engine": "T",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1Z",
                 "engine": "J",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             }
          ],
          "SOGMA": [
             {
+                "suffix": "1A",
+                "engine": "J",
+                "navigation": "MNPYLCIEFGRWHQS",
+                "direction": "EVEN"
+            },
+            {
                 "suffix": "1B",
                 "engine": "J",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
+                "direction": "EVEN"
+            },
+            {
+                "suffix": "1C",
+                "engine": "T",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1D",
                 "engine": "T",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1K",
                 "engine": "J",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1J",
                 "engine": "T",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
+                "direction": "EVEN"
+            },
+            {
+                "suffix": "1N",
+                "engine": "J",
+                "navigation": "MNPYLCIEFGRWHQS",
+                "direction": "EVEN"
+            },
+            {
+                "suffix": "1P",
+                "engine": "T",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1Q",
                 "engine": "J",
                 "min_fl": 120,
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1R",
-                "engine": "P",
+                "engine": "T",
                 "min_fl": 120,
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1Y",
                 "engine": "T",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
                 "direction": "EVEN"
             },
             {
                 "suffix": "1Z",
                 "engine": "J",
-                "navigation": "MNPYCIEFGRW",
+                "navigation": "MNPYLCIEFGRWHQS",
+                "direction": "EVEN"
+            }
+         ],
+         "ROKMU": [
+            {
+                "suffix": "1P",
+                "engine": "T",
+                "navigation": "TXU",
                 "direction": "EVEN"
             }
          ]
