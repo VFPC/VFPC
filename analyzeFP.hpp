@@ -12,13 +12,13 @@
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 
-#define MY_PLUGIN_NAME      "VFPC"
-#define MY_PLUGIN_VERSION   "2.0.6"
-#define MY_PLUGIN_DEVELOPER "Jan Fries, Hendrik Peter, Sven Czarnian"
+#define MY_PLUGIN_NAME      "VFPC (UK)"
+#define MY_PLUGIN_VERSION   "3.0.0"
+#define MY_PLUGIN_DEVELOPER "Lenny Colton, Jan Fries, Hendrik Peter, Sven Czarnian"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
-#define MY_PLUGIN_VIEW_AVISO  "Vatsim FlightPlan Checker"
+#define MY_PLUGIN_VIEW_AVISO  "VATSIM UK Flight Plan Checker"
 
-#define PLUGIN_WELCOME_MESSAGE	"Willkommen beim Vatsim Flugplan-RFL checker"
+#define PLUGIN_WELCOME_MESSAGE	"Welcome to the VATSIM UK Flight Plan Checker"
 
 using namespace std;
 using namespace boost;
@@ -122,16 +122,24 @@ public:
 					awys.push_back(s);
 				}
 
-				if (!last) {
+				if (last) {
+					c = "";
+				}
+				else {
 					c.erase(0, pos + delimiter.length());
 				}
 			}
 
 			bool admissible = true;
 
-			for (int i = 0; i < c.size() - 1; i++) {
-				if (awys[i] != l[i]) {
-					admissible = false;
+			if (awys.size() > l.size()) {
+				admissible = false;
+			}
+			else {
+				for (int i = 0; i < awys.size(); i++) {
+					if (awys[i] != l[i]) {
+						admissible = false;
+					}
 				}
 			}
 
