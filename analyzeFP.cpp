@@ -214,25 +214,50 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			passed[0] = true;
 		}
 
-		// Does Condition contain our first airway if it's limited
-		if (conditions[i]["airways"].IsArray() && conditions[i]["airways"].Size()) {
+		// Does Condition contain our first airways if it's limited
+		bool isAllowedAirways = conditions[i]["airways"].IsArray() && conditions[i]["airways"].Size();
+		bool isBannedAirways = conditions[i]["no_airways"].IsArray() && conditions[i]["no_airways"].Size();
+			
+		if (isAllowedAirways || isBannedAirways) {
+			bool allowedPassed = false;
+			bool bannedPassed = false;
+
 			string rte = flightPlan.GetFlightPlanData().GetRoute();
 			vector<string> awys = {};
 
 			string delimiter = " ";
 			size_t pos = 0;
 			string s;
-			while ((pos = rte.find(delimiter)) != string::npos) {
+
+			bool last = false;
+
+			while (!last) {
+				pos = rte.find(delimiter);
+				if (pos == string::npos) {
+					last = true;
+				}
+
 				s = rte.substr(0, pos);
 
 				if (any_of(s.begin(), s.end(), ::isdigit)) {
 					awys.push_back(s);
 				}
 
-				rte.erase(0, pos + delimiter.length());
+				if (!last) {
+					rte.erase(0, pos + delimiter.length());
+				}
 			}
 
-			if (routeContains(awys, conditions[i]["airways"])) {
+
+			if (!isAllowedAirways || routeContains(awys, conditions[i]["airways"])) {
+				allowedPassed = true;
+			}
+
+			if (!isBannedAirways || routeContains(awys, conditions[i]["no_airways"])) {
+				bannedPassed = true;
+			}
+
+			if (allowedPassed && bannedPassed) {
 				returnValid.push_back("Passed Airways");
 				passed[1] = true;
 			}
@@ -371,10 +396,11 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		}
 		else {
 			returnValid.push_back("Failed");
-			if (!passed[0] || !passed[1])
+			continue;
+			/* if (!passed[0] || !passed[1])
 				continue;
 			else
-				break;
+				break; */
 		}
 	}
 	

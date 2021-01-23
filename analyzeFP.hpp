@@ -107,14 +107,24 @@ public:
 			size_t pos = 0;
 			string s;
 			vector<string> awys = {};
-			while ((pos = c.find(delimiter)) != string::npos) {
+
+			bool last = false;
+
+			while (!last) {
+				pos = c.find(delimiter);
+				if (pos == string::npos) {
+					last = true;
+				}
+
 				s = c.substr(0, pos);
 
 				if (any_of(s.begin(), s.end(), ::isdigit)) {
 					awys.push_back(s);
 				}
 
-				c.erase(0, pos + delimiter.length());
+				if (!last) {
+					c.erase(0, pos + delimiter.length());
+				}
 			}
 
 			bool admissible = true;
