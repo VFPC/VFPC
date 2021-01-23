@@ -217,7 +217,22 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		// Does Condition contain our first airway if it's limited
 		if (conditions[i]["airways"].IsArray() && conditions[i]["airways"].Size()) {
 			string rte = flightPlan.GetFlightPlanData().GetRoute();
-			if (routeContains(rte, conditions[i]["airways"])) {
+			vector<string> awys = {};
+
+			string delimiter = " ";
+			size_t pos = 0;
+			string s;
+			while ((pos = rte.find(delimiter)) != string::npos) {
+				s = rte.substr(0, pos);
+
+				if (any_of(s.begin(), s.end(), ::isdigit)) {
+					awys.push_back(s);
+				}
+
+				rte.erase(0, pos + delimiter.length());
+			}
+
+			if (routeContains(awys, conditions[i]["airways"])) {
 				returnValid.push_back("Passed Airways");
 				passed[1] = true;
 			}

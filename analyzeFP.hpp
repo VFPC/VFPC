@@ -98,13 +98,38 @@ public:
 		}
 		return s;
 	}
-	bool routeContains(string s, const Value& a) {
+	bool routeContains(vector<string> l, const Value& a) {
+		bool accept = false;
+
 		for (SizeType i = 0; i < a.Size(); i++) {
-			bool dd = contains(s, a[i].GetString());
-			if (contains(s, a[i].GetString()))
-				return true;
+			string c = a[i].GetString();
+			string delimiter = ",";
+			size_t pos = 0;
+			string s;
+			vector<string> awys = {};
+			while ((pos = c.find(delimiter)) != string::npos) {
+				s = c.substr(0, pos);
+
+				if (any_of(s.begin(), s.end(), ::isdigit)) {
+					awys.push_back(s);
+				}
+
+				c.erase(0, pos + delimiter.length());
+			}
+
+			bool admissible = true;
+
+			for (int i = 0; i < c.size() - 1; i++) {
+				if (awys[i] != l[i]) {
+					admissible = false;
+				}
+			}
+
+			if (admissible) {
+				accept = true;
+			}
 		}
-		return false;
+		return accept;
 	}
 
 	virtual bool OnCompileCommand(const char * sCommandLine);
