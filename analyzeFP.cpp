@@ -97,7 +97,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	vector<string> returnValid{}; // 0 = Callsign, 1 = valid/invalid SID, 2 = SID Name, 3 = Destination, 4 = Airway, 5 = Engine Type, 6 = Even/Odd, 7 = Minimum Flight Level, 8 = Maximum Flight Level, 9 = Navigation restriction, 10 = Passed
 
 	returnValid.push_back(flightPlan.GetCallsign());
-	for (int i = 0; i < 9; i++) {
+	for (int i = 0; i < 11; i++) {
 		returnValid.push_back("-");
 	}
 
@@ -150,7 +150,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	// Airport defined
 	if (airports.find(origin) == airports.end()) {
 		returnValid[1] = "Invalid";
-		returnValid[2] = "No Departure Airport";
+		returnValid[2] = "Airport Not Found";
 		returnValid[10] = "Failed";
 		return returnValid;
 	}
