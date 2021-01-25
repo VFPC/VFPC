@@ -92,12 +92,12 @@ void CVFPCPlugin::getSids() {
 	}
 }
 
-// Does the checking and magic stuff, so everything will be alright, when this is finished! Or not. Who knows?
+// Does the checking and magic stuff, so everything will be alright when this is finished! Or not. Who knows?
 vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
-	vector<string> returnValid{}; // 0 = Callsign, 1 = valid/invalid SID, 2 = SID Name, 3 = Destination, 4 = Airway, 5 = Engine Type, 6 = Even/Odd, 7 = Minimum Flight Level, 8 = Maximum Flight Level, 9 = Navigation restriction, 10 = Passed
+	vector<string> returnValid{}; // 0 = Callsign, 1 = SID Validity, 2 = SID Name, 3 = Engine Type, 4 = Airways, 5 = Nav Performance, 6 = Destination, 7 = Min/Max Flight Level, 8 = Even/Odd, 9 = Passed/Failed
 
 	returnValid.push_back(flightPlan.GetCallsign());
-	for (int i = 0; i < 11; i++) {
+	for (int i = 0; i < 10; i++) {
 		returnValid.push_back("-");
 	}
 
@@ -119,7 +119,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	if (!sid.length()) {
 		returnValid[1] = "Invalid";
 		returnValid[2] = "No SID Set";
-		returnValid[10] = "Failed";
+		returnValid[9] = "Failed";
 		return returnValid;
 	}
 
@@ -137,7 +137,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	if (0 == sid_suffix.length() && "VCT" != first_wp) {
 		returnValid[1] = "Invalid";
 		returnValid[2] = "No SID Set";
-		returnValid[10] = "Failed";
+		returnValid[9] = "Failed";
 		return returnValid;
 	}
 
@@ -151,7 +151,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	if (airports.find(origin) == airports.end()) {
 		returnValid[1] = "Invalid";
 		returnValid[2] = "Airport Not Found";
-		returnValid[10] = "Failed";
+		returnValid[9] = "Failed";
 		return returnValid;
 	}
 	else
@@ -161,7 +161,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	if (!config[origin_int].HasMember("sids") || config[origin_int]["sids"].IsArray()) {
 		returnValid[1] = "Invalid";
 		returnValid[2] = "No SIDs Defined";
-		returnValid[10] = "Failed";
+		returnValid[9] = "Failed";
 		return returnValid;
 	}
 
@@ -169,231 +169,303 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	if (!config[origin_int]["sids"].HasMember(first_wp.c_str()) || !config[origin_int]["sids"][first_wp.c_str()].IsArray()) {
 		returnValid[1] = "Invalid";
 		returnValid[2] = "No Valid SID";
-		returnValid[10] = "Failed";
+		returnValid[9] = "Failed";
 		return returnValid;
 	}
 
 	const Value& conditions = config[origin_int]["sids"][first_wp.c_str()];
+
+	int round = 0;
+	bool cont = true;
+
+	vector<bool> validity;
+	vector<bool> new_validity;
+
+	while (cont && round < 7) {
+		new_validity = {};
+
+		for (SizeType i = 0; i < conditions.Size(); i++) {
+			if (i == 0 || validity[i]) {
+				switch (round) {
+				case 0:
+					// SID Suffix
+					if (!conditions[i]["suffix"].IsString() && conditions[i]["suffix"].GetString() == sid_suffix) {
+						new_validity.push_back(true);
+					}
+					else {
+						new_validity.push_back(false);
+					}
+					break;
+				case 1:
+					//Engines (P=piston, T=turboprop, J=jet, E=electric)
+					if (conditions[i]["engine"].IsString()) {
+						if (conditions[i]["engine"].GetString()[0] == flightPlan.GetFlightPlanData().GetEngineType()) {
+							returnValid[5] = "Passed Engine type (" + (string)conditions[i]["engine"].GetString() + ')';
+							new_validity.push_back(true);
+						}
+						else {
+							returnValid[5] = "Failed Engine type. Needed Type: " + (string)conditions[i]["engine"].GetString();
+							new_validity.push_back(false);
+						}
+					}
+					else if (conditions[i]["engine"].IsArray() && conditions[i]["engine"].Size()) {
+						if (arrayContains(conditions[i]["engine"], flightPlan.GetFlightPlanData().GetEngineType())) {
+							returnValid[5] = "Passed Engine type (" + arrayToString(conditions[i]["engine"], ',') + ")";
+							new_validity.push_back(true);
+						}
+						else {
+							returnValid[5] = "Failed Engine type. Needed Type: " + arrayToString(conditions[i]["engine"], ',');
+							new_validity.push_back(false);
+						}
+					}
+					else {
+						returnValid[5] = "No Engine type restriction";
+						new_validity.push_back(true);
+					}
+					break;
+				case 2:
+					//Airways
+					bool isAllowedAirways = false;
+					bool isBannedAirways = false;
+
+					if (conditions[i]["airways"].IsArray() && conditions[i]["airways"].Size()) {
+						isAllowedAirways = true;
+					}
+
+					if (conditions[i]["no_airways"].IsArray() && conditions[i]["no_airways"].Size()) {
+						isBannedAirways = true;
+					}
+
+					if (isAllowedAirways || isBannedAirways) {
+						bool allowedPassed = false;
+						bool bannedPassed = false;
+
+						string rte = flightPlan.GetFlightPlanData().GetRoute();
+						vector<string> awys = {};
+
+						string delimiter = " ";
+						size_t pos = 0;
+						string s;
+
+						bool last = false;
+
+						while (!last) {
+							pos = rte.find(delimiter);
+							if (pos == string::npos) {
+								last = true;
+							}
+
+							s = rte.substr(0, pos);
+
+							if (any_of(s.begin(), s.end(), ::isdigit) && s.find_first_of('/') == string::npos) {
+								awys.push_back(s);
+							}
+
+							if (last) {
+								rte = "";
+							}
+							else {
+								rte.erase(0, pos + delimiter.length());
+							}
+						}
+
+
+						if (!isAllowedAirways || routeContains(awys, conditions[i]["airways"])) {
+							allowedPassed = true;
+						}
+
+						if (!isBannedAirways || !routeContains(awys, conditions[i]["no_airways"])) {
+							bannedPassed = true;
+						}
+
+						if (allowedPassed && bannedPassed) {
+							returnValid[4] = "Passed Airways";
+							new_validity.push_back(true);
+						}
+						else {
+							returnValid[4] = "Failed Airways";
+							new_validity.push_back(false);
+						}
+					}
+					else {
+						returnValid[4] = "No Airway restriction";
+						new_validity.push_back(true);
+					}
+					break;
+				case 3:
+					//Nav Perf
+					if (conditions[i]["navigation"].IsString()) {
+						string navigation_constraints(conditions[i]["navigation"].GetString());
+						if (string::npos == navigation_constraints.find_first_of(flightPlan.GetFlightPlanData().GetCapibilities())) {
+							returnValid[9] = "Failed navigation capability restriction. Req. capability: " + navigation_constraints;
+							new_validity.push_back(false);
+						}
+						else {
+							returnValid[9] = "No navigation capability restriction";
+							new_validity.push_back(true);
+						}
+					}
+					else {
+						returnValid[9] = "No navigation capability restriction";
+						new_validity.push_back(true);
+					}
+					break;
+				case 4:
+					bool perm = true;
+
+					if (conditions[i]["no_destinations"].IsArray() && conditions[i]["no_destinations"].Size()) {
+						string dest;
+						if ((dest = destArrayContains(conditions[i]["no_destinations"], destination.c_str())).size()) {
+							if (dest.size() < 4)
+								dest += string(4 - dest.size(), '*');
+							returnValid[3] = "Banned Destination (" + dest + ")";
+							perm = false;
+						}
+					}
+
+					if (perm && conditions[i]["destinations"].IsArray() && conditions[i]["destinations"].Size()) {
+						string dest;
+						if ((dest = destArrayContains(conditions[i]["destinations"], destination.c_str())).size()) {
+							if (dest.size() < 4)
+								dest += string(4 - dest.size(), '*');
+							returnValid[3] = "Passed Destination (" + dest + ")";
+							perm = true;
+						}
+						else {
+							returnValid[3] = "Banned Destination (" + destination + ")";
+							perm = false;
+						}
+					}
+					else if (perm) {
+						returnValid[3] = "No Destination Restriction";
+						perm = true;
+					}
+
+					validity.push_back(perm);
+					break;
+				case 5:
+					int min_fl, max_fl;
+					bool lvl = true;
+					//Min Level
+					if (conditions[i].HasMember("min_fl") && (min_fl = conditions[i]["min_fl"].GetInt()) > 0) {
+						if ((RFL / 100) >= min_fl) {
+							returnValid[7] = "Passed Minimum Flight Level (" + to_string(conditions[i]["min_fl"].GetInt()) + ')';
+						}
+						else {
+							returnValid[7] = "Failed Minimum Flight Level. Min FL: " + to_string(min_fl);
+							lvl = false;
+						}
+					}
+					else {
+						returnValid[7] = "No Minimum Flight Level";
+					}
+					break;
+
+					//Max Level
+					if (lvl && conditions[i].HasMember("max_fl") && (max_fl = conditions[i]["max_fl"].GetInt()) > 0) {
+						if ((RFL / 100) <= max_fl) {
+							returnValid[8] = "Passed Maximum Flight Level (" + to_string(conditions[i]["max_fl"].GetInt()) + ')';
+						}
+						else {
+							returnValid[8] = "Failed Maximum Flight Level. Max FL: " + to_string(max_fl);
+							lvl = false;
+						}
+					}
+					else {
+						returnValid[8] = "No Maximum Flight Level";
+					}
+				case 6:
+					//Even/Odd Levels
+					string direction = conditions[i]["direction"].GetString();
+					boost::to_upper(direction);
+
+					if (direction == "EVEN") {
+						if ((RFL / 1000) % 2 == 0) {
+							returnValid[6] = "Passed Even";
+							validity.push_back(true);
+						}
+						else {
+							returnValid[6] = "Failed Even";
+							validity.push_back(false);
+						}
+					}
+					else if (direction == "ODD") {
+						if ((RFL / 1000) % 2 != 0) {
+							returnValid[6] = "Passed Odd";
+							validity.push_back(true);
+						}
+						else {
+							returnValid[6] = "Failed Odd";
+							validity.push_back(false);
+						}
+					}
+					else if (direction == "ANY") {
+						returnValid[6] = "No Direction restriction";
+						validity.push_back(true);
+					}
+					else {
+						string errorText{ "Config Error for Even/Odd on SID: " };
+						errorText += first_wp;
+						sendMessage("Error", errorText);
+						returnValid[6] = "Config Error for Even/Odd on this SID!";
+						validity.push_back(false);
+					}
+					break;
+				}
+			}
+		}
+
+		if (all_of(new_validity.begin(), new_validity.end(), [](bool v) { return !v; })) {
+			cont = false;
+		}
+		else {
+			validity = new_validity;
+			new_validity = {};
+			round++;
+		}
+	}
+
+	returnValid[0] = flightPlan.GetCallsign();
+	for (int i = 1; i < 11; i++) {
+		returnValid[i] = "-";
+	}
+
+	switch (round) {
+		case 7:
+			std::vector<bool>::iterator itr = std::find(validity.begin(), validity.end(), true);
+			int i = std::distance(validity.begin(), itr);
+
+
+			break;
+		case 6:
+
+		case 5:
+
+		case 4:
+
+		case 3:
+
+		case 2:
+
+		case 1:
+
+		case 0:
+			break;
+
+	}
+
+
+
+	bool passed[7]{ false };
+	valid = false;
+
+
+
 	for (SizeType i = 0; i < conditions.Size(); i++) {
-		returnValid.clear();
-		returnValid[0] = flightPlan.GetCallsign();
-		for (int i = 0; i < 9; i++) {
-			returnValid.push_back("-");
-		}
-
-		bool passed[7]{ false };
-		valid = false;
-
-		// Skip SID if the check is suffix-related
-		if (conditions[i]["suffix"].IsString() && conditions[i]["suffix"].GetString() != sid_suffix) {
-			continue;
-		}
-		 
-		// Does Condition contain our destination if it's limited
-		if (conditions[i]["no_destinations"].IsArray() && conditions[i]["no_destinations"].Size()) {
-			string dest;
-			if ((dest = destArrayContains(conditions[i]["no_destinations"], destination.c_str())).size()) {
-				if (dest.size() < 4)
-					dest += string(4 - dest.size(), '*');
-				returnValid[3] = "Banned Destination (" + dest + ")";
-				continue;
-			}
-		}
-
-		if (conditions[i]["destinations"].IsArray() && conditions[i]["destinations"].Size()) {
-			string dest;
-			if ((dest = destArrayContains(conditions[i]["destinations"], destination.c_str())).size()) {
-				if (dest.size() < 4)
-					dest += string(4 - dest.size(), '*');
-				returnValid[3] = "Passed Destination (" + dest + ")";
-				passed[0] = true;
-			}
-			else {
-				returnValid[3] = "Banned Destination (" + destination + ")";
-				continue;
-			}
-		}
-		else {
-			returnValid[3] = "No Destination Restriction";
-			passed[0] = true;
-		}
-
-		// Does Condition contain our first airways if it's limited
-		bool isAllowedAirways = false;
-		bool isBannedAirways = false;
-
-		if (conditions[i]["airways"].IsArray() && conditions[i]["airways"].Size()) {
-			isAllowedAirways = true;
-		}
-
-		if (conditions[i]["no_airways"].IsArray() && conditions[i]["no_airways"].Size()) {
-			isBannedAirways = true;
-		}
-			
-		if (isAllowedAirways || isBannedAirways) {
-			bool allowedPassed = false;
-			bool bannedPassed = false;
-
-			string rte = flightPlan.GetFlightPlanData().GetRoute();
-			vector<string> awys = {};
-
-			string delimiter = " ";
-			size_t pos = 0;
-			string s;
-
-			bool last = false;
-
-			while (!last) {
-				pos = rte.find(delimiter);
-				if (pos == string::npos) {
-					last = true;
-				}
-
-				s = rte.substr(0, pos);
-
-				if (any_of(s.begin(), s.end(), ::isdigit) && s.find_first_of('/') == string::npos) {
-					awys.push_back(s);
-				}
-
-				if (last) {
-					rte = "";
-				}
-				else {
-					rte.erase(0, pos + delimiter.length());
-				}
-			}
-
-
-			if (!isAllowedAirways || routeContains(awys, conditions[i]["airways"])) {
-				allowedPassed = true;
-			}
-
-			if (!isBannedAirways || !routeContains(awys, conditions[i]["no_airways"])) {
-				bannedPassed = true;
-			}
-
-			if (allowedPassed && bannedPassed) {
-				returnValid[4] = "Passed Airways";
-				passed[1] = true;
-			}
-			else {
-				returnValid[4] = "Failed Airways";
-				continue;
-			}
-		}
-		else {
-			returnValid[4] = "No Airway restriction";
-			passed[1] = true;
-		}
-
-		// Is Engine Type if it's limited (P=piston, T=turboprop, J=jet, E=electric)
-		if (conditions[i]["engine"].IsString()) {
-			if (conditions[i]["engine"].GetString()[0] == flightPlan.GetFlightPlanData().GetEngineType()) {
-				returnValid[5] = "Passed Engine type (" + (string)conditions[i]["engine"].GetString() + ')';
-				passed[2] = true;
-			}
-			else {
-				returnValid[5] = "Failed Engine type. Needed Type: " + (string)conditions[i]["engine"].GetString();
-			}
-		}
-		else if (conditions[i]["engine"].IsArray() && conditions[i]["engine"].Size()) {
-			if (arrayContains(conditions[i]["engine"], flightPlan.GetFlightPlanData().GetEngineType())) {
-				returnValid[5] = "Passed Engine type (" + arrayToString(conditions[i]["engine"], ',') + ")";
-				passed[2] = true;
-			}
-			else {
-				returnValid[5] = "Failed Engine type. Needed Type: " + arrayToString(conditions[i]["engine"], ',');
-			}
-		}
-		else {
-			returnValid[5] = "No Engine type restriction";
-			passed[2] = true;
-		}
-
-
+		
 		valid = true;
 		returnValid[1] = "Valid";
 		returnValid[2] = first_wp;
-
-		// Direction of condition (EVEN, ODD, ANY)
-		string direction = conditions[i]["direction"].GetString();
-		boost::to_upper(direction);
-
-		if (direction == "EVEN") {
-			if ((RFL / 1000) % 2 == 0) {
-				returnValid[6] = "Passed Even";
-				passed[3] = true;
-			}
-			else {
-				returnValid[6] = "Failed Even";
-			}
-		}
-		else if (direction == "ODD") {
-			if ((RFL / 1000) % 2 != 0) {
-				returnValid[6] = "Passed Odd";
-				passed[3] = true;
-			}
-			else {
-				returnValid[6] = "Failed Odd";
-			}
-		}
-		else if (direction == "ANY") {
-			returnValid[6] = "No Direction restriction";
-			passed[3] = true;
-		}
-		else {
-			string errorText{ "Config Error for Even/Odd on SID: " };
-			errorText += first_wp;
-			sendMessage("Error", errorText);
-			returnValid[6] = "Config Error for Even/Odd on this SID!";
-		}
-		
-		// Flight level (min_fl, max_fl)
-		int min_fl, max_fl;
-		if (conditions[i].HasMember("min_fl") && (min_fl = conditions[i]["min_fl"].GetInt()) > 0) {
-			if ((RFL / 100) >= min_fl) {
-				returnValid[7] = "Passed Minimum Flight Level (" + to_string(conditions[i]["min_fl"].GetInt()) + ')';
-				passed[4] = true;
-			}
-			else {
-				returnValid[7] = "Failed Minimum Flight Level. Min FL: " + to_string(min_fl);
-			}
-		}
-		else {
-			returnValid[7] = "No Minimum Flight Level";
-			passed[4] = true;
-		}
-
-		if (conditions[i].HasMember("max_fl") && (max_fl = conditions[i]["max_fl"].GetInt()) > 0) {
-			if ((RFL / 100) <= max_fl) {
-				returnValid[8] = "Passed Maximum Flight Level (" + to_string(conditions[i]["max_fl"].GetInt()) + ')';
-				passed[5] = true;
-			}
-			else {
-				returnValid[8] = "Failed Maximum Flight Level. Max FL: " + to_string(max_fl);
-			}
-		}
-		else {
-			returnValid[8] = "No Maximum Flight Level";
-			passed[5] = true;
-		}
-
-		// Special navigation requirements needed
-		if (conditions[i]["navigation"].IsString()) {
-			string navigation_constraints(conditions[i]["navigation"].GetString());
-			if (string::npos == navigation_constraints.find_first_of(flightPlan.GetFlightPlanData().GetCapibilities())) {
-				returnValid[9] = "Failed navigation capability restriction. Req. capability: " + navigation_constraints;
-				passed[6] = false;
-			}
-			else {
-				returnValid[9] = "No navigation capability restriction";
-				passed[6] = true;
-			}
-		}
-		else {
-			returnValid[9] = "No navigation capability restriction";
-			passed[6] = true;
-		}
 
 		bool passedVeri{ false };
 		for (int i = 0; i < 7; i++) {
@@ -407,19 +479,21 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			}
 		}
 		if (passedVeri) {
-			returnValid[10] = "Passed";
+			returnValid[9] = "Passed";
 			break;
 		}
 		else {
-			returnValid[10] = "Failed";
-			continue;
+			if (!passed[0] || !passed[1])
+				continue;
+			else
+				break;
 		}
 	}
 	
 	if (!valid) {
 		returnValid[1] = "Invalid";
 		returnValid[2] = "No Valid SID";
-		returnValid[10] = "Failed";
+		returnValid[9] = "Failed";
 	}
 	return returnValid;
 }
