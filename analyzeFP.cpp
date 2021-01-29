@@ -180,9 +180,11 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 	vector<bool> validity;
 	vector<bool> new_validity;
+	vector<string> results;
 
 	while (cont && round < 7) {
 		new_validity = {};
+		results = {};
 
 		for (SizeType i = 0; i < conditions.Size(); i++) {
 			if (i == 0 || validity[i]) {
@@ -194,6 +196,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					}
 					else {
 						new_validity.push_back(false);
+						results.push_back(conditions[i]["suffix"].GetString());
 					}
 					break;
 				case 1:
@@ -206,6 +209,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 						else {
 							returnValid[5] = "Failed Engine type. Needed Type: " + (string)conditions[i]["engine"].GetString();
 							new_validity.push_back(false);
+							results.push_back(conditions[i]["engine"].GetString());
 						}
 					}
 					else if (conditions[i]["engine"].IsArray() && conditions[i]["engine"].Size()) {
@@ -216,6 +220,9 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 						else {
 							returnValid[5] = "Failed Engine type. Needed Type: " + arrayToString(conditions[i]["engine"], ',');
 							new_validity.push_back(false);
+							for (SizeType j = 0; j < conditions[i]["engine"].Size(); i++) {
+								results.push_back(conditions[i]["engine"][j].GetString());			
+							}
 						}
 					}
 					else {
@@ -426,16 +433,16 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	}
 
 	returnValid[0] = flightPlan.GetCallsign();
-	for (int i = 1; i < 11; i++) {
+	for (int i = 1; i < 10; i++) {
 		returnValid[i] = "-";
 	}
 
 	switch (round) {
 		case 7:
-			std::vector<bool>::iterator itr = std::find(validity.begin(), validity.end(), true);
+			vector<bool>::iterator itr = find(validity.begin(), validity.end(), true);
 			int i = std::distance(validity.begin(), itr);
-
-
+#
+			returnValid[9] = "Passed";
 			break;
 		case 6:
 
@@ -447,9 +454,49 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 		case 2:
 
+			returnValid[3] = "Passed Engine Type." ;
 		case 1:
+			if (round == 1) {
+				sort(results.begin(), results.end());
+				results.erase(unique(results.begin(), results.end()), results.end());
+
+				string out = "";
+
+				for (vector<string>::iterator itr = results.begin(); itr != results.end(); ++itr) {
+					if (*itr == "P") {
+						out += "Piston, ";
+					}
+					else if (*itr == "T") {
+						out += "Turboprop, ";
+					}
+					else if (*itr == "J") {
+						out += "Jet, ";
+					}
+					else if (*itr == "E") {
+						out += "Electric, ";
+					}
+				}
+
+				returnValid[3] = "Failed Engine Type. Needed Type : " + out.substr(0, out.length() - 2) + ".";
+			}
+
+			returnValid[1] = "Valid";
+			returnValid[2] = sid;
+			break;
 
 		case 0:
+			sort(results.begin(), results.end());
+			results.erase(unique(results.begin(), results.end()), results.end());
+
+			string out = "";
+
+			for (vector<string>::iterator itr = results.begin(); itr != results.end(); ++itr) {
+				out += *itr + ", ";
+			}
+
+			returnValid[1] = "Invalid";
+			returnValid[2] = sid + " Contains Invalid Suffix. Valid Suffices: " + out.substr(0, out.length() - 2) + ".";
+
 			break;
 
 	}
