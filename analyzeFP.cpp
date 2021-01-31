@@ -192,7 +192,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					case 0:
 					{
 						// SID Suffix
-						if (!conditions[i]["suffix"].IsString() && conditions[i]["suffix"].GetString() == sid_suffix) {
+						if (!conditions[i]["suffix"].IsString() || conditions[i]["suffix"].GetString() == sid_suffix) {
 							new_validity.push_back(true);
 						}
 						else {
