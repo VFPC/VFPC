@@ -136,7 +136,7 @@ public:
 				admissible = false;
 			}
 			else {
-				for (int i = 0; i < awys.size(); i++) {
+				for (SizeType i = 0; i < awys.size(); i++) {
 					if (awys[i] != l[i]) {
 						admissible = false;
 					}
