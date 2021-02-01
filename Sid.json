@@ -395,8 +395,7 @@
                   "N63,Q41"
                ],
                "no_destinations": [
-                  "EGLL",
-                  "EGWU"
+                  "EG"
                ]
             },
             {
@@ -656,8 +655,7 @@
                   "L620","Q41"
                ],
                "no_destinations": [
-                  "EGLL",
-                  "EGWU"
+                  "EG"
                ]
             },
             {
@@ -893,9 +891,7 @@
                   "Q41"
                ],
                "no_destinations": [
-                  "EGLK",
-                  "EGLL",
-                  "EGWU"
+                  "EG"
                ]
             },
             {
