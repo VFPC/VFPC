@@ -229,124 +229,119 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					}
 					case 2:
 					{
-						if (conditions[i].HasMember("allow_airways") && conditions[i]["allow_airways"].GetBool() == false) {
-							new_validity.push_back(false);
+						//Airways
+						bool isAllowedAirways = false;
+						bool isBannedAirways = false;
+
+						string perms = "";
+
+						if (conditions[i]["airways"].IsArray() && conditions[i]["airways"].Size()) {
+							isAllowedAirways = true;
+
+							perms += conditions[i]["airways"][(SizeType)0].GetString();
+
+							for (SizeType j = 1; j < conditions[i]["airways"].Size(); j++) {
+								perms += " or ";
+								perms += conditions[i]["airways"][j].GetString();
+							}
 						}
-						else {
-							//Airways
-							bool isAllowedAirways = false;
-							bool isBannedAirways = false;
 
-							string perms = "";
+						if (conditions[i]["no_airways"].IsArray() && conditions[i]["no_airways"].Size()) {
+							isBannedAirways = true;
 
-							if (conditions[i]["airways"].IsArray() && conditions[i]["airways"].Size()) {
-								isAllowedAirways = true;
-
-								perms += conditions[i]["airways"][(SizeType)0].GetString();
-
-								for (SizeType j = 1; j < conditions[i]["airways"].Size(); j++) {
-									perms += " or ";
-									perms += conditions[i]["airways"][j].GetString();
-								}
+							if (perms != "") {
+								perms += " but ";
 							}
 
-							if (conditions[i]["no_airways"].IsArray() && conditions[i]["no_airways"].Size()) {
-								isBannedAirways = true;
+							perms += "not ";
 
-								if (perms != "") {
-									perms += " but ";
-								}
+							perms += conditions[i]["no_airways"][(SizeType)0].GetString();
 
-								perms += "not ";
+							for (SizeType j = 1; j < conditions[i]["no_airways"].Size(); j++) {
+								perms += " or ";
+								perms += conditions[i]["no_airways"][j].GetString();
+							}
+						}
 
-								perms += conditions[i]["no_airways"][(SizeType)0].GetString();
+						if (isAllowedAirways || isBannedAirways) {
+							bool min = false;
+							bool max = false;
 
-								for (SizeType j = 1; j < conditions[i]["no_airways"].Size(); j++) {
-									perms += " or ";
-									perms += conditions[i]["no_airways"][j].GetString();
-								}
+							if (conditions[i].HasMember("min_fl") && (min_fl = conditions[i]["min_fl"].GetInt()) > 0) {
+								min = true;
 							}
 
-							if (isAllowedAirways || isBannedAirways) {
-								bool min = false;
-								bool max = false;
+							if (conditions[i].HasMember("max_fl") && (max_fl = conditions[i]["max_fl"].GetInt()) > 0) {
+								max = true;
+							}
 
-								if (conditions[i].HasMember("min_fl") && (min_fl = conditions[i]["min_fl"].GetInt()) > 0) {
-									min = true;
-								}
-
-								if (conditions[i].HasMember("max_fl") && (max_fl = conditions[i]["max_fl"].GetInt()) > 0) {
-									max = true;
-								}
-
-								if (min && max) {
-									perms += " (FL" + to_string(min_fl) + " - " + to_string(max_fl) + ")";
-								}
-								else if (min) {
-									perms += " (FL" + to_string(min_fl) + "+)";
-								}
-								else if (max) {
-									perms += " (FL" + to_string(max_fl) + "-)";
-								}
-								else {
-									perms += " (All Levels)";
-								}
-
-								bool allowedPassed = false;
-								bool bannedPassed = false;
-
-								string rte = flightPlan.GetFlightPlanData().GetRoute();
-								vector<string> awys = {};
-
-								string delimiter = " ";
-								size_t pos = 0;
-								string s;
-
-								bool last = false;
-
-								while (!last) {
-									pos = rte.find(delimiter);
-									if (pos == string::npos) {
-										last = true;
-									}
-
-									s = rte.substr(0, pos);
-
-									if (any_of(s.begin(), s.end(), ::isdigit) && s.find_first_of('/') == string::npos) {
-										awys.push_back(s);
-									}
-
-									if (last) {
-										rte = "";
-									}
-									else {
-										rte.erase(0, pos + delimiter.length());
-									}
-								}
-
-
-								if (!isAllowedAirways || routeContains(awys, conditions[i]["airways"])) {
-									allowedPassed = true;
-								}
-
-								if (!isBannedAirways || !routeContains(awys, conditions[i]["no_airways"])) {
-									bannedPassed = true;
-								}
-
-								if (allowedPassed && bannedPassed) {
-									new_validity.push_back(true);
-								}
-								else {
-									new_validity.push_back(false);
-									results.push_back(perms);
-								}
+							if (min && max) {
+								perms += " (FL" + to_string(min_fl) + " - " + to_string(max_fl) + ")";
+							}
+							else if (min) {
+								perms += " (FL" + to_string(min_fl) + "+)";
+							}
+							else if (max) {
+								perms += " (FL" + to_string(max_fl) + "-)";
 							}
 							else {
+								perms += " (All Levels)";
+							}
+
+							bool allowedPassed = false;
+							bool bannedPassed = false;
+
+							string rte = flightPlan.GetFlightPlanData().GetRoute();
+							vector<string> awys = {};
+
+							string delimiter = " ";
+							size_t pos = 0;
+							string s;
+
+							bool last = false;
+
+							while (!last) {
+								pos = rte.find(delimiter);
+								if (pos == string::npos) {
+									last = true;
+								}
+
+								s = rte.substr(0, pos);
+
+								if (any_of(s.begin(), s.end(), ::isdigit) && s.find_first_of('/') == string::npos) {
+									awys.push_back(s);
+								}
+
+								if (last) {
+									rte = "";
+								}
+								else {
+									rte.erase(0, pos + delimiter.length());
+								}
+							}
+
+
+							if (isAllowedAirways && routeContains(awys, conditions[i]["airways"])) {
+								allowedPassed = true;
+							}
+
+							if (!isBannedAirways || !routeContains(awys, conditions[i]["no_airways"])) {
+								bannedPassed = true;
+							}
+
+							if (allowedPassed && bannedPassed) {
 								new_validity.push_back(true);
 							}
+							else {
+								new_validity.push_back(false);
+								results.push_back(perms);
+							}
+						}
+						else {
+							new_validity.push_back(true);
 						}
 
-						break;
+					break;
 					}
 					case 3:
 					{

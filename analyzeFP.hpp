@@ -103,6 +103,11 @@ public:
 
 		for (SizeType i = 0; i < a.Size(); i++) {
 			string c = a[i].GetString();
+
+			if (c == "*") {
+				return true;
+			}
+
 			string delimiter = ",";
 			size_t pos = 0;
 			string s;
