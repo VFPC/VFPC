@@ -20,7 +20,7 @@ vector<int> sidMax;
 using namespace std;
 using namespace EuroScopePlugIn;
 
-	// Run on Plugin Initialization
+// Run on Plugin Initialization
 CVFPCPlugin::CVFPCPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_PLUGIN_VERSION, MY_PLUGIN_DEVELOPER, MY_PLUGIN_COPYRIGHT)
 {
 	string loadingMessage = "Version: ";
@@ -47,7 +47,6 @@ CVFPCPlugin::~CVFPCPlugin()
 {
 }
 
-
 /*
 	Custom Functions
 */
@@ -69,13 +68,17 @@ void CVFPCPlugin::sendMessage(string message) {
 }
 
 void CVFPCPlugin::getSids() {
-	stringstream ss;
+	/*stringstream ss;
 	ifstream ifs;
 	ifs.open(pfad.c_str(), ios::binary);
 	ss << ifs.rdbuf();
-	ifs.close();
+	ifs.close();*/
+	cpr::Response r = cpr::Get(cpr::Url{ "http://localhost:8080/sids" },
+		cpr::Parameters{ {"airports", "EGKK"} });
+	r.status_code;                  // 200
+	r.header["content-type"];       // application/json; charset=utf-8
 
-	if (config.Parse<0>(ss.str().c_str()).HasParseError()) {
+	if (config.Parse<0>(r.text.c_str()).HasParseError()) {
 		string msg = str(boost::format("An error parsing VFPC configuration occurred. Error: %s (Offset: %i)\nOnce fixed, reload the config by typing '.vfpc reload'") % config.GetParseError() % config.GetErrorOffset());
 		sendMessage(msg);
 
