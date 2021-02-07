@@ -1,4 +1,3 @@
-#pragma once
 #include "EuroScopePlugIn.h"
 #include <sstream>
 #include <iostream>
@@ -7,6 +6,7 @@
 #include <fstream>
 #include <vector>
 #include <map>
+
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 #include "rapidjson/document.h"
@@ -20,8 +20,8 @@
 #define MY_PLUGIN_VIEW_AVISO  "VATSIM UK Flight Plan Checker"
 
 #define PLUGIN_WELCOME_MESSAGE	"Welcome to the VATSIM UK Flight Plan Checker"
-#define API_WEB_ADDRESS "http://localhost"
-#define API_WEB_PORT "8080"
+//#define API_WEB_ADDRESS "http://localhost"
+//#define API_WEB_PORT "8080"
 
 using namespace std;
 using namespace boost;
