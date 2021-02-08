@@ -11,7 +11,7 @@
 #include <boost/format.hpp>
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
-#include <cpr/cpr.h>
+#include <cpprest/http_client.h>
 
 #define MY_PLUGIN_NAME      "VFPC (UK)"
 #define MY_PLUGIN_VERSION   "3.0.0"
@@ -27,7 +27,11 @@ using namespace std;
 using namespace boost;
 using namespace rapidjson;
 using namespace EuroScopePlugIn;
-using namespace cpr;
+using namespace utility;
+using namespace web;
+using namespace web::http;
+using namespace web::http::client;
+using namespace concurrency::streams;
 
 class CVFPCPlugin :
 	public EuroScopePlugIn::CPlugIn
@@ -35,6 +39,8 @@ class CVFPCPlugin :
 public:
 	CVFPCPlugin();
 	virtual ~CVFPCPlugin();
+
+	virtual size_t writeFunction(void *ptr, size_t size, size_t nmemb, string *data);
 
 	virtual void getSids();
 
