@@ -38,7 +38,7 @@ CVFPCPlugin::CVFPCPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_
 	pfad.resize(pfad.size() - strlen("VFPC.dll"));
 	pfad += "Sid.json";
 
-	debugMode = false;
+	debugMode = true;
 	initialSidLoad = false;
 }
 
@@ -67,39 +67,18 @@ void CVFPCPlugin::sendMessage(string message) {
 	DisplayUserMessage("Message", "VFPC", message.c_str(), true, true, true, false, false);
 }
 
-/*size_t CVFPCPlugin::writeFunction(void *ptr, size_t size, size_t nmemb, string *data) {
-	data->append((char*)ptr, size * nmemb);
-	return size * nmemb;
-}*/
-
-struct MemoryStruct {
-	char *memory;
-	size_t size;
-};
-
-size_t CVFPCPlugin::writeFunction(void *ptr, size_t size, size_t nmemb, string *data)
-{
-	data->append((char*)ptr, size * nmemb);
-	return size * nmemb;
-}
-
 void CVFPCPlugin::getSids() {
+	/*stringstream ss;
+	ifstream ifs;
+	ifs.open(pfad.c_str(), ios::binary);
+	ss << ifs.rdbuf();
+	ifs.close();*/
+	cpr::Response r = cpr::Get(cpr::Url{ "http://localhost:8080/sids" },
+		cpr::Parameters{ {"airports", "EGKK"} });
+	r.status_code;                  // 200
+	r.header["content-type"];       // application/json; charset=utf-8
 
-	http_client client(L"http://localhost:8080/sids?airports=EGKK");
-
-	auto task = client.request(methods::GET);
-	task.wait();
-
-	http_response response = task.get();
-	string outString = "";
-
-	if (response.status_code() == status_codes::OK)
-	{
-		wstring val = response.extract_string().get();
-		outString.assign(val.begin(), val.end());
-	}
-
-	if (config.Parse<0>(outString.c_str()).HasParseError()) {
+	if (config.Parse<0>(r.text.c_str()).HasParseError()) {
 		string msg = str(boost::format("An error parsing VFPC configuration occurred. Error: %s (Offset: %i)\nOnce fixed, reload the config by typing '.vfpc reload'") % config.GetParseError() % config.GetErrorOffset());
 		sendMessage(msg);
 
