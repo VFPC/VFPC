@@ -67,31 +67,52 @@ void CVFPCPlugin::sendMessage(string message) {
 	DisplayUserMessage("Message", "VFPC", message.c_str(), true, true, true, false, false);
 }
 
+size_t CVFPCPlugin::writeFunction(void *ptr, size_t size, size_t nmemb, std::string* data) {
+	data->append((char*)ptr, size * nmemb);
+	return size * nmemb;
+}
+
 void CVFPCPlugin::getSids() {
-	/*stringstream ss;
-	ifstream ifs;
-	ifs.open(pfad.c_str(), ios::binary);
-	ss << ifs.rdbuf();
-	ifs.close();*/
-	cpr::Response r = cpr::Get(cpr::Url{ "http://localhost:8080/sids" },
-		cpr::Parameters{ {"airports", "EGKK"} });
-	r.status_code;                  // 200
-	r.header["content-type"];       // application/json; charset=utf-8
+	auto curl = curl_easy_init();
+	if (curl) {
+		curl_easy_setopt(curl, CURLOPT_URL, "http://localhost:8080/sids?airports=EGKK");
+		curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 1L);
+		curl_easy_setopt(curl, CURLOPT_USERAGENT, "curl/7.75.0");
+		curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 50L);
+		curl_easy_setopt(curl, CURLOPT_TCP_KEEPALIVE, 1L);
 
-	if (config.Parse<0>(r.text.c_str()).HasParseError()) {
-		string msg = str(boost::format("An error parsing VFPC configuration occurred. Error: %s (Offset: %i)\nOnce fixed, reload the config by typing '.vfpc reload'") % config.GetParseError() % config.GetErrorOffset());
-		sendMessage(msg);
+		string response_string;
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &CVFPCPlugin::writeFunction);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response_string);
 
-		config.Parse<0>("[{\"icao\": \"XXXX\"}]");
-	}
+		char* url;
+		long response_code;
+		double elapsed;
+		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+		curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME, &elapsed);
+		curl_easy_getinfo(curl, CURLINFO_EFFECTIVE_URL, &url);
 
-	airports.clear();
+		curl_easy_perform(curl);
+		curl_easy_cleanup(curl);
+		curl = NULL;
 
-	for (SizeType i = 0; i < config.Size(); i++) {
-		const Value& airport = config[i];
-		string airport_icao = airport["icao"].GetString();
+		sendMessage(response_string);
 
-		airports.insert(pair<string, SizeType>(airport_icao, i));
+		if (config.Parse<0>(response_string.c_str()).HasParseError()) {
+			string msg = str(boost::format("An error parsing VFPC configuration occurred. Error: %s (Offset: %i)\nOnce fixed, reload the config by typing '.vfpc reload'") % config.GetParseError() % config.GetErrorOffset());
+			sendMessage(msg);
+
+			config.Parse<0>("[{\"icao\": \"XXXX\"}]");
+		}
+
+		airports.clear();
+
+		for (SizeType i = 0; i < config.Size(); i++) {
+			const Value& airport = config[i];
+			string airport_icao = airport["icao"].GetString();
+
+			airports.insert(pair<string, SizeType>(airport_icao, i));
+		}
 	}
 }
 
