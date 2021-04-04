@@ -3,6 +3,7 @@
 #include <sstream>
 #include <iostream>
 #include <string>
+#include <regex>
 #include "Constant.hpp"
 #include <fstream>
 #include <vector>
@@ -98,61 +99,37 @@ public:
 		}
 		return s;
 	}
-	bool routeContains(vector<string> l, const Value& a) {
-		bool accept = false;
+	bool routeContains(string cs, vector<string> rte, const Value& valid) {
+		for (SizeType i = 0; i < valid.Size(); i++) {
+			string r = valid[i].GetString();
 
-		for (SizeType i = 0; i < a.Size(); i++) {
-			string c = a[i].GetString();
-
-			if (c == "*") {
+			if (r == "*") {
 				return true;
 			}
 
-			string delimiter = ",";
-			size_t pos = 0;
-			string s;
-			vector<string> awys = {};
-
-			bool last = false;
-
-			while (!last) {
-				pos = c.find(delimiter);
-				if (pos == string::npos) {
-					last = true;
-				}
-
-				s = c.substr(0, pos);
-
-				if (any_of(s.begin(), s.end(), ::isdigit)) {
-					awys.push_back(s);
-				}
-
-				if (last) {
-					c = "";
-				}
-				else {
-					c.erase(0, pos + delimiter.length());
-				}
+			vector<string> current = split(r, ' ');
+			for (std::size_t i = 0; i < current.size(); i++) {
+				boost::to_upper(current[i]);
 			}
 
 			bool admissible = true;
 
-			if (awys.size() > l.size()) {
+			if (current.size() > rte.size()) {
 				admissible = false;
 			}
 			else {
-				for (SizeType i = 0; i < awys.size(); i++) {
-					if (awys[i] != l[i]) {
+				for (SizeType i = 0; i < current.size(); i++) {
+					if (current[i] != rte[i] && current[i] != "*") {
 						admissible = false;
 					}
 				}
 			}
 
 			if (admissible) {
-				accept = true;
+				return true;
 			}
 		}
-		return accept;
+		return false;
 	}
 
 	virtual bool OnCompileCommand(const char * sCommandLine);

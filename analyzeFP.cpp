@@ -107,11 +107,14 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	int RFL = flightPlan.GetFlightPlanData().GetFinalAltitude();
 
 	vector<string> route = split(flightPlan.GetFlightPlanData().GetRoute(), ' ');
-	for (std::size_t i = 0; i < route.size(); i++) {
+	for (size_t i = 0; i < route.size(); i++) {
 		boost::to_upper(route[i]);
 	}
 
 	string sid = flightPlan.GetFlightPlanData().GetSidName(); boost::to_upper(sid);
+
+	// Remove any # characters from SID name
+	boost::erase_all(sid, "#");
 
 	// Flightplan has SID
 	if (!sid.length()) {
@@ -129,7 +132,6 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		sid_suffix = sid.substr(sid.find_first_of("0123456789"), sid.length());
 		boost::to_upper(sid_suffix);
 	}
-	string first_airway;
 
 	// Did not find a valid SID
 	if (0 == sid_suffix.length() && "VCT" != first_wp) {
@@ -139,10 +141,22 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		return returnValid;
 	}
 
-	vector<string>::iterator it = find(route.begin(), route.end(), first_wp);
-	if (it != route.end() && (it - route.begin()) != route.size() - 1) {
-		first_airway = route[(it - route.begin()) + 1];
-		boost::to_upper(first_airway);
+	// Remove Speed/Alt Data From Route
+	regex reg("N[0-9]{3,4}A[0-9]{3}$");
+
+	if (regex_match(route[0], reg)) {
+		route.erase(route.begin());
+	}
+
+	// Check First Waypoint Correct and Remove from Route
+	if (route[0] == first_wp) {
+		route.erase(route.begin());
+	}
+	else {
+		returnValid[1] = "Invalid";
+		returnValid[2] = "Route Not From Final SID Fix";
+		returnValid[9] = "Failed";
+		return returnValid;
 	}
 
 	// Airport defined
@@ -169,6 +183,13 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		returnValid[2] = "Waypoint Not Found";
 		returnValid[9] = "Failed";
 		return returnValid;
+	}
+
+	// Remove "DCT" Instances from Route
+	for (vector<string>::iterator itr = route.end(); itr != route.begin(); --itr) {
+		if (*itr == "DCT") {
+			route.erase(itr);
+		}
 	}
 
 	const Value& conditions = config[origin_int]["sids"][first_wp.c_str()];
@@ -230,24 +251,24 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					case 2:
 					{
 						//Airways
-						bool isAllowedAirways = false;
-						bool isBannedAirways = false;
+						bool testAllowed = false;
+						bool testBanned = false;
 
 						string perms = "";
 
-						if (conditions[i]["airways"].IsArray() && conditions[i]["airways"].Size()) {
-							isAllowedAirways = true;
+						if (conditions[i]["route"].IsArray() && conditions[i]["route"].Size()) {
+							testAllowed = true;
 
-							perms += conditions[i]["airways"][(SizeType)0].GetString();
+							perms += conditions[i]["route"][(SizeType)0].GetString();
 
-							for (SizeType j = 1; j < conditions[i]["airways"].Size(); j++) {
+							for (SizeType j = 1; j < conditions[i]["route"].Size(); j++) {
 								perms += " or ";
-								perms += conditions[i]["airways"][j].GetString();
+								perms += conditions[i]["route"][j].GetString();
 							}
 						}
 
-						if (conditions[i]["no_airways"].IsArray() && conditions[i]["no_airways"].Size()) {
-							isBannedAirways = true;
+						if (conditions[i]["no_route"].IsArray() && conditions[i]["no_route"].Size()) {
+							testBanned = true;
 
 							if (perms != "") {
 								perms += " but ";
@@ -255,15 +276,15 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 							perms += "not ";
 
-							perms += conditions[i]["no_airways"][(SizeType)0].GetString();
+							perms += conditions[i]["no_route"][(SizeType)0].GetString();
 
-							for (SizeType j = 1; j < conditions[i]["no_airways"].Size(); j++) {
+							for (SizeType j = 1; j < conditions[i]["no_route"].Size(); j++) {
 								perms += " or ";
-								perms += conditions[i]["no_airways"][j].GetString();
+								perms += conditions[i]["no_route"][j].GetString();
 							}
 						}
 
-						if (isAllowedAirways || isBannedAirways) {
+						if (testAllowed || testBanned) {
 							bool min = false;
 							bool max = false;
 
@@ -291,41 +312,11 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 							bool allowedPassed = false;
 							bool bannedPassed = false;
 
-							string rte = flightPlan.GetFlightPlanData().GetRoute();
-							vector<string> awys = {};
-
-							string delimiter = " ";
-							size_t pos = 0;
-							string s;
-
-							bool last = false;
-
-							while (!last) {
-								pos = rte.find(delimiter);
-								if (pos == string::npos) {
-									last = true;
-								}
-
-								s = rte.substr(0, pos);
-
-								if (any_of(s.begin(), s.end(), ::isdigit) && s.find_first_of('/') == string::npos) {
-									awys.push_back(s);
-								}
-
-								if (last) {
-									rte = "";
-								}
-								else {
-									rte.erase(0, pos + delimiter.length());
-								}
-							}
-
-
-							if (isAllowedAirways && routeContains(awys, conditions[i]["airways"])) {
+							if (testAllowed && routeContains(flightPlan.GetCallsign(), route, conditions[i]["route"])) {
 								allowedPassed = true;
 							}
 
-							if (!isBannedAirways || !routeContains(awys, conditions[i]["no_airways"])) {
+							if (!testBanned || !routeContains(flightPlan.GetCallsign(), route, conditions[i]["no_route"])) {
 								bannedPassed = true;
 							}
 
@@ -564,6 +555,8 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		returnValid[i] = "-";
 	}
 
+	returnValid[9] = "Failed";
+
 	switch (round) {
 		case 7:
 		{
@@ -572,7 +565,6 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 			returnValid[8] = "Passed Level Direction.";
 			returnValid[9] = "Passed";
-			break;
 		}
 		case 6:
 		{
@@ -625,18 +617,18 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 				returnValid[5] = "Failed Navigation Performance. Required Performance: " + out.substr(0, out.length() - 2) + ".";
 			}
 
-			returnValid[4] = "Passed Airways.";
+			returnValid[4] = "Passed Route.";
 		}
 		case 2:
 		{
 			if (round == 2) {
-				string out = "Initial Airways: ";
+				string out = "Valid Initial Routes: ";
 
 				for (string each : results) {
 					out += each + " / ";
 				}
 
-				returnValid[4] = "Failed Airways: " + out.substr(0, out.length() - 3) + ".";
+				returnValid[4] = "Failed Route - " + out.substr(0, out.length() - 3) + ".";
 			}
 
 			returnValid[3] = "Passed Engine Type.";
@@ -669,7 +661,6 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 			returnValid[1] = "Valid";
 			returnValid[2] = sid;
-			returnValid[9] = "Failed";
 			break;
 		}
 		case 0:
@@ -806,7 +797,7 @@ string CVFPCPlugin::getFails(vector<string> messageBuffer) {
 		fail.push_back("ENG");
 	}
 	if (messageBuffer.at(4).find("Failed") == 0) {
-		fail.push_back("AWY");
+		fail.push_back("RTE");
 	}
 	if (messageBuffer.at(5).find("Failed") == 0) {
 		fail.push_back("NAV");
