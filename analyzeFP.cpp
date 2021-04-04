@@ -505,7 +505,10 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 						boost::to_upper(direction);
 
 						if (direction == "EVEN") {
-							if ((RFL / 1000) % 2 == 0) {
+							if ((RFL > 41000 && (RFL / 1000 - 41) % 4 == 2)) {
+								new_validity.push_back(true);
+							}
+							else if (RFL <= 41000 && (RFL / 1000) % 2 == 0) {
 								new_validity.push_back(true);
 							}
 							else {
@@ -514,7 +517,10 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 							}
 						}
 						else if (direction == "ODD") {
-							if ((RFL / 1000) % 2 != 0) {
+							if ((RFL > 41000 && (RFL / 1000 - 41) % 4 == 0)) {
+								new_validity.push_back(true);
+							}
+							else if (RFL <= 41000 && (RFL / 1000) % 2 == 1) {
 								new_validity.push_back(true);
 							}
 							else {
