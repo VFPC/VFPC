@@ -1,0 +1,1232 @@
+[
+   {
+      "icao": "EGKK",
+      "sids": [
+         {
+            "point": "ADMAG",
+            "constraints": [
+               {
+                  "direction": "ODD",
+                  "max_fl": 245,
+                  "route": [
+                     "Y312 DVR L9",
+                     "Y312 DVR L18"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "ODD",
+                  "min_fl": 255,
+                  "route": [
+                     "UY312 DVR UL9",
+                     "Y312 DVR UL9",
+                     "UY312 DVR L9",
+                     "Y312 DVR L9"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "ODD",
+                  "min_fl": 115,
+                  "route": [
+                     "UY312 DVR UL10",
+                     "Y312 DVR UL10",
+                     "UY312 DVR L10",
+                     "Y312 DVR L10"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "ODD",
+                  "destinations": [
+                     "LFAC",
+                     "LFAQ",
+                     "LFAT",
+                     "LFAV",
+                     "LFAY",
+                     "LFQQ",
+                     "LFQO",
+                     "LFQT"
+                  ],
+                  "route": [
+                     "UY312 DVR UL10",
+                     "Y312 DVR UL10",
+                     "UY312 DVR L10",
+                     "Y312 DVR L10"
+                  ]
+               },
+               {
+                  "direction": "ODD",
+                  "min_fl": 345,
+                  "destinations": [
+                     "LA",
+                     "LD",
+                     "LO",
+                     "LT",
+                     "LG",
+                     "HE",
+                     "LC",
+                     "LIPZ"
+                  ],
+                  "route": [
+                     "UY312 DVR UL10",
+                     "Y312 DVR UL10",
+                     "UY312 DVR L10",
+                     "Y312 DVR L10"
+                  ]
+               }
+            ]
+         },
+         {
+            "point": "BIGHDG",
+            "constraints": [
+               {
+                  "direction": "ANY",
+                  "min_fl": 70,
+                  "max_fl": 80,
+                  "destinations": [
+                     "EGLL",
+                     "EGWU"
+                  ]
+               }         
+            ]
+         },
+         {
+            "point": "BOGNA",
+            "constraints": [
+               {
+                  "direction": "EVEN",
+                  "max_fl": 185,
+                  "route": [
+                     "M189 NEVIL G27 ANGLO"
+                  ],
+                  "destinations": [
+                     "EGJ"
+                  ]
+               },
+               {
+                  "direction": "ODD",
+                  "max_fl": 205,
+                  "route": [
+                     "M189"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "ODD",
+                  "route": [
+                     "L612"
+                  ],
+                  "no_route": [
+                     "L612 BENBO UY47",
+                     "L612 HAWKE M189"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "ODD",
+                  "min_fl": 245,
+                  "route": [
+                     "UL612"
+                  ],
+                  "no_route": [
+                     "UL612 BENBO Y47",
+                     "UL612 HAWKE M189"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               }
+            ]
+         },
+         {
+            "point": "DVR",
+            "constraints": [
+               {
+                  "direction": "ODD",
+                  "max_fl": 245,
+                  "route": [
+                     "L9",
+                     "L18"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "ODD",
+                  "min_fl": 255,
+                  "route": [
+                     "UL9",
+                     "L9"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "ODD",
+                  "min_fl": 115,
+                  "route": [
+                     "UL10",
+                     "L10"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "ODD",
+                  "destinations": [
+                     "LFAC",
+                     "LFAQ",
+                     "LFAT",
+                     "LFAV",
+                     "LFAY",
+                     "LFQQ",
+                     "LFQO",
+                     "LFQT"
+                  ],
+                  "route": [
+                     "UL10",
+                     "L10"
+                  ]
+               },
+               {
+                  "direction": "ODD",
+                  "min_fl": 345,
+                  "destinations": [
+                     "LA",
+                     "LD",
+                     "LO",
+                     "LT",
+                     "LG",
+                     "HE",
+                     "LC",
+                     "LIPZ"
+                  ],
+                  "route": [
+                     "UL10",
+                     "L10"
+                  ]
+               }
+            ]
+         },
+         {
+            "point": "FRANE",
+            "constraints": [
+               {
+                  "direction": "ODD",
+                  "route": [
+                     "M604 GASBA M197"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "ODD",
+                  "min_fl": 265,
+                  "route": [
+                     "M604 PAAVO Q295"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "ODD",
+                  "min_fl": 245,
+                  "route": [
+                     "M604",
+                     "M604 LARGA P144",
+                     "M604 LARGA Z278"
+                  ],
+                  "no_route": [
+                     "M604 * Q295",
+                     "M604 * UL975",
+                     "M604 * L975",
+                     "M604 * N96",
+                     "M604 * M982",
+                     "M604 * P1",
+                     "M604 * L7",
+                     "M604 * N866",
+                     "M604 * M183",
+                     "M604 * M197",
+                     "M604 * P44"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "ANY",
+                  "min_fl": 70,
+                  "max_fl": 80,
+                  "route": [
+                     "DET"
+                  ],
+                  "destinations": [
+                     "EGGW",
+                     "EGSS"
+                  ]
+               },
+               {
+                  "direction": "ANY",
+                  "min_fl": 50,
+                  "max_fl": 80,
+                  "route": [
+                     "DET GODLU"
+                  ],
+                  "destinations": [
+                     "EGKB",
+                     "EGLC"
+                  ]
+               },
+               {
+                  "direction": "ODD",
+                  "max_fl": 195,
+                  "route": [
+                     "M604 GASBA M189 CLN BANEM"
+                  ],
+                  "destinations": [
+                     "EGSH"
+                  ]
+               }
+            ]
+         },
+         {
+            "point": "HARDY",
+            "constraints": [
+               {
+                  "direction": "ODD",
+                  "max_fl": 245,
+                  "route": [
+                     "M605"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               }
+            ]
+         },
+         {
+            "point": "IMVUR",
+            "constraints": [
+               {
+                  "direction": "ANY",
+                  "min_fl": 70,
+                  "max_fl": 80,
+                  "route": [
+                     "N63 SAM"
+                  ],
+                  "destinations": [
+                     "EGHI"
+                  ]
+               },
+               {
+                  "direction": "ANY",
+                  "min_fl": 70,
+                  "max_fl": 80,
+                  "route": [
+                     "N63 SAM BIA"
+                  ],
+                  "destinations": [
+                     "EGHH"
+                  ]
+               },
+               {
+                  "direction": "ANY",
+                  "min_fl": 70,
+                  "max_fl": 80,
+                  "route": [
+                     "N63 VOUGA N14 KENET BUGUP"
+                  ],
+                  "destinations": [
+                     "EGTK"
+                  ]
+               },
+               {
+                  "direction": "ANY",
+                  "min_fl": 70,
+                  "max_fl": 80,
+                  "route": [
+                     "N63 VOUGA N14 KENET SIREN NAXAT"
+                  ],
+                  "destinations": [
+                     "EGVN"
+                  ]
+               },
+               {
+                  "direction": "ANY",
+                  "min_fl": 70,
+                  "max_fl": 80,
+                  "route": [
+                     "EVATA"
+                  ],
+                  "destinations": [
+                     "EGLF"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "max_fl": 245,
+                  "route": [
+                     "N63 SAM L620 DAWLY"
+                  ],
+                  "destinations": [
+                     "EGHQ"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "max_fl": 105,
+                  "route": [
+                     "N63 SAM Q41"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "max_fl": 105,
+                  "route": [
+                     "N63 SAM Q41"
+                  ],
+                  "destinations": [
+                     "EGJ"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "min_fl": 105,
+                  "max_fl": 195,
+                  "route": [
+                     "N63 LELNA"
+                  ],
+                  "destinations": [
+                     "EGJ"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "max_fl": 245,
+                  "route": [
+                     "N63 SAM L620 GIBSO"
+                  ],
+                  "destinations": [
+                     "EGTE"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "max_fl": 245,
+                  "route": [
+                     "N63 VOUGA N14 KENET ABDAL BRI CDF"
+                  ],
+                  "destinations": [
+                     "EGFF",
+                     "EGSY"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "max_fl": 245,
+                  "route": [
+                     "N63 VOUGA N14 KENET POMAX BRI"
+                  ],
+                  "destinations": [
+                     "EGGD"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "max_fl": 245,
+                  "route": [
+                     "N63 VOUGA N14 KENET Q63 MALBY"
+                  ],
+                  "destinations": [
+                     "EGBJ"
+                  ]
+               },
+               {
+                  "direction": "ODD",
+                  "min_fl": 195,
+                  "route": [
+                     "N63 SAM N621"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "min_fl": 245,
+                  "route": [
+                     "N63 SAM N19"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "ODD",
+                  "min_fl": 245,
+                  "route": [
+                     "N63 SAM M195"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "max_fl": 245,
+                  "route": [
+                     "N63 VOUGA N14 KENET Q63"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "min_fl": 245,
+                  "route": [
+                     "N63 VOUGA N14"
+                  ],
+                  "no_route": [
+                     "N63 VOUGA N14 KENET Q63"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "min_fl": 245,
+                  "route": [
+                     "N63 VOUGA N14"
+                  ],
+                  "no_route": [
+                     "N63 VOUGA N14 KENET Q63"
+                  ],
+                  "destinations": [
+                     "EGA"
+                  ]
+               }
+            ]
+         },
+         {
+            "point": "KENET",
+            "constraints": [
+               {
+                  "direction": "ANY",
+                  "min_fl": 70,
+                  "max_fl": 80,
+                  "route": [
+                     "BUGUP"
+                  ],
+                  "destinations": [
+                     "EGTK"
+                  ]
+               },
+               {
+                  "direction": "ANY",
+                  "min_fl": 70,
+                  "max_fl": 80,
+                  "route": [
+                     "SIREN NAXAT"
+                  ],
+                  "destinations": [
+                     "EGVN"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "max_fl": 245,
+                  "route": [
+                     "ABDAL BRI CDF"
+                  ],
+                  "destinations": [
+                     "EGFF",
+                     "EGSY"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "max_fl": 245,
+                  "route": [
+                     "POMAX BRI"
+                  ],
+                  "destinations": [
+                     "EGGD"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "max_fl": 245,
+                  "route": [
+                     "Q63 MALBY"
+                  ],
+                  "destinations": [
+                     "EGBJ"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "max_fl": 245,
+                  "route": [
+                     "Q63"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "min_fl": 245,
+                  "route": [
+                     "N14"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "min_fl": 245,
+                  "route": [
+                     "N14"
+                  ],
+                  "destinations": [
+                     "EGA"
+                  ]
+               }
+            ]
+         },
+         {
+            "point": "LAM",
+            "constraints": [
+               {
+                  "direction": "EVEN",
+                  "max_fl": 105,
+                  "route": [
+                     "N57 SAPCO Y53 WAL"
+                  ],
+                  "destinations": [
+                     "EGA",
+                     "EI"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "max_fl": 245,
+                  "route": [
+                     "L10 BPK N601",
+                     "N57"
+                  ],
+                  "no_route": [
+                     "N57 SAPCO Y53"
+                  ],
+                  "no_destinations": [
+                     "EGLL",
+                     "EGWU"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "min_fl": 245,
+                  "route": [
+                     "L10 BPK UN601"
+                  ],
+                  "no_destinations": [
+                     "EGLL",
+                     "EGWU"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "min_fl": 245,
+                  "max_fl": 265,
+                  "route": [
+                     "UN57 WELIN T420 TNT"
+                  ],
+                  "destinations": [
+                     "EGCC",
+                     "EGGP",
+                     "EGNR"
+                  ]
+               }
+            ]
+         },
+         {
+            "point": "MIMFO",
+            "constraints": [
+               {
+                  "direction": "ODD",
+                  "max_fl": 245,
+                  "route": [
+                     "Y312 DVR L9",
+                     "Y312 DVR L18"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "ODD",
+                  "min_fl": 255,
+                  "route": [
+                     "UY312 DVR UL9",
+                     "Y312 DVR UL9",
+                     "UY312 DVR L9",
+                     "Y312 DVR L9"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "ODD",
+                  "min_fl": 115,
+                  "route": [
+                     "UY312 DVR UL10",
+                     "Y312 DVR UL10",
+                     "UY312 DVR L10",
+                     "Y312 DVR L10"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "ODD",
+                  "destinations": [
+                     "LFAC",
+                     "LFAQ",
+                     "LFAT",
+                     "LFAV",
+                     "LFAY",
+                     "LFQQ",
+                     "LFQO",
+                     "LFQT"
+                  ],
+                  "route": [
+                     "UY312 DVR UL10",
+                     "Y312 DVR UL10",
+                     "UY312 DVR L10",
+                     "Y312 DVR L10"
+                  ]
+               },
+               {
+                  "direction": "ODD",
+                  "min_fl": 345,
+                  "destinations": [
+                     "LA",
+                     "LD",
+                     "LO",
+                     "LT",
+                     "LG",
+                     "HE",
+                     "LC",
+                     "LIPZ"
+                  ],
+                  "route": [
+                     "UY312 DVR UL10",
+                     "Y312 DVR UL10",
+                     "UY312 DVR L10",
+                     "Y312 DVR L10"
+                  ]
+               }
+            ]
+         },
+         {
+            "point": "NOVMA",
+            "constraints": [
+               {
+                  "direction": "ANY",
+                  "min_fl": 70,
+                  "max_fl": 80,
+                  "route": [
+                     "L620 SAM"
+                  ],
+                  "destinations": [
+                     "EGHI"
+                  ]
+               },
+               {
+                  "direction": "ANY",
+                  "min_fl": 70,
+                  "max_fl": 80,
+                  "route": [
+                     "L620 SAM BIA"
+                  ],
+                  "destinations": [
+                     "EGHH"
+                  ]
+               },
+               {
+                  "direction": "ANY",
+                  "min_fl": 70,
+                  "max_fl": 80,
+                  "route": [
+                     "L620 NIBDA N14 KENET BUGUP"
+                  ],
+                  "destinations": [
+                     "EGTK"
+                  ]
+               },
+               {
+                  "direction": "ANY",
+                  "min_fl": 70,
+                  "max_fl": 80,
+                  "route": [
+                     "L620 NIBDA N14 KENET SIREN NAXAT"
+                  ],
+                  "destinations": [
+                     "EGVN"
+                  ]
+               },
+               {
+                  "direction": "ANY",
+                  "min_fl": 70,
+                  "max_fl": 80,
+                  "route": [
+                     "EVATA"
+                  ],
+                  "destinations": [
+                     "EGLF"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "max_fl": 245,
+                  "route": [
+                     "L620 DAWLY"
+                  ],
+                  "destinations": [
+                     "EGHQ"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "max_fl": 105,
+                  "route": [
+                     "L620 SAM Q41"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "max_fl": 105,
+                  "route": [
+                     "L620 SAM Q41"
+                  ],
+                  "destinations": [
+                     "EGJ"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "min_fl": 105,
+                  "max_fl": 195,
+                  "route": [
+                     "L620 SAM N63 LELNA"
+                  ],
+                  "destinations": [
+                     "EGJ"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "max_fl": 245,
+                  "route": [
+                     "L620 GIBSO"
+                  ],
+                  "destinations": [
+                     "EGTE"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "max_fl": 245,
+                  "route": [
+                     "L620 NIBDA N14 KENET ABDAL BRI CDF"
+                  ],
+                  "destinations": [
+                     "EGFF",
+                     "EGSY"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "max_fl": 245,
+                  "route": [
+                     "L620 NIBDA N14 KENET POMAX BRI"
+                  ],
+                  "destinations": [
+                     "EGGD"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "max_fl": 245,
+                  "route": [
+                     "L620 NIBDA N14 KENET Q63 MALBY"
+                  ],
+                  "destinations": [
+                     "EGBJ"
+                  ]
+               },
+               {
+                  "direction": "ODD",
+                  "min_fl": 195,
+                  "route": [
+                     "L620 SAM N621"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "min_fl": 245,
+                  "route": [
+                     "L620 SAM N19"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "ODD",
+                  "min_fl": 245,
+                  "route": [
+                     "L620 SAM M195"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "max_fl": 245,
+                  "route": [
+                     "L620 NIBDA N14 KENET Q63"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "min_fl": 245,
+                  "route": [
+                     "L620 NIBDA N14"
+                  ],
+                  "no_route": [
+                     "L620 NIBDA N14 KENET Q63"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "min_fl": 245,
+                  "route": [
+                     "L620 NIBDA N14"
+                  ],
+                  "no_route": [
+                     "L620 NIBDA N14 KENET Q63"
+                  ],
+                  "destinations": [
+                     "EGA"
+                  ]
+               }
+            ]
+         },
+         {
+            "point": "ODVIK",
+            "constraints": [
+               {
+                  "direction": "ODD",
+                  "max_fl": 245,
+                  "route": [
+                     "Y311 DVR L9",
+                     "Y311 DVR L18"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "ODD",
+                  "min_fl": 255,
+                  "route": [
+                     "UY311 DVR UL9",
+                     "Y311 DVR UL9",
+                     "UY311 DVR L9",
+                     "Y311 DVR L9"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "ODD",
+                  "min_fl": 115,
+                  "route": [
+                     "UY311 DVR UL10",
+                     "Y311 DVR UL10",
+                     "UY311 DVR L10",
+                     "Y311 DVR L10"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "ODD",
+                  "destinations": [
+                     "LFAC",
+                     "LFAQ",
+                     "LFAT",
+                     "LFAV",
+                     "LFAY",
+                     "LFQQ",
+                     "LFQO",
+                     "LFQT"
+                  ],
+                  "route": [
+                     "UY311 DVR UL10",
+                     "Y311 DVR UL10",
+                     "UY311 DVR L10",
+                     "Y311 DVR L10"
+                  ]
+               },
+               {
+                  "direction": "ODD",
+                  "min_fl": 345,
+                  "destinations": [
+                     "LA",
+                     "LD",
+                     "LO",
+                     "LT",
+                     "LG",
+                     "HE",
+                     "LC",
+                     "LIPZ"
+                  ],
+                  "route": [
+                     "UY311 DVR UL10",
+                     "Y311 DVR UL10",
+                     "UY311 DVR L10",
+                     "Y311 DVR L10"
+                  ]
+               }
+            ]
+         },
+         {
+            "point": "SAM",
+            "constraints": [
+               {
+                  "direction": "EVEN",
+                  "min_fl": 70,
+                  "max_fl": 80,
+                  "route": [
+                     "Q41 PEPIS"
+                  ],
+                  "destinations": [
+                     "EGLK"
+                  ]
+               },
+               {
+                  "direction": "ANY",
+                  "min_fl": 70,
+                  "max_fl": 80,
+                  "route": [
+                     ""
+                  ],
+                  "destinations": [
+                     "EGHI"
+                  ]
+               },
+               {
+                  "direction": "ANY",
+                  "min_fl": 70,
+                  "max_fl": 80,
+                  "route": [
+                     "BIA"
+                  ],
+                  "destinations": [
+                     "EGHH"
+                  ]
+               },
+               {
+                  "direction": "ANY",
+                  "min_fl": 70,
+                  "max_fl": 80,
+                  "route": [
+                     "RUDMO"
+                  ],
+                  "destinations": [
+                     "EGLF"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "max_fl": 245,
+                  "route": [
+                     "L620 DAWLY"
+                  ],
+                  "destinations": [
+                     "EGHQ"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "max_fl": 105,
+                  "route": [
+                     "Q41"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "max_fl": 105,
+                  "route": [
+                     "Q41"
+                  ],
+                  "destinations": [
+                     "EGJ"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "min_fl": 105,
+                  "max_fl": 195,
+                  "route": [
+                     "N63 LELNA"
+                  ],
+                  "destinations": [
+                     "EGJ"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "max_fl": 245,
+                  "route": [
+                     "L620 GIBSO"
+                  ],
+                  "destinations": [
+                     "EGTE"
+                  ]
+               },
+               {
+                  "direction": "ODD",
+                  "min_fl": 195,
+                  "route": [
+                     "N621"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "EVEN",
+                  "min_fl": 245,
+                  "route": [
+                     "N19"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "ODD",
+                  "min_fl": 245,
+                  "route": [
+                     "M195"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               }
+            ]
+         },
+         {
+            "point": "SFD",
+            "constraints": [
+               {
+                  "direction": "EVEN",
+                  "max_fl": 185,
+                  "route": [
+                     "Y47 DRAKE OSPOL M189 NEVIL G27 ANGLO"
+                  ],
+                  "destinations": [
+                     "EGJ"
+                  ]
+               },
+               {
+                  "direction": "ODD",
+                  "max_fl": 205,
+                  "route": [
+                     "Y47 DRAKE OSPOL M189"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "ODD",
+                  "max_fl": 245,
+                  "route": [
+                     "Y47 BENBO L612",
+                     "Y47 DRAKE N859",
+                     "M605"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "ODD",
+                  "min_fl": 245,
+                  "route": [
+                     "Y47 DRAKE UL612"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               },
+               {
+                  "direction": "ODD",
+                  "route": [
+                     "Y47 DRAKE L151"
+                  ],
+                  "no_destinations": [
+                     "EG"
+                  ]
+               }
+            ]
+         }
+      ]
+   }
+]
