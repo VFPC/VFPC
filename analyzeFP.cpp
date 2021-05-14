@@ -111,6 +111,13 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		boost::to_upper(route[i]);
 	}
 
+	// Remove "DCT" Instances from Route
+	for (vector<string>::iterator itr = route.end(); itr != route.begin(); --itr) {
+		if (*itr == "DCT") {
+			route.erase(itr);
+		}
+	}
+
 	string sid = flightPlan.GetFlightPlanData().GetSidName(); boost::to_upper(sid);
 
 	// Remove any # characters from SID name
@@ -183,13 +190,6 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		returnValid[2] = "Waypoint Not Found";
 		returnValid[9] = "Failed";
 		return returnValid;
-	}
-
-	// Remove "DCT" Instances from Route
-	for (vector<string>::iterator itr = route.end(); itr != route.begin(); --itr) {
-		if (*itr == "DCT") {
-			route.erase(itr);
-		}
 	}
 
 	const Value& conditions = config[origin_int]["sids"][first_wp.c_str()];
