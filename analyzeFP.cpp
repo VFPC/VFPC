@@ -94,7 +94,7 @@ void CVFPCPlugin::getSids() {
 
 // Does the checking and magic stuff, so everything will be alright when this is finished! Or not. Who knows?
 vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
-	vector<string> returnValid = {}; // 0 = Callsign, 1 = SID Validity, 2 = SID Name, 3 = Engine Type, 4 = Airways, 5 = Nav Performance, 6 = Destination, 7 = Min/Max Flight Level, 8 = Even/Odd, 9 = Passed/Failed
+	vector<string> returnValid = {}; // 0 = Callsign, 1 = SID, 2 = Engine Type, 3 = Airways, 4 = Nav Performance, 5 = Destination, 6 = Min/Max Flight Level, 7 = Even/Odd, 8 = Syntax, 9 = Passed/Failed
 
 	returnValid.push_back(flightPlan.GetCallsign());
 	for (int i = 1; i < 10; i++) {
@@ -111,11 +111,60 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		boost::to_upper(route[i]);
 	}
 
-	// Remove "DCT" Instances from Route
-	for (vector<string>::iterator itr = route.end(); itr != route.begin(); --itr) {
-		if (*itr == "DCT") {
-			route.erase(itr);
+	// Remove Speed/Alt Data From Route
+	regex lvl_chng("(N|M)[0-9]{3,4}(A|F)[0-9]{3}$");
+
+	// Remove "DCT" And Speed/Level Change Instances from Route
+	for (size_t i = 0; i < route.size(); i++) {
+		int count = 0;
+		int pos = 0;
+
+		for (size_t j = 0; j < route[i].size(); j++) {
+			if (route[i][j] == '/') {
+				count++;
+				pos = j;
+			}
 		}
+
+		switch (count) {
+			case 0:
+			{
+				break;
+			}
+			case 2:
+			{
+				int first_pos = route[i].find('/');
+				route[i] = route[i].substr(first_pos, string::npos);
+			}
+			case 1:
+			{
+				if (route[i].size() > pos + 1 && regex_match((route[i].substr(pos + 1, string::npos)), lvl_chng)) {
+					route[i] = route[i].substr(0, pos);
+					break;
+				}
+				else {
+					returnValid[8] = "Invalid Speed/Level Change";
+					returnValid[9] = "Failed";
+					return returnValid;
+				}
+			}
+			default:
+			{
+				returnValid[8] = "Invalid Syntax - Too Many \"/\" Characters in One or More Waypoints";
+				returnValid[9] = "Failed";
+				return returnValid;
+			}
+		}
+	}
+	for (size_t i = 0; i < route.size(); i++) {
+		if (route[i] == "DCT") {
+			route.erase(route.begin() + i);
+		}
+	}
+
+	//Remove Speed/Level Data From Start Of Route
+	if (regex_match(route[0], lvl_chng)) {
+		route.erase(route.begin());
 	}
 
 	string sid = flightPlan.GetFlightPlanData().GetSidName(); boost::to_upper(sid);
@@ -125,8 +174,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 	// Flightplan has SID
 	if (!sid.length()) {
-		returnValid[1] = "Invalid";
-		returnValid[2] = "None Set";
+		returnValid[1] = "Invalid SID - None Set";
 		returnValid[9] = "Failed";
 		return returnValid;
 	}
@@ -142,17 +190,9 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 	// Did not find a valid SID
 	if (0 == sid_suffix.length() && "VCT" != first_wp) {
-		returnValid[1] = "Invalid";
-		returnValid[2] = "None Set";
+		returnValid[1] = "Invalid SID - None Set";
 		returnValid[9] = "Failed";
 		return returnValid;
-	}
-
-	// Remove Speed/Alt Data From Route
-	regex reg("N[0-9]{3,4}A[0-9]{3}$");
-
-	if (regex_match(route[0], reg)) {
-		route.erase(route.begin());
 	}
 
 	// Check First Waypoint Correct and Remove from Route
@@ -160,16 +200,14 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		route.erase(route.begin());
 	}
 	else {
-		returnValid[1] = "Invalid";
-		returnValid[2] = "Route Not From Final SID Fix";
+		returnValid[1] = "Invalid SID - Route Not From Final SID Fix";
 		returnValid[9] = "Failed";
 		return returnValid;
 	}
 
 	// Airport defined
 	if (airports.find(origin) == airports.end()) {
-		returnValid[1] = "Invalid";
-		returnValid[2] = "Airport Not Found";
+		returnValid[1] = "Invalid SID - Airport Not Found";
 		returnValid[9] = "Failed";
 		return returnValid;
 	}
@@ -178,16 +216,14 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 	// Any SIDs defined
 	if (!config[origin_int].HasMember("sids") || config[origin_int]["sids"].IsArray()) {
-		returnValid[1] = "Invalid";
-		returnValid[2] = "None Defined";
+		returnValid[1] = "Invalid SID - None Defined";
 		returnValid[9] = "Failed";
 		return returnValid;
 	}
 
 	// Needed SID defined
 	if (!config[origin_int]["sids"].HasMember(first_wp.c_str()) || !config[origin_int]["sids"][first_wp.c_str()].IsArray()) {
-		returnValid[1] = "Invalid";
-		returnValid[2] = "Waypoint Not Found";
+		returnValid[1] = "Invalid SID - Waypoint Not Found";
 		returnValid[9] = "Failed";
 		return returnValid;
 	}
@@ -569,16 +605,16 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			vector<bool>::iterator itr = find(validity.begin(), validity.end(), true);
 			int i = std::distance(validity.begin(), itr);
 
-			returnValid[8] = "Passed Level Direction.";
+			returnValid[7] = "Passed Level Direction.";
 			returnValid[9] = "Passed";
 		}
 		case 6:
 		{
 			if (round == 6) {
-				returnValid[8] = "Failed Level Direction: " + results[0] + " Required.";
+				returnValid[7] = "Failed Level Direction: " + results[0] + " Required.";
 			}
 
-			returnValid[7] = "Passed Min/Max Level.";
+			returnValid[6] = "Passed Min/Max Level.";
 		}
 		case 5:
 		{
@@ -589,10 +625,10 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					out += each + ", ";
 				}
 
-				returnValid[7] = "Failed Min/Max Level: " + out.substr(0, out.length() - 2) + ".";
+				returnValid[6] = "Failed Min/Max Level: " + out.substr(0, out.length() - 2) + ".";
 			}
 
-			returnValid[6] = "Passed Destination.";
+			returnValid[5] = "Passed Destination.";
 		}
 		case 4:
 		{
@@ -603,10 +639,10 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					out += each + " / ";
 				}
 
-				returnValid[6] = "Failed Destination: " + out.substr(0, out.length() - 3) + ".";
+				returnValid[5] = "Failed Destination: " + out.substr(0, out.length() - 3) + ".";
 			}
 
-			returnValid[5] = "Passed Navigation Performance.";
+			returnValid[4] = "Passed Navigation Performance.";
 		}
 		case 3:
 		{
@@ -620,10 +656,10 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					out += each + ", ";
 				}
 
-				returnValid[5] = "Failed Navigation Performance. Required Performance: " + out.substr(0, out.length() - 2) + ".";
+				returnValid[4] = "Failed Navigation Performance. Required Performance: " + out.substr(0, out.length() - 2) + ".";
 			}
 
-			returnValid[4] = "Passed Route.";
+			returnValid[3] = "Passed Route.";
 		}
 		case 2:
 		{
@@ -634,10 +670,10 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					out += each + " / ";
 				}
 
-				returnValid[4] = "Failed Route - " + out.substr(0, out.length() - 3) + ".";
+				returnValid[3] = "Failed Route - " + out.substr(0, out.length() - 3) + ".";
 			}
 
-			returnValid[3] = "Passed Engine Type.";
+			returnValid[2] = "Passed Engine Type.";
 		}
 		case 1:
 		{
@@ -662,11 +698,10 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					}
 				}
 
-				returnValid[3] = "Failed Engine Type. Needed Type : " + out.substr(0, out.length() - 2) + ".";
+				returnValid[2] = "Failed Engine Type. Needed Type : " + out.substr(0, out.length() - 2) + ".";
 			}
 
-			returnValid[1] = "Valid";
-			returnValid[2] = sid;
+			returnValid[1] = "Valid SID - " + sid;
 			break;
 		}
 		case 0:
@@ -680,8 +715,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 				out += *itr + ", ";
 			}
 
-			returnValid[1] = "Invalid";
-			returnValid[2] = sid + " Contains Invalid Suffix. Valid Suffices: " + out.substr(0, out.length() - 2) + ".";
+			returnValid[1] = "Invalid SID - " + sid + " Contains Invalid Suffix. Valid Suffices: " + out.substr(0, out.length() - 2) + ".";
 			returnValid[9] = "Failed";
 
 			break;
@@ -716,7 +750,7 @@ void CVFPCPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget,
 			strcpy_s(sItemString, 16, "VFR");
 		}
 		else {
-			vector<string> messageBuffer{ validizeSid(FlightPlan) }; // 0 = Callsign, 1 = SID Validity, 2 = SID Name, 3 = Engine Type, 4 = Airways, 5 = Nav Performance, 6 = Destination, 7 = Min/Max Flight Level, 8 = Even/Odd, 9 = Passed/Failed
+			vector<string> messageBuffer{ validizeSid(FlightPlan) }; // 0 = Callsign, 1 = SID, 2 = Engine Type, 3 = Airways, 4 = Nav Performance, 5 = Destination, 6 = Min/Max Flight Level, 7 = Even/Odd, 8 = Syntax, 9 = Passed/Failed
 
 			if (messageBuffer.at(9) == "Passed") {
 				*pRGB = TAG_GREEN;
@@ -772,9 +806,8 @@ bool CVFPCPlugin::OnCompileCommand(const char * sCommandLine) {
 void CVFPCPlugin::checkFPDetail() {	
 	vector<string> messageBuffer{ validizeSid(FlightPlanSelectASEL()) };	// 0 = Callsign, 1 = valid/invalid SID, 2 = SID Name, 3 = Even/Odd, 4 = Minimum Flight Level, 5 = Maximum Flight Level, 6 = Passed
 	sendMessage(messageBuffer.at(0), "Checking...");
-	string buffer{ messageBuffer.at(1) + " SID" };
-	if (messageBuffer.at(1) == "Valid") {
-		buffer += " | ";
+	string buffer{ messageBuffer.at(1) + " SID | " };
+	if (messageBuffer.at(1).find("Invalid") != 0) {
 		for (int i = 2; i < 9; i++) {
 			string temp = messageBuffer.at(i);
 
@@ -784,11 +817,9 @@ void CVFPCPlugin::checkFPDetail() {
 				buffer += " | ";
 			}
 		}
-		buffer += messageBuffer.at(9);
-	} else {
-		buffer += " | " + messageBuffer.at(2);
-		buffer += " | " + messageBuffer.at(9);
 	}
+
+	buffer += messageBuffer.at(9);
 	sendMessage(messageBuffer.at(0), buffer);
 }
 
@@ -799,24 +830,27 @@ string CVFPCPlugin::getFails(vector<string> messageBuffer) {
 	if (messageBuffer.at(1).find("Invalid") == 0) {
 		fail.push_back("SID");
 	}
-	if (messageBuffer.at(3).find("Failed") == 0) {
+	if (messageBuffer.at(2).find("Failed") == 0) {
 		fail.push_back("ENG");
 	}
-	if (messageBuffer.at(4).find("Failed") == 0) {
+	if (messageBuffer.at(3).find("Failed") == 0) {
 		fail.push_back("RTE");
 	}
-	if (messageBuffer.at(5).find("Failed") == 0) {
+	if (messageBuffer.at(4).find("Failed") == 0) {
 		fail.push_back("NAV");
 	}
-	if (messageBuffer.at(6).find("Failed") == 0) {
+	if (messageBuffer.at(5).find("Failed") == 0) {
 		fail.push_back("DST");
 	}
-	if (messageBuffer.at(7).find("Failed") == 0) {
+	if (messageBuffer.at(6).find("Failed") == 0) {
 		fail.push_back("MIN");
 		fail.push_back("MAX");
 	}
-	if (messageBuffer.at(8).find("Failed") == 0) {
+	if (messageBuffer.at(7).find("Failed") == 0) {
 		fail.push_back("DIR");
+	}
+	if (messageBuffer.at(8).find("Invalid") == 0) {
+		fail.push_back("CHK");
 	}
 
 
