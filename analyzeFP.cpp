@@ -195,11 +195,25 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		return returnValid;
 	}
 
-	// Check First Waypoint Correct and Remove from Route
-	if (route[0] == first_wp) {
-		route.erase(route.begin());
+	// Check First Waypoint Correct. Remove SID References & First Waypoint From Route.
+	bool success = false;
+	bool stop = false;
+
+	while (!stop) {
+		size_t size = first_wp.size();
+		if (route[0].substr(0, size) == first_wp) {
+			if (size == route[0].size()) {
+				success = true;
+			}
+
+			route.erase(route.begin());
+		}
+		else {
+			stop = true;
+		}
 	}
-	else {
+	
+	if (!success) {
 		returnValid[1] = "Invalid SID - Route Not From Final SID Fix";
 		returnValid[9] = "Failed";
 		return returnValid;
