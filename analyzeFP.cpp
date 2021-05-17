@@ -20,7 +20,7 @@ vector<int> sidMax;
 using namespace std;
 using namespace EuroScopePlugIn;
 
-	// Run on Plugin Initialization
+// Run on Plugin Initialization
 CVFPCPlugin::CVFPCPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_PLUGIN_VERSION, MY_PLUGIN_DEVELOPER, MY_PLUGIN_COPYRIGHT)
 {
 	string loadingMessage = "Version: ";
@@ -47,10 +47,16 @@ CVFPCPlugin::~CVFPCPlugin()
 {
 }
 
-
 /*
 	Custom Functions
 */
+
+size_t CVFPCPlugin::WriteFunction(void *contents, size_t size, size_t nmemb, void *out)
+{
+	// For Curl, we should assume that the data is not null terminated, so add a null terminator on the end
+	((std::string*)out)->append(reinterpret_cast<char*>(contents) + '\0', size * nmemb);
+	return size * nmemb;
+}
 
 void CVFPCPlugin::debugMessage(string type, string message) {
 	// Display Debug Message if debugMode = true
@@ -69,14 +75,37 @@ void CVFPCPlugin::sendMessage(string message) {
 }
 
 void CVFPCPlugin::getSids() {
-	stringstream ss;
-	ifstream ifs;
-	ifs.open(pfad.c_str(), ios::binary);
-	ss << ifs.rdbuf();
-	ifs.close();
+	CURL* curl = curl_easy_init();
+	std::string url = "https://vfpc.tomjmills.co.uk/final";
 
-	if (config.Parse<0>(ss.str().c_str()).HasParseError()) {
-		string msg = str(boost::format("An error parsing VFPC configuration occurred. Error: %s (Offset: %i)\nOnce fixed, reload the config by typing '.vfpc reload'") % config.GetParseError() % config.GetErrorOffset());
+	curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+
+	uint64_t httpCode = 0;
+	std::string readbuffer;
+
+	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10);
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readbuffer);
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &CVFPCPlugin::WriteFunction);
+
+	curl_easy_perform(curl);
+	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
+	curl_easy_cleanup(curl);
+
+	if (httpCode == 200)
+	{
+		sendMessage(readbuffer);
+		if (config.Parse<0>(readbuffer.c_str()).HasParseError())
+		{
+			string msg = str(boost::format("An error parsing VFPC configuration occurred. Error: %s (Offset: %i)\nOnce fixed, reload the config by typing '.vfpc reload'") % config.GetParseError() % config.GetErrorOffset());
+			sendMessage(msg);
+
+			config.Parse<0>("[{\"icao\": \"XXXX\"}]");
+		}
+	}
+	else
+	{
+		string msg = str(boost::format("An error downloading VFPC configuration occurred. Check your connection and reload the config by typing '.vfpc reload'"));
 		sendMessage(msg);
 
 		config.Parse<0>("[{\"icao\": \"XXXX\"}]");
@@ -117,7 +146,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	// Remove "DCT" And Speed/Level Change Instances from Route
 	for (size_t i = 0; i < route.size(); i++) {
 		int count = 0;
-		int pos = 0;
+		size_t pos = 0;
 
 		for (size_t j = 0; j < route[i].size(); j++) {
 			if (route[i][j] == '/') {
@@ -133,7 +162,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			}
 			case 2:
 			{
-				int first_pos = route[i].find('/');
+				size_t first_pos = route[i].find('/');
 				route[i] = route[i].substr(first_pos, string::npos);
 			}
 			case 1:

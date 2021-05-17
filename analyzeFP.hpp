@@ -12,6 +12,7 @@
 #include <boost/format.hpp>
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
+#include <curl/curl.h>
 
 #define MY_PLUGIN_NAME      "VFPC (UK)"
 #define MY_PLUGIN_VERSION   "3.0.2"
@@ -32,6 +33,8 @@ class CVFPCPlugin :
 public:
 	CVFPCPlugin();
 	virtual ~CVFPCPlugin();
+
+	virtual size_t WriteFunction(void *contents, size_t size, size_t nmemb, void *out);
 
 	virtual void getSids();
 
