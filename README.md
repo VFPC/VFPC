@@ -1,4 +1,6 @@
 # VFPC Plugin
+
+**Applies to VFPC v2.x, available [here](https://github.com/hpeter2/VFPC). Feel free to contact me with any questions regarding v3.x. Please be aware that development is ongoing and file formats may change without notice.**
  
 VFPC (Vatsim Flugplan-RFL checker) is a plugin for EuroScope that checks defined departure restrictions on filed flight plans. It adds a Tag Item type for the Departure List, which displays the result of the check.
 
