@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "analyzeFP.hpp"
+#include <curl/curl.h>
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
@@ -23,6 +24,9 @@ using namespace EuroScopePlugIn;
 // Run on Plugin Initialization
 CVFPCPlugin::CVFPCPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_PLUGIN_VERSION, MY_PLUGIN_DEVELOPER, MY_PLUGIN_COPYRIGHT)
 {
+	debugMode = false;
+	initialSidLoad = false;
+
 	string loadingMessage = "Version: ";
 	loadingMessage += MY_PLUGIN_VERSION;
 	loadingMessage += " loaded.";
@@ -37,9 +41,6 @@ CVFPCPlugin::CVFPCPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_
 	pfad = DllPathFile;
 	pfad.resize(pfad.size() - strlen("VFPC.dll"));
 	pfad += "Sid.json";
-
-	debugMode = true;
-	initialSidLoad = false;
 }
 
 // Run on Plugin destruction, Ie. Closing EuroScope or unloading plugin
@@ -51,10 +52,17 @@ CVFPCPlugin::~CVFPCPlugin()
 	Custom Functions
 */
 
-size_t CVFPCPlugin::WriteFunction(void *contents, size_t size, size_t nmemb, void *out)
+/*size_t CVFPCPlugin::WriteFunction(void *contents, size_t size, size_t nmemb, void *out)
 {
 	// For Curl, we should assume that the data is not null terminated, so add a null terminator on the end
 	((std::string*)out)->append(reinterpret_cast<char*>(contents) + '\0', size * nmemb);
+	return size * nmemb;
+}*/
+
+static size_t WriteFunction(void *contents, size_t size, size_t nmemb, void *outString)
+{
+	// For Curl, we should assume that the data is not null terminated, so add a null terminator on the end
+	((std::string*)outString)->append(reinterpret_cast<char*>(contents), size * nmemb + 1);
 	return size * nmemb;
 }
 
@@ -76,17 +84,16 @@ void CVFPCPlugin::sendMessage(string message) {
 
 void CVFPCPlugin::getSids() {
 	CURL* curl = curl_easy_init();
-	std::string url = "https://vfpc.tomjmills.co.uk/final";
 
-	curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+	curl_easy_setopt(curl, CURLOPT_URL, api_url.c_str());
 
 	uint64_t httpCode = 0;
-	std::string readbuffer;
+	std::string readBuffer;
 
-	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10);
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readbuffer);
-	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &CVFPCPlugin::WriteFunction);
+	//curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+	//curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10);
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteFunction);
 
 	curl_easy_perform(curl);
 	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
@@ -94,14 +101,15 @@ void CVFPCPlugin::getSids() {
 
 	if (httpCode == 200)
 	{
-		sendMessage(readbuffer);
-		if (config.Parse<0>(readbuffer.c_str()).HasParseError())
-		{
-			string msg = str(boost::format("An error parsing VFPC configuration occurred. Error: %s (Offset: %i)\nOnce fixed, reload the config by typing '.vfpc reload'") % config.GetParseError() % config.GetErrorOffset());
-			sendMessage(msg);
+		sendMessage(std::to_string(readBuffer.size()));
+		sendMessage(readBuffer);
+		//if (config.Parse<0>(readBuffer.c_str()).HasParseError())
+		//{
+			//string msg = str(boost::format("An error parsing VFPC configuration occurred. Error: %s (Offset: %i)\nOnce fixed, reload the config by typing '.vfpc reload'") % config.GetParseError() % config.GetErrorOffset());
+			//sendMessage(msg);
 
-			config.Parse<0>("[{\"icao\": \"XXXX\"}]");
-		}
+			//config.Parse<0>("[{\"icao\": \"XXXX\"}]");
+		//}
 	}
 	else
 	{

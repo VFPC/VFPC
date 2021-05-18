@@ -32,9 +32,9 @@ class CVFPCPlugin :
 {
 public:
 	CVFPCPlugin();
-	virtual ~CVFPCPlugin();
+	const std::string api_url = "https://vfpc.tomjmills.co.uk/final";
 
-	virtual size_t WriteFunction(void *contents, size_t size, size_t nmemb, void *out);
+	virtual ~CVFPCPlugin();
 
 	virtual void getSids();
 
