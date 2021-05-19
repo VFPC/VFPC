@@ -9,10 +9,6 @@ bool debugMode, initialSidLoad;
 
 int disCount;
 
-ifstream sidDatei;
-char DllPathFile[_MAX_PATH];
-string pfad;
-
 vector<string> sidName;
 vector<string> sidEven;
 vector<int> sidMin;
@@ -35,12 +31,6 @@ CVFPCPlugin::CVFPCPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_
 	// Register Tag Item "VFPC"
 	RegisterTagItemType("VFPC", TAG_ITEM_FPCHECK);
 	RegisterTagItemFunction("Check FP", TAG_FUNC_CHECKFP_MENU);
-
-	// Get Path of the Sid.txt
-	GetModuleFileNameA(HINSTANCE(&__ImageBase), DllPathFile, sizeof(DllPathFile));
-	pfad = DllPathFile;
-	pfad.resize(pfad.size() - strlen("VFPC.dll"));
-	pfad += "Sid.json";
 }
 
 // Run on Plugin destruction, Ie. Closing EuroScope or unloading plugin
@@ -122,14 +112,6 @@ void CVFPCPlugin::getSids() {
 	for (SizeType i = 0; i < config.Size(); i++) {
 		const Value& airport = config[i];
 		string airport_icao = airport["Icao"].GetString();
-
-		/*for (size_t j = 0; j < config[i]["Sids"].Size(); j++) {
-			sendMessage(config[i]["Sids"][j]["Point"].GetString());
-			//if (config[origin_int]["Sids"][i].HasMember("Point") &&  == first_wp.c_str() && config[origin_int]["Sids"][i].HasMember("Constraints")) {
-				//pos = i;
-				//valid = true;
-			//}
-		}*/
 
 		airports.insert(pair<string, SizeType>(airport_icao, i));
 	}
@@ -280,8 +262,6 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 	bool valid = false;
 	size_t pos = string::npos;
-
-	sendMessage(first_wp);
 
 	for (size_t i = 0; i < config[origin_int]["Sids"].Size(); i++) {
 		if (config[origin_int]["Sids"][i].HasMember("Point") && !first_wp.compare(config[origin_int]["Sids"][i]["Point"].GetString()) && config[origin_int]["Sids"][i].HasMember("Constraints") && config[origin_int]["Sids"][i]["Constraints"].IsArray()) {
