@@ -7,12 +7,8 @@ extern "C" IMAGE_DOS_HEADER __ImageBase;
 bool blink;
 bool debugMode, initialSidLoad;
 
-int disCount;
-
-vector<string> sidName;
-vector<string> sidEven;
-vector<int> sidMin;
-vector<int> sidMax;
+int disCount = 0;
+int relCount = 0;
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -820,10 +816,6 @@ bool CVFPCPlugin::OnCompileCommand(const char * sCommandLine) {
 	if (startsWith(".vfpc reload", sCommandLine))
 	{
 		sendMessage("Unloading all loaded SIDs...");
-		sidName.clear();
-		sidEven.clear();
-		sidMin.clear();
-		sidMax.clear();
 		initialSidLoad = false;
 		return true;
 	}
@@ -923,16 +915,23 @@ void CVFPCPlugin::OnTimer(int Counter) {
 		}
 	}
 
+	if (relCount == 5) {
+		relCount = -1;
+		initialSidLoad = false;
+	}
+	else if (relCount == -1 && initialSidLoad) {
+		relCount = 0;
+	}
+	else {
+		relCount++;
+	}
+
 	// Loading proper Sids, when logged in
 	if (GetConnectionType() != CONNECTION_TYPE_NO && !initialSidLoad) {
 		string callsign{ ControllerMyself().GetCallsign() };
 		getSids();
 		initialSidLoad = true;
 	} else if (GetConnectionType() == CONNECTION_TYPE_NO && initialSidLoad) {
-		sidName.clear();
-		sidEven.clear();
-		sidMin.clear();
-		sidMax.clear();
 		initialSidLoad = false;
 		sendMessage("Unloading", "All loaded SIDs");
 	}
