@@ -198,12 +198,37 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	// Check First Waypoint Correct. Remove SID References & First Waypoint From Route.
 	bool success = false;
 	bool stop = false;
-
+	
 	while (!stop) {
-		size_t size = first_wp.size();
-		if (route[0].substr(0, size) == first_wp) {
-			if (size == route[0].size()) {
+		size_t wp_size = first_wp.size();
+		size_t entry_size = route[0].size();
+		if (route[0].substr(0, wp_size) == first_wp) {
+			//First Waypoint
+			if (wp_size == entry_size) {
 				success = true;
+			}
+			//3 or 5 Letter Waypoint SID - In Full
+			else if (entry_size > wp_size && isdigit(route[0][wp_size])) {
+				//SID Has Letter Suffix
+				for (int i = wp_size + 1; i < entry_size; i++) {
+					if (!isalpha(route[0][i])) {
+						stop = true;
+					}
+				}
+			}
+			else {
+				stop = true;
+			}
+
+			route.erase(route.begin());
+		}
+		//5 Letter Waypoint SID - Abbreviated to 6 Chars
+		else if (wp_size == 5 && entry_size >= wp_size && isdigit(route[0][wp_size - 1])) {
+			//SID Has Letter Suffix
+			for (int i = wp_size; i < entry_size; i++) {
+				if (!isalpha(route[0][i])) {
+					stop = true;
+				}
 			}
 
 			route.erase(route.begin());
