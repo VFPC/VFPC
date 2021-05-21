@@ -73,6 +73,7 @@ void CVFPCPlugin::sendMessage(string message) {
 
 void CVFPCPlugin::getSids() {
 	CURL* curl = curl_easy_init();
+	string api_url = "https://vfpc.tomjmills.co.uk/final";
 
 	curl_easy_setopt(curl, CURLOPT_URL, api_url.c_str());
 
@@ -354,11 +355,78 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					}
 					case 2:
 					{
+						bool perm = true;
+
+						if (conditions[i]["NoDests"].IsArray() && conditions[i]["NoDests"].Size()) {
+							string dest;
+							if (destArrayContains(conditions[i]["NoDests"], destination.c_str()).size()) {
+								perm = false;
+							}
+						}
+
+						if (conditions[i]["Dests"].IsArray() && conditions[i]["Dests"].Size()) {
+							string dest;
+							if (!destArrayContains(conditions[i]["Dests"], destination.c_str()).size()) {
+								perm = false;
+							}
+						}
+
+						new_validity.push_back(perm);
+
+						if (!perm) {
+							string perms = "";
+
+							if (conditions[i]["Dests"].IsArray() && conditions[i]["Dests"].Size()) {
+								for (SizeType j = 0; j < conditions[i]["Dests"].Size(); j++) {
+									string dest = conditions[i]["Dests"][j].GetString();
+
+									if (dest.size() < 4)
+										dest += string(4 - dest.size(), '*');
+
+									if (j != 0) {
+										perms += ",";
+									}
+
+									perms += dest;
+								}
+							}
+							else {
+								perms += " ";
+							}
+
+							perms += ";";
+
+							if (conditions[i]["NoDests"].IsArray() && conditions[i]["NoDests"].Size()) {
+								for (SizeType j = 0; j < conditions[i]["NoDests"].Size(); j++) {
+									string dest = conditions[i]["NoDests"][j].GetString();
+
+									if (dest.size() < 4)
+										dest += string(4 - dest.size(), '*');
+
+									if (j != 0) {
+										perms += ",";
+									}
+
+									perms += dest;
+								}
+							}
+							else {
+								perms += " ";
+							}
+
+							results.push_back(perms);
+						}
+
+						break;
+					}
+					case 3:
+					{
 						//Airways
 						bool testAllowed = false;
 						bool testBanned = false;
 
 						string perms = "";
+
 
 						if (conditions[i]["Route"].IsArray() && conditions[i]["Route"].Size()) {
 							testAllowed = true;
@@ -383,7 +451,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 							perms += conditions[i]["NoRoute"][(SizeType)0].GetString();
 
 							for (SizeType j = 1; j < conditions[i]["NoRoute"].Size(); j++) {
-								perms += " or ";
+								perms += ", ";
 								perms += conditions[i]["NoRoute"][j].GetString();
 							}
 						}
@@ -438,7 +506,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 						break;
 					}
-					case 3:
+					case 4:
 					{
 						//Nav Perf
 						if (conditions[i]["navigation"].IsString()) {
@@ -457,91 +525,6 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 						else {
 							new_validity.push_back(true);
 						}
-						break;
-					}
-					case 4:
-					{
-						bool perm = true;
-
-						if (conditions[i]["NoDests"].IsArray() && conditions[i]["NoDests"].Size()) {
-							string dest;
-							if (destArrayContains(conditions[i]["NoDests"], destination.c_str()).size()) {
-								perm = false;
-							}
-						}
-
-						if (conditions[i]["Dests"].IsArray() && conditions[i]["Dests"].Size()) {
-							string dest;
-							if (!destArrayContains(conditions[i]["Dests"], destination.c_str()).size()) {
-								perm = false;
-							}
-						}
-
-						new_validity.push_back(perm);
-
-						if (!perm) {
-							string perms = "";
-
-							if (conditions[i]["Dests"].IsArray() && conditions[i]["Dests"].Size()) {
-								perms += conditions[i]["Dests"][(SizeType)0].GetString();
-
-								for (SizeType j = 1; j < conditions[i]["Dests"].Size(); j++) {
-									string dest = conditions[i]["Dests"][j].GetString();
-
-									if (dest.size() < 4)
-										dest += string(4 - dest.size(), '*');
-
-									perms += " or ";
-									perms += dest;
-								}
-							}
-
-							if (conditions[i]["NoDests"].IsArray() && conditions[i]["NoDests"].Size()) {
-								if (perms != "") {
-									perms += " but ";
-								}
-								perms += "not: ";
-
-								perms += conditions[i]["NoDests"][(SizeType)0].GetString();
-
-								for (SizeType j = 1; j < conditions[i]["NoDests"].Size(); j++) {
-									string dest = conditions[i]["NoDests"][j].GetString();
-
-									if (dest.size() < 4)
-										dest += string(4 - dest.size(), '*');
-
-									perms += " or ";
-									perms += dest;
-								}
-							}
-
-							bool min = false;
-							bool max = false;
-
-							if (conditions[i].HasMember("Min") && (Min = conditions[i]["Min"].GetInt()) > 0) {
-								min = true;
-							}
-
-							if (conditions[i].HasMember("Max") && (Max = conditions[i]["Max"].GetInt()) > 0) {
-								max = true;
-							}
-
-							if (min && max) {
-								perms += " (FL" + to_string(Min) + " - " + to_string(Max) + ")";
-							}
-							else if (min) {
-								perms += " (FL" + to_string(Min) + "+)";
-							}
-							else if (max) {
-								perms += " (FL" + to_string(Max) + "-)";
-							}
-							else {
-								perms += " (All Levels)";
-							}
-
-							results.push_back(perms);
-						}
-
 						break;
 					}
 					case 5:
@@ -696,25 +679,12 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 				returnValid[6] = "Failed Min/Max Level: " + out.substr(0, out.length() - 2) + ".";
 			}
 
-			returnValid[5] = "Passed Destination.";
+			returnValid[5] = "Passed Navigation Performance.";
 		}
+
 		case 4:
 		{
 			if (round == 4) {
-				string out = "Destinations: ";
-
-				for (string each : results) {
-					out += each + " / ";
-				}
-
-				returnValid[5] = "Failed Destination: " + out.substr(0, out.length() - 3) + ".";
-			}
-
-			returnValid[4] = "Passed Navigation Performance.";
-		}
-		case 3:
-		{
-			if (round == 3) {
 				sort(results.begin(), results.end());
 				results.erase(unique(results.begin(), results.end()), results.end());
 
@@ -724,21 +694,106 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					out += each + ", ";
 				}
 
-				returnValid[4] = "Failed Navigation Performance. Required Performance: " + out.substr(0, out.length() - 2) + ".";
+				returnValid[5] = "Failed Navigation Performance. Required Performance: " + out.substr(0, out.length() - 2) + ".";
 			}
 
-			returnValid[3] = "Passed Route.";
+			returnValid[4] = "Passed Route.";
 		}
-		case 2:
+		case 3:
 		{
-			if (round == 2) {
+			if (round == 3) {
 				string out = "Valid Initial Routes: ";
 
 				for (string each : results) {
 					out += each + " / ";
 				}
 
-				returnValid[3] = "Failed Route - " + out.substr(0, out.length() - 3) + ".";
+				returnValid[4] = "Failed Route - " + out.substr(0, out.length() - 3) + ".";
+			}
+
+			returnValid[3] = "Passed Destination.";
+		}
+		case 2:
+		{
+			if (round == 2) {
+				vector<vector<string>> res{ vector<string>{}, vector<string>{} };
+
+				for (string each : results) {
+					bool added = false;
+					vector<string> elements = split(each, ';');
+					vector<string> good_new_eles{};
+					vector<string> bad_new_eles{};
+
+					if (elements[0] != " ") {
+						good_new_eles = split(elements[0], ',');
+					}
+
+					if (elements[1] != " ") {
+						bad_new_eles = split(elements[1], ',');
+					}					
+
+					
+					for (string dest : res[0]) {
+						//Remove Duplicates from Whitelist
+						for (size_t k = good_new_eles.size(); k > 0; k--) {
+							string new_ele = good_new_eles[k - 1];
+							if (new_ele.compare(dest) == 0) {
+								good_new_eles.erase(good_new_eles.begin() + k - 1);
+							}
+						}
+
+						//Prevent Previously Whitelisted Elements from Being Blacklisted
+						for (size_t k = bad_new_eles.size(); k > 0; k--) {
+							string new_ele = bad_new_eles[k - 1];
+							if (new_ele.compare(dest) == 0) {
+								bad_new_eles.erase(bad_new_eles.begin() + k - 1);
+							}
+						}
+					}
+
+					//Whitelist Previously Blacklisted Elements
+					for (string dest : good_new_eles) {
+						
+						for (size_t k = res[1].size(); k > 0; k--) {
+							string new_ele = res[1][k - 1];
+							if (new_ele.compare(dest) == 0) {
+								res[1].erase(res[1].begin() + k - 1);
+							}
+						}
+					}
+
+					//Remove Duplicates from Blacklist
+					for (string dest : res[1]) {
+						for (size_t k = bad_new_eles.size(); k > 0; k--) {
+							string new_ele = bad_new_eles[k - 1];
+							if (new_ele.compare(dest) == 0) {
+								bad_new_eles.erase(bad_new_eles.begin() + k - 1);
+							}
+						}
+					}
+
+					res[0].insert(res[0].end(), good_new_eles.begin(), good_new_eles.end());
+					res[1].insert(res[1].end(), bad_new_eles.begin(), bad_new_eles.end());
+				}
+
+				string out = "";
+
+				for (string each : res[0]) {
+					out += each + ", ";
+				}
+
+				for (string each : res[1]) {
+					out += "Not " + each + ", ";
+				}
+
+				if (out == "") {
+					out = "None";
+				}
+				else {
+					out = out.substr(0, out.length() - 2);
+				}
+
+				returnValid[3] = "Failed Destination - Valid Destinations: " + out + ".";
 			}
 
 			returnValid[2] = "Passed Engine Type.";
@@ -907,13 +962,13 @@ string CVFPCPlugin::getFails(vector<string> messageBuffer) {
 		fail.push_back("ENG");
 	}
 	if (messageBuffer.at(3).find("Failed") == 0) {
-		fail.push_back("RTE");
+		fail.push_back("DST");
 	}
 	if (messageBuffer.at(4).find("Failed") == 0) {
-		fail.push_back("NAV");
+		fail.push_back("RTE");
 	}
 	if (messageBuffer.at(5).find("Failed") == 0) {
-		fail.push_back("DST");
+		fail.push_back("NAV");
 	}
 	if (messageBuffer.at(6).find("Failed") == 0) {
 		fail.push_back("MIN");
