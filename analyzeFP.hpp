@@ -12,10 +12,9 @@
 #include <boost/format.hpp>
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
-#include <curl/curl.h>
 
 #define MY_PLUGIN_NAME      "VFPC (UK)"
-#define MY_PLUGIN_VERSION   "3.1.0"
+#define MY_PLUGIN_VERSION   "3.0.2"
 #define MY_PLUGIN_DEVELOPER "Lenny Colton, Jan Fries, Hendrik Peter, Sven Czarnian"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO  "VATSIM (UK) Flight Plan Checker"
@@ -32,8 +31,6 @@ class CVFPCPlugin :
 {
 public:
 	CVFPCPlugin();
-	const std::string api_url = "https://vfpc.tomjmills.co.uk/final";
-
 	virtual ~CVFPCPlugin();
 
 	virtual void getSids();
