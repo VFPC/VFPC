@@ -4,11 +4,9 @@
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
-bool blink;
-bool debugMode, initialSidLoad;
+bool blink, debugMode, autoLoad, sidsLoaded;
 
-int disCount = 0;
-int relCount = 0;
+size_t failPos, relCount;
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -16,17 +14,22 @@ using namespace EuroScopePlugIn;
 // Run on Plugin Initialization
 CVFPCPlugin::CVFPCPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_PLUGIN_VERSION, MY_PLUGIN_DEVELOPER, MY_PLUGIN_COPYRIGHT)
 {
+	blink = false;
 	debugMode = false;
-	initialSidLoad = false;
+	autoLoad = true;
+	sidsLoaded = false;
 
-	string loadingMessage = "Version: ";
+	failPos = 0;
+	relCount = 0;
+
+	string loadingMessage = "Loading complete. Version: ";
 	loadingMessage += MY_PLUGIN_VERSION;
-	loadingMessage += " loaded.";
+	loadingMessage += ".";
 	sendMessage(loadingMessage);
 
 	// Register Tag Item "VFPC"
 	RegisterTagItemType("VFPC", TAG_ITEM_FPCHECK);
-	RegisterTagItemFunction("Check FP", TAG_FUNC_CHECKFP_MENU);
+	RegisterTagItemFunction("Show Checks", TAG_FUNC_CHECKFP_MENU);
 }
 
 // Run on Plugin destruction, Ie. Closing EuroScope or unloading plugin
@@ -45,7 +48,7 @@ CVFPCPlugin::~CVFPCPlugin()
 	return size * nmemb;
 }*/
 
-static size_t WriteFunction(void *contents, size_t size, size_t nmemb, void *outString)
+static size_t curlCallback(void *contents, size_t size, size_t nmemb, void *outString)
 {
 	// For Curl, we should assume that the data is not null terminated, so add a null terminator on the end
  	((std::string*)outString)->append(reinterpret_cast<char*>(contents), size * nmemb);
@@ -55,7 +58,7 @@ static size_t WriteFunction(void *contents, size_t size, size_t nmemb, void *out
 void CVFPCPlugin::debugMessage(string type, string message) {
 	// Display Debug Message if debugMode = true
 	if (debugMode) {
-		DisplayUserMessage("VFPC", type.c_str(), message.c_str(), true, true, true, false, false);
+		DisplayUserMessage("VFPC Log", type.c_str(), message.c_str(), true, true, true, false, false);
 	}
 }
 
@@ -65,7 +68,7 @@ void CVFPCPlugin::sendMessage(string type, string message) {
 }
 
 void CVFPCPlugin::sendMessage(string message) {
-	DisplayUserMessage("Message", "VFPC", message.c_str(), true, true, true, false, false);
+	DisplayUserMessage("VFPC", "System", message.c_str(), true, true, true, false, false);
 }
 
 void CVFPCPlugin::getSids() {
@@ -79,7 +82,7 @@ void CVFPCPlugin::getSids() {
 	//curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 	//curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10);
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteFunction);
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curlCallback);
 
 	curl_easy_perform(curl);
 	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
@@ -89,16 +92,16 @@ void CVFPCPlugin::getSids() {
 	{
 		if (config.Parse<0>(readBuffer.c_str()).HasParseError())
 		{
-			string msg = str(boost::format("An error parsing VFPC configuration occurred. Error: %s (Offset: %i)\nOnce fixed, reload the config by typing '.vfpc reload'") % config.GetParseError() % config.GetErrorOffset());
-			sendMessage(msg);
+			sendMessage("An error occurred whilst reading data. The plugin will not automatically attempt to reload from the API. To restart data fetching, type \".vfpc reload\".");
+			debugMessage("Error", str(boost::format("Config Parse: %s (Offset: %i)\n'") % config.GetParseError() % config.GetErrorOffset()));
 
 			config.Parse<0>("[{\"icao\": \"XXXX\"}]");
 		}
 	}
 	else
 	{
-		string msg = str(boost::format("An error downloading VFPC configuration occurred. Check your connection and reload the config by typing '.vfpc reload'"));
-		sendMessage(msg);
+		sendMessage("An error occurred whilst downloading data. The plugin will not automatically attempt to reload from the API. Check your connection and restart data fetching by typing \".vfpc reload\".");
+		debugMessage("Error", str(boost::format("Config Download: %s (Offset: %i)\n'") % config.GetParseError() % config.GetErrorOffset()));
 
 		config.Parse<0>("[{\"icao\": \"XXXX\"}]");
 	}
@@ -231,7 +234,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			//3 or 5 Letter Waypoint SID - In Full
 			else if (entry_size > wp_size && isdigit(route[0][wp_size])) {
 				//SID Has Letter Suffix
-				for (int i = wp_size + 1; i < entry_size; i++) {
+				for (size_t i = wp_size + 1; i < entry_size; i++) {
 					if (!isalpha(route[0][i])) {
 						stop = true;
 					}
@@ -246,7 +249,7 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		//5 Letter Waypoint SID - Abbreviated to 6 Chars
 		else if (wp_size == 5 && entry_size >= wp_size && isdigit(route[0][wp_size - 1])) {
 			//SID Has Letter Suffix
-			for (int i = wp_size; i < entry_size; i++) {
+			for (size_t i = wp_size; i < entry_size; i++) {
 				if (!isalpha(route[0][i])) {
 					stop = true;
 				}
@@ -838,29 +841,33 @@ void CVFPCPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget,
 }
 
 bool CVFPCPlugin::OnCompileCommand(const char * sCommandLine) {
-	if (startsWith(".vfpc reload", sCommandLine))
+	//Restart Automatic Data Loading
+	if (startsWith(".vfpc load", sCommandLine))
 	{
-		sendMessage("Unloading all loaded SIDs...");
-		initialSidLoad = false;
+		if (autoLoad) {
+			sendMessage("Auto-Load Already Active.");
+			debugMessage("Warning", "Auto-load activation attempted whilst already active.");
+		}
+		else {
+			sendMessage("Auto-Load Activated.");
+			debugMessage("Info", "Auto-load reactivated.");
+		}
+
+		sidsLoaded = false;
 		return true;
 	}
-	if (startsWith(".vfpc debug", sCommandLine)) {
+	//Activate Debug Logging
+	if (startsWith(".vfpc log", sCommandLine)) {
 		if (debugMode) {
-			debugMessage("DebugMode", "Deactivating Debug Mode!");
+			debugMessage("Info", "Logging mode deactivated.");
 			debugMode = false;
 		} else {
 			debugMode = true;
-			debugMessage("DebugMode", "Activating Debug Mode!");
+			debugMessage("Info", "Logging mode activated.");
 		}
 		return true;
 	}
-	if (startsWith(".vfpc load", sCommandLine)) {
-		locale loc;
-		string buffer{ sCommandLine };
-		buffer.erase(0, 11);
-		getSids();
-		return true;
-	}
+	//Text-Equivalent of "Show Checks" Button
 	if (startsWith(".vfpc check", sCommandLine))
 	{
 		checkFPDetail();
@@ -892,7 +899,6 @@ void CVFPCPlugin::checkFPDetail() {
 
 string CVFPCPlugin::getFails(vector<string> messageBuffer) {
 	vector<string> fail;
-	fail.push_back("FPL");
 
 	if (messageBuffer.at(1).find("Invalid") == 0) {
 		fail.push_back("SID");
@@ -920,31 +926,28 @@ string CVFPCPlugin::getFails(vector<string> messageBuffer) {
 		fail.push_back("CHK");
 	}
 
-
-	std::size_t couldnt = disCount;
-	while (couldnt >= fail.size())
-		couldnt -= fail.size();
-	return fail[couldnt];
+	return fail[failPos % fail.size()];
 }
 
 void CVFPCPlugin::OnTimer(int Counter) {
 
 	blink = !blink;
 
-	if (blink) {
-		if (disCount < 3) {
-			disCount++;
-		}
-		else {
-			disCount = 0;
-		}
+	//2520 is Lowest Common Multiple of Numbers 1-9
+	if (failPos < 840) {
+		failPos++;
 	}
+	//Number shouldn't get out of control
+	else {
+		failPos = 0;
+	}
+
 
 	if (relCount == 5) {
 		relCount = -1;
-		initialSidLoad = false;
+		sidsLoaded = false;
 	}
-	else if (relCount == -1 && initialSidLoad) {
+	else if (relCount == -1 && sidsLoaded) {
 		relCount = 0;
 	}
 	else {
@@ -952,12 +955,12 @@ void CVFPCPlugin::OnTimer(int Counter) {
 	}
 
 	// Loading proper Sids, when logged in
-	if (GetConnectionType() != CONNECTION_TYPE_NO && !initialSidLoad) {
+	if (GetConnectionType() != CONNECTION_TYPE_NO && autoLoad && !sidsLoaded) {
 		string callsign{ ControllerMyself().GetCallsign() };
 		getSids();
-		initialSidLoad = true;
-	} else if (GetConnectionType() == CONNECTION_TYPE_NO && initialSidLoad) {
-		initialSidLoad = false;
-		sendMessage("Unloading", "All loaded SIDs");
+		sidsLoaded = true;
+	} else if (GetConnectionType() == CONNECTION_TYPE_NO && sidsLoaded) {
+		sidsLoaded = false;
+		sendMessage("Unloading all data.");
 	}
 }
