@@ -4,7 +4,7 @@
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
-bool blink, debugMode, autoLoad, sidsLoaded;
+bool blink, debugMode, validVersion, autoLoad, sidsLoaded;
 
 size_t failPos, relCount;
 
@@ -16,6 +16,7 @@ CVFPCPlugin::CVFPCPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_
 {
 	blink = false;
 	debugMode = false;
+	validVersion = true; //Reset in first timer call
 	autoLoad = true;
 	sidsLoaded = false;
 
@@ -28,8 +29,10 @@ CVFPCPlugin::CVFPCPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_
 	sendMessage(loadingMessage);
 
 	// Register Tag Item "VFPC"
-	RegisterTagItemType("VFPC", TAG_ITEM_FPCHECK);
-	RegisterTagItemFunction("Show Checks", TAG_FUNC_CHECKFP_MENU);
+	if (validVersion) {
+		RegisterTagItemType("VFPC", TAG_ITEM_FPCHECK);
+		RegisterTagItemFunction("Show Checks", TAG_FUNC_CHECKFP_MENU);
+	}
 }
 
 // Run on Plugin destruction, Ie. Closing EuroScope or unloading plugin
@@ -71,11 +74,11 @@ void CVFPCPlugin::sendMessage(string message) {
 	DisplayUserMessage("VFPC", "System", message.c_str(), true, true, true, false, false);
 }
 
-void CVFPCPlugin::getSids() {
+void CVFPCPlugin::webCall(string endpoint, Document& out) {
 	CURL* curl = curl_easy_init();
-	string api_url = "https://vfpc.tomjmills.co.uk/final";
+	string url = MY_API_ADDRESS + endpoint;
 
-	curl_easy_setopt(curl, CURLOPT_URL, api_url.c_str());
+	curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 
 	uint64_t httpCode = 0;
 	std::string readBuffer;
@@ -91,12 +94,12 @@ void CVFPCPlugin::getSids() {
 
 	if (httpCode == 200)
 	{
-		if (config.Parse<0>(readBuffer.c_str()).HasParseError())
+		if (out.Parse<0>(readBuffer.c_str()).HasParseError())
 		{
 			sendMessage("An error occurred whilst reading data. The plugin will not automatically attempt to reload from the API. To restart data fetching, type \".vfpc reload\".");
 			debugMessage("Error", str(boost::format("Config Parse: %s (Offset: %i)\n'") % config.GetParseError() % config.GetErrorOffset()));
 
-			config.Parse<0>("[{\"icao\": \"XXXX\"}]");
+			out.Parse<0>("[{\"Icao\": \"XXXX\"}]");
 		}
 	}
 	else
@@ -104,8 +107,34 @@ void CVFPCPlugin::getSids() {
 		sendMessage("An error occurred whilst downloading data. The plugin will not automatically attempt to reload from the API. Check your connection and restart data fetching by typing \".vfpc reload\".");
 		debugMessage("Error", str(boost::format("Config Download: %s (Offset: %i)\n'") % config.GetParseError() % config.GetErrorOffset()));
 
-		config.Parse<0>("[{\"icao\": \"XXXX\"}]");
+		out.Parse<0>("[{\"Icao\": \"XXXX\"}]");
 	}
+}
+
+bool CVFPCPlugin::checkVersion() {
+	Document version;
+	webCall("version", version);
+	
+	if (version.HasMember("VFPC_Version") && version["VFPC_Version"].IsString()) {
+		vector<string> current = split(version["VFPC_Version"].GetString(), '.');
+		vector<string> installed = split(MY_PLUGIN_VERSION, '.');
+
+		if (installed[0] >= current[0] && installed[1] >= current[1] && installed[2] >= current[2]) {
+			return true;
+		}
+		else {
+			sendMessage("Update available - the plugin has been disabled. Please update and reload the plugin to continue. (Note: .vfpc reload will NOT work.)");
+		}
+	}
+	else {
+		sendMessage("Failed to check for updates - the plugin has been disabled. If no updates are available, please unload and reload the plugin to try again. (Note: .vfpc reload will NOT work.)");
+	}
+
+	return false;
+}
+
+void CVFPCPlugin::getSids() {
+	webCall("final", config);
 
 	airports.clear();
 
@@ -865,10 +894,8 @@ void CVFPCPlugin::OnFunctionCall(int FunctionId, const char * ItemString, POINT 
 }
 
 // Get FlightPlan, and therefore get the first waypoint of the flightplan (ie. SID). Check if the (RFL/1000) corresponds to the SID Min FL and report output "OK" or "FPL"
-void CVFPCPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int ItemCode, int TagData, char sItemString[16], int* pColorCode, COLORREF* pRGB, double* pFontSize)
-{
-	if (ItemCode == TAG_ITEM_FPCHECK)
-	{
+void CVFPCPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int ItemCode, int TagData, char sItemString[16], int* pColorCode, COLORREF* pRGB, double* pFontSize){
+	if (validVersion && ItemCode == TAG_ITEM_FPCHECK) {
 		string FlightPlanString = FlightPlan.GetFlightPlanData().GetRoute();
 		int RFL = FlightPlan.GetFlightPlanData().GetFinalAltitude();
 
@@ -879,7 +906,8 @@ void CVFPCPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget,
 			strcpy_s(sItemString, 16, "VFR");
 		}
 		else {
-			vector<string> messageBuffer{ validizeSid(FlightPlan) }; // 0 = Callsign, 1 = SID, 2 = Engine Type, 3 = Airways, 4 = Nav Performance, 5 = Destination, 6 = Min/Max Flight Level, 7 = Even/Odd, 8 = Syntax, 9 = Passed/Failed
+			vector<string> validize = validizeSid(FlightPlan);
+			vector<string> messageBuffer{ validize }; // 0 = Callsign, 1 = SID, 2 = Engine Type, 3 = Airways, 4 = Nav Performance, 5 = Destination, 6 = Min/Max Flight Level, 7 = Even/Odd, 8 = Syntax, 9 = Passed/Failed
 
 			if (messageBuffer.at(9) == "Passed") {
 				*pRGB = TAG_GREEN;
@@ -887,7 +915,7 @@ void CVFPCPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget,
 			}
 			else {
 				*pRGB = TAG_RED;
-				string code = getFails(validizeSid(FlightPlan));
+				string code = getFails(validize);
 				strcpy_s(sItemString, 16, code.c_str());
 			}
 		}
@@ -932,24 +960,26 @@ bool CVFPCPlugin::OnCompileCommand(const char * sCommandLine) {
 }
 
 // Sends to you, which checks were failed and which were passed on the selected aircraft
-void CVFPCPlugin::checkFPDetail() {	
-	vector<string> messageBuffer{ validizeSid(FlightPlanSelectASEL()) };	// 0 = Callsign, 1 = valid/invalid SID, 2 = SID Name, 3 = Even/Odd, 4 = Minimum Flight Level, 5 = Maximum Flight Level, 6 = Passed
-	sendMessage(messageBuffer.at(0), "Checking...");
-	string buffer{ messageBuffer.at(1) + " SID | " };
-	if (messageBuffer.at(1).find("Invalid") != 0) {
-		for (int i = 2; i < 9; i++) {
-			string temp = messageBuffer.at(i);
+void CVFPCPlugin::checkFPDetail() {
+	if (validVersion) {
+		vector<string> messageBuffer{ validizeSid(FlightPlanSelectASEL()) };	// 0 = Callsign, 1 = valid/invalid SID, 2 = SID Name, 3 = Even/Odd, 4 = Minimum Flight Level, 5 = Maximum Flight Level, 6 = Passed
+		sendMessage(messageBuffer.at(0), "Checking...");
+		string buffer{ messageBuffer.at(1) + " SID | " };
+		if (messageBuffer.at(1).find("Invalid") != 0) {
+			for (int i = 2; i < 9; i++) {
+				string temp = messageBuffer.at(i);
 
-			if (temp != "-")
-			{
-				buffer += temp;
-				buffer += " | ";
+				if (temp != "-")
+				{
+					buffer += temp;
+					buffer += " | ";
+				}
 			}
 		}
-	}
 
-	buffer += messageBuffer.at(9);
-	sendMessage(messageBuffer.at(0), buffer);
+		buffer += messageBuffer.at(9);
+		sendMessage(messageBuffer.at(0), buffer);
+	}
 }
 
 string CVFPCPlugin::getFails(vector<string> messageBuffer) {
@@ -985,37 +1015,43 @@ string CVFPCPlugin::getFails(vector<string> messageBuffer) {
 }
 
 void CVFPCPlugin::OnTimer(int Counter) {
+	if (validVersion) {
+		validVersion = checkVersion();
 
-	blink = !blink;
+		if (validVersion) {
+			blink = !blink;
 
-	//2520 is Lowest Common Multiple of Numbers 1-9
-	if (failPos < 840) {
-		failPos++;
-	}
-	//Number shouldn't get out of control
-	else {
-		failPos = 0;
-	}
+			//2520 is Lowest Common Multiple of Numbers 1-9
+			if (failPos < 840) {
+				failPos++;
+			}
+			//Number shouldn't get out of control
+			else {
+				failPos = 0;
+			}
 
 
-	if (relCount == 5) {
-		relCount = -1;
-		sidsLoaded = false;
-	}
-	else if (relCount == -1 && sidsLoaded) {
-		relCount = 0;
-	}
-	else {
-		relCount++;
-	}
+			if (relCount == 5) {
+				relCount = -1;
+				sidsLoaded = false;
+			}
+			else if (relCount == -1 && sidsLoaded) {
+				relCount = 0;
+			}
+			else {
+				relCount++;
+			}
 
-	// Loading proper Sids, when logged in
-	if (GetConnectionType() != CONNECTION_TYPE_NO && autoLoad && !sidsLoaded) {
-		string callsign{ ControllerMyself().GetCallsign() };
-		getSids();
-		sidsLoaded = true;
-	} else if (GetConnectionType() == CONNECTION_TYPE_NO && sidsLoaded) {
-		sidsLoaded = false;
-		sendMessage("Unloading all data.");
+			// Loading proper Sids, when logged in
+			if (GetConnectionType() != CONNECTION_TYPE_NO && autoLoad && !sidsLoaded) {
+				string callsign{ ControllerMyself().GetCallsign() };
+				getSids();
+				sidsLoaded = true;
+			}
+			else if (GetConnectionType() == CONNECTION_TYPE_NO && sidsLoaded) {
+				sidsLoaded = false;
+				sendMessage("Unloading all data.");
+			}
+		}
 	}
 }

@@ -14,10 +14,11 @@
 #include "rapidjson/stringbuffer.h"
 
 #define MY_PLUGIN_NAME      "VFPC (UK)"
-#define MY_PLUGIN_VERSION   "3.0.2"
+#define MY_PLUGIN_VERSION   "3.1.1"
 #define MY_PLUGIN_DEVELOPER "Lenny Colton, Jan Fries, Hendrik Peter, Sven Czarnian"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO  "VATSIM (UK) Flight Plan Checker"
+#define MY_API_ADDRESS	"https://vfpc.tomjmills.co.uk/"
 
 #define PLUGIN_WELCOME_MESSAGE	"Welcome to the VATSIM (UK) Flight Plan Checker"
 
@@ -32,6 +33,10 @@ class CVFPCPlugin :
 public:
 	CVFPCPlugin();
 	virtual ~CVFPCPlugin();
+
+	void webCall(string endpoint, Document& out);
+
+	virtual bool checkVersion();
 
 	virtual void getSids();
 
