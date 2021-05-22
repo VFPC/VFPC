@@ -34,10 +34,10 @@ UK VFPC (UK VATSIM Flight Plan Checker) is a plugin for EuroScope that checks fi
 - Add a new Tag Item to the Departure List with the VFPC Tag Type & Function - Recommended item width of 3.
 
 ## Chat Commands:
-`.vfpc` - Root command. Must be placed before any of the below commands in order for them to run.
-`reload` - Attempts to reactivate automatic data loading if it has been disabled for some reason. (Server connection lost, etc.)
-`debug` - Activates debug logging into a separate message box, named "VFPC Log"
-`check <callsign>` - Equivalent of clicking the "Show Checks" button for an aircraft. Replace `<callsign>` with the logon callsign of the aircraft.
+- `.vfpc` - Root command. Must be placed before any of the below commands in order for them to run.
+- `reload` - Attempts to reactivate automatic data loading if it has been disabled for some reason. (Server connection lost, etc.)
+- `debug` - Activates debug logging into a separate message box, named "VFPC Log"
+- `check <callsign>` - Equivalent of clicking the "Show Checks" button for an aircraft. Replace `<callsign>` with the logon callsign of the aircraft.
 
 ## Disclaimer
 The plugin is currently in active development and you may encounter **unforseen bugs or other issues**. Please report them - we'll fix them as soon as we can. You run this plugin at your own risk - the developers are all volunteers and accept no liability for any problems or damage to your system.
