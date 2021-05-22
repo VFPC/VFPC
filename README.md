@@ -1,43 +1,43 @@
-# VFPC Plugin
+# VFPC
 
-**Applies to VFPC v2.x, available [here](https://github.com/hpeter2/VFPC). Feel free to contact me with any questions regarding v3.x. Please be aware that (v3.x) development is ongoing and file formats may change without notice.**
- 
-VFPC (Vatsim Flugplan-RFL checker) is a plugin for EuroScope that checks defined departure restrictions on filed flight plans. It adds a Tag Item type for the Departure List, which displays the result of the check.
+UK VFPC (UK VATSIM Flight Plan Checker) is a plugin for EuroScope that checks filed flight IFR plans against pre-defined departure restrictions. It displays the results of such checks in a user-friendly format, with the option to output detailed results.
 
-![Departure List](https://i.imgur.com/wJRsdJq.png)
+**N.B.** - This plugin does negate or replace the need for Delivery controllers to thoroughly check each Flight Plan before issuing a clearance; nor will it provide a perfect solution to more serious issues (e.g. SID filed routes in completely the wrong direction).
 
 ## Features:
-- Tag item VFPC: Shows check-result as green 'OK!' or red 'FPL!' ('SID' = No valid SID found, 'ENG' = Failed Engine type restriction, 'E/O' = Failed even/odd Flightlevel, 'MIN' = Failed minimum Flight Level, 'MAX' = Failed maximum Flightlevel)
-- Tag function 'Check FP': Explains the check-result in chat output
-- Chat command '.vfpc reload': reload the Sid.json config
-- Chat command '.vfpc check': checks currently selected AC and outputs result
-- Restrictions customizable in Sid.json config
-- Checks Even/Odd Flightlevel restriction
-- Checks Minimum & Maximum Flightlevel restriction
-- Check condition 'route must contain airway' available
-- Check condition 'destination must be' available
-- Check condition 'aircraft type must be' available (? - unknown, P - piston, T - turboprop/turboshaft, J - jet, E - electric)
+- `VFPC` tag item: Shows check-result and allows output of detailed checking data.
+- Tag function 'Show Checks': Outputs detailed checking data.
+- Checks validity of the filed initial route (to the extent specified by API - can be varied on a per-facility basis by local management).
+- Checks that the aircraft type is valid for the filed SID.
+- Checks that the filed initial route is valid to the given destination.
+- Checks that the filed altitude follows any odd/even restrictions.
+- Checks that the filed altitude is within the allocated altitude block for the filed route.
+- Checks that there are no obvious syntax errors within the flight plan. (Invalid step climbs, Random symbol characters, etc.)
 
-## How to use:
+## Check Results
+
+### Green
+- `OK!`- All checks passed.
+
+### Red
+- `SID` - Assigned SID is invalid for some reason. (Not Set, Not Found, Bad Suffix, Mismatch with Route, etc.)
+- `ENG` - Engine type is invalid for this SID/route.
+- `DST` - Filed destination is invalid for this SID.
+- `RTE` - Filed route is invalid for some reason.
+- `NAV` - Navigation performance is invalid for this SID/route.
+- - Alternating `MIN` and `MAX` - Filed altitude is outside of the allocated altitude block for this route.
+- `DIR` - Filed altitude is in violation of the Odd/Even altitude requirement for this route.
+- `CHK` - Some kind of syntax error - (Bad characters in route, Invalid step climb instruction, etc.)
+
+## Initial Setup:
 - Load up the plugin
-- Add Tag Item type & function to Departure List
-- Extend the 'Sid.json' config file
-![Departure List2](https://i.imgur.com/kQrtVfN.png)
+- Add a new Tag Item to the Departure List with the VFPC Tag Type & Function - Recommended item width of 3.
 
+## Chat Commands:
+`.vfpc` - Root command. Must be placed before any of the below commands in order for them to run.
+`reload` - Attempts to reactivate automatic data loading if it has been disabled for some reason. (Server connection lost, etc.)
+`debug` - Activates debug logging into a separate message box, named "VFPC Log"
+`check <callsign>` - Equivalent of clicking the "Show Checks" button for an aircraft. Replace `<callsign>` with the logon callsign of the aircraft.
 
-### How to define configurations
-The 'Sid.json'-File is using the JSON file format. Each airport is an object containing the "icao" and a sub-object "sids", which contains all definitions & restrictions. Inside this sub-object are all available SIDs defined by the first route waypoint (i.e. "AMLUH" for AMLUH1B, AMLUH9C, AMLUH9D & AMLUH9G).
-Each SID can contain multiple objects with defined options based on restrictions. The plugin will stop at the first matching one from top-to-bottom, so the most restrictive objects should always be on top.
-
-Available restrictions:
-- "destinations" - Array of strings. The object only applies to FPL with one of the given destination ICAOs. Partials are possible, ex. "ED"
-- "engine" - Either string or array of strings. The object only applies to AC with one of the given Engine Types. Options are "P" (piston), "T" (turboprop/turboshaft), "J" (jet) and "E" (electric), as defined by Euroscope
-- "navigation" - A string which contains the equipment codes which defines all allowed capabilities for the SID
-- "airways" - Array of strings. The object only applies to FPL if route contains any of the given airways
-
-Available options:
-- "direction" - String. The FPL must have this E/O option as final flightlevel. Available: "EVEN/ODD/ANY)
-- "min_fl" - Integer. The FPL must have this flightlevel as minimum
-- "max_fl" - Integer. The FPL must have this flightlevel as maximum
-
-Examples can be found in the given Sid.json file.
+## Disclaimer
+The plugin is currently in active development and you may encounter **unforseen bugs or other issues**. Please report them - we'll fix them as soon as we can. You run this plugin at your own risk - the developers are all volunteers and accept no liability for any problems or damage to your system.
