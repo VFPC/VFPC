@@ -147,12 +147,15 @@ void CVFPCPlugin::getSids() {
 }
 
 // Does the checking and magic stuff, so everything will be alright when this is finished! Or not. Who knows?
-vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
-	vector<string> returnValid = {}; // 0 = Callsign, 1 = SID, 2 = Engine Type, 3 = Airways, 4 = Nav Performance, 5 = Destination, 6 = Min/Max Flight Level, 7 = Even/Odd, 8 = Syntax, 9 = Passed/Failed
+vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
+	//out[0] = Normal Output, out[1] = Debug Output
+	vector<vector<string>> returnOut = { vector<string>(), vector<string>() }; // 0 = Callsign, 1 = SID, 2 = Engine Type, 3 = Airways, 4 = Nav Performance, 5 = Destination, 6 = Min/Max Flight Level, 7 = Even/Odd, 8 = Syntax, 9 = Passed/Failed
 
-	returnValid.push_back(flightPlan.GetCallsign());
+	returnOut[0].push_back(flightPlan.GetCallsign());
+	returnOut[1].push_back(flightPlan.GetCallsign());
 	for (int i = 1; i < 10; i++) {
-		returnValid.push_back("-");
+		returnOut[0].push_back("-");
+		returnOut[1].push_back("-");
 	}
 
 	string origin = flightPlan.GetFlightPlanData().GetOrigin(); boost::to_upper(origin);
@@ -197,16 +200,22 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					break;
 				}
 				else {
-					returnValid[8] = "Invalid Speed/Level Change";
-					returnValid[9] = "Failed";
-					return returnValid;
+					returnOut[0][8] = "Invalid Speed/Level Change";
+					returnOut[0][9] = "Failed";
+
+					returnOut[1][8] = "Invalid Route Item: " + route[i];
+					returnOut[1][9] = "Failed";
+					return returnOut;
 				}
 			}
 			default:
 			{
-				returnValid[8] = "Invalid Syntax - Too Many \"/\" Characters in One or More Waypoints";
-				returnValid[9] = "Failed";
-				return returnValid;
+				returnOut[0][8] = "Invalid Syntax - Too Many \"/\" Characters in One or More Waypoints";
+				returnOut[0][9] = "Failed";
+
+				returnOut[0][8] = "Invalid Route Item: " + route[i];
+				returnOut[0][9] = "Failed";
+				return returnOut;
 			}
 		}
 	}
@@ -228,9 +237,9 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 	// Flightplan has SID
 	if (!sid.length()) {
-		returnValid[1] = "Invalid SID - None Set";
-		returnValid[9] = "Failed";
-		return returnValid;
+		returnOut[0][1] = returnOut[1][1] = "Invalid SID - None Set";
+		returnOut[0][9] = returnOut[1][9] = "Failed";
+		return returnOut;
 	}
 
 	string first_wp = sid.substr(0, sid.find_first_of("0123456789"));
@@ -244,9 +253,9 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 	// Did not find a valid SID
 	if (0 == sid_suffix.length() && "VCT" != first_wp) {
-		returnValid[1] = "Invalid SID - None Set";
-		returnValid[9] = "Failed";
-		return returnValid;
+		returnOut[0][1] = returnOut[1][1] = "Invalid SID - None Set";
+		returnOut[0][9] = returnOut[1][9] = "Failed";
+		return returnOut;
 	}
 
 	// Check First Waypoint Correct. Remove SID References & First Waypoint From Route.
@@ -293,25 +302,36 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	}
 	
 	if (!success) {
-		returnValid[1] = "Invalid SID - Route Not From Final SID Fix";
-		returnValid[9] = "Failed";
-		return returnValid;
+		returnOut[0][1] = "Invalid SID - Route Not From Final SID Fix";
+		returnOut[0][9] = "Failed";
+
+		returnOut[1][1] = "Invalid SID - Route must start at " + first_wp + ".";
+		returnOut[1][9] = "Failed";
+		return returnOut;
 	}
 
 	// Airport defined
 	if (airports.find(origin) == airports.end()) {
-		returnValid[1] = "Invalid SID - Airport Not Found";
-		returnValid[9] = "Failed";
-		return returnValid;
+		returnOut[0][1] = "Invalid SID - Airport Not Found";
+		returnOut[0][9] = "Failed";
+
+		returnOut[1][1] = "Invalid SID - " + origin + " not in database.";
+		returnOut[1][9] = "Failed";
+		return returnOut;
 	}
 	else
+	{
 		origin_int = airports[origin];
+	}
 
 	// Any SIDs defined
 	if (!config[origin_int].HasMember("Sids") || !config[origin_int]["Sids"].IsArray()) {
-		returnValid[1] = "Invalid SID - None Defined";
-		returnValid[9] = "Failed";
-		return returnValid;
+		returnOut[0][1] = "Invalid SID - None Defined";
+		returnOut[0][9] = "Failed";
+
+		returnOut[1][1] = "Invalid SID - " + origin + " exists in database but has no SIDs defined.";
+		returnOut[1][9] = "Failed";
+		return returnOut;
 	}
 
 	bool valid = false;
@@ -672,29 +692,38 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			}
 		}
 
-		returnValid[0] = flightPlan.GetCallsign();
+		returnOut[0][0] = flightPlan.GetCallsign();
+		returnOut[1][0] = flightPlan.GetCallsign();
 		for (int i = 1; i < 10; i++) {
-			returnValid[i] = "-";
+			returnOut[0][i] = "-";
+			returnOut[1][i] = "-";
 		}
 
-		returnValid[9] = "Failed";
+		returnOut[0][9] = "Failed";
+		returnOut[1][9] = "Failed";
+
+		vector<bool>::iterator itr = find(validity.begin(), validity.end(), true);
+		int i = std::distance(validity.begin(), itr);
 
 		switch (round) {
 		case 7:
 		{
-			vector<bool>::iterator itr = find(validity.begin(), validity.end(), true);
-			int i = std::distance(validity.begin(), itr);
+			returnOut[0][7] = "Passed Level Direction.";
+			returnOut[0][9] = "Passed";
 
-			returnValid[7] = "Passed Level Direction.";
-			returnValid[9] = "Passed";
+			returnOut[1][7] = "\"" + string(conditions[i]["Dir"].GetString()) + "\" Passed";
+			returnOut[1][9] = "Passed";
 		}
 		case 6:
 		{
 			if (round == 6) {
-				returnValid[7] = "Failed Level Direction: " + results[0] + " Required.";
+				string res = "";
+				returnOut[0][7] = "Failed Level Direction: " + string(conditions[i]["Dir"].GetString()) + " Required.";
+				returnOut[1][7] = "\"" + string(conditions[i]["Dir"].GetString()) + "\" Failed";
 			}
 
-			returnValid[6] = "Passed Min/Max Level.";
+			returnOut[0][6] = "Passed Min/Max Level.";
+			returnOut[1][6] = 
 		}
 		case 5:
 		{
@@ -705,10 +734,10 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					out += each + ", ";
 				}
 
-				returnValid[6] = "Failed Min/Max Level: " + out.substr(0, out.length() - 2) + ".";
+				returnOut[0][6] = "Failed Min/Max Level: " + out.substr(0, out.length() - 2) + ".";
 			}
 
-			returnValid[5] = "Passed Navigation Performance.";
+			returnOut[0][5] = "Passed Navigation Performance.";
 		}
 
 		case 4:
@@ -723,10 +752,10 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					out += each + ", ";
 				}
 
-				returnValid[5] = "Failed Navigation Performance. Required Performance: " + out.substr(0, out.length() - 2) + ".";
+				returnOut[0][5] = "Failed Navigation Performance. Required Performance: " + out.substr(0, out.length() - 2) + ".";
 			}
 
-			returnValid[4] = "Passed Route.";
+			returnOut[0][4] = "Passed Route.";
 		}
 		case 3:
 		{
@@ -737,10 +766,10 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					out += each + " / ";
 				}
 
-				returnValid[4] = "Failed Route - " + out.substr(0, out.length() - 3) + ".";
+				returnOut[0][4] = "Failed Route - " + out.substr(0, out.length() - 3) + ".";
 			}
 
-			returnValid[3] = "Passed Destination.";
+			returnOut[0][3] = "Passed Destination.";
 		}
 		case 2:
 		{
@@ -822,10 +851,10 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					out = out.substr(0, out.length() - 2);
 				}
 
-				returnValid[3] = "Failed Destination - Valid Destinations: " + out + ".";
+				returnOut[0][3] = "Failed Destination - Valid Destinations: " + out + ".";
 			}
 
-			returnValid[2] = "Passed Engine Type.";
+			returnOut[0][2] = "Passed Engine Type.";
 		}
 		case 1:
 		{
@@ -850,10 +879,10 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					}
 				}
 
-				returnValid[2] = "Failed Engine Type. Needed Type : " + out.substr(0, out.length() - 2) + ".";
+				returnOut[0][2] = "Failed Engine Type. Needed Type : " + out.substr(0, out.length() - 2) + ".";
 			}
 
-			returnValid[1] = "Valid SID - " + sid;
+			returnOut[0][1] = "Valid SID - " + sid;
 			break;
 		}
 		case 0:
@@ -867,19 +896,21 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 				out += *itr + ", ";
 			}
 
-			returnValid[1] = "Invalid SID - " + sid + " Contains Invalid Suffix. Valid Suffices: " + out.substr(0, out.length() - 2) + ".";
-			returnValid[9] = "Failed";
+			returnOut[0][1] = "Invalid SID - " + sid + " Contains Invalid Suffix. Valid Suffices: " + out.substr(0, out.length() - 2) + ".";
+			returnOut[0][9] = "Failed";
 
 			break;
 		}
 		}
 
-		return returnValid;
+		return returnOut;
 	}
 	else {
-		returnValid[1] = "Invalid SID - Waypoint Not Found";
-		returnValid[9] = "Failed";
-		return returnValid;
+		returnOut[0][1] = "Invalid SID - SID Not Found";
+		returnOut[0][9] = "Failed";
+		returnOut[1][1] = "Invalid SID - " + sid + " departure not in database.";
+		returnOut[1][9] = "Failed";
+		return returnOut;
 	}
 }
 //

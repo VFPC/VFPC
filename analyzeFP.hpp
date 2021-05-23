@@ -40,7 +40,7 @@ public:
 
 	virtual void getSids();
 
-	virtual vector<string> validizeSid(CFlightPlan flightPlan);
+	virtual vector<vector<string>> validizeSid(CFlightPlan flightPlan);
 
 	virtual void OnFunctionCall(int FunctionId, const char * ItemString, POINT Pt, RECT Area);
 
