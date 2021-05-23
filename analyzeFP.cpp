@@ -96,7 +96,7 @@ void CVFPCPlugin::webCall(string endpoint, Document& out) {
 	{
 		if (out.Parse<0>(readBuffer.c_str()).HasParseError())
 		{
-			sendMessage("An error occurred whilst reading data. The plugin will not automatically attempt to reload from the API. To restart data fetching, type \".vfpc reload\".");
+			sendMessage("An error occurred whilst reading data. The plugin will not automatically attempt to reload from the API. To restart data fetching, type \".vfpc load\".");
 			debugMessage("Error", str(boost::format("Config Parse: %s (Offset: %i)\n'") % config.GetParseError() % config.GetErrorOffset()));
 
 			out.Parse<0>("[{\"Icao\": \"XXXX\"}]");
@@ -104,7 +104,7 @@ void CVFPCPlugin::webCall(string endpoint, Document& out) {
 	}
 	else
 	{
-		sendMessage("An error occurred whilst downloading data. The plugin will not automatically attempt to reload from the API. Check your connection and restart data fetching by typing \".vfpc reload\".");
+		sendMessage("An error occurred whilst downloading data. The plugin will not automatically attempt to reload from the API. Check your connection and restart data fetching by typing \".vfpc load\".");
 		debugMessage("Error", str(boost::format("Config Download: %s (Offset: %i)\n'") % config.GetParseError() % config.GetErrorOffset()));
 
 		out.Parse<0>("[{\"Icao\": \"XXXX\"}]");
@@ -123,11 +123,11 @@ bool CVFPCPlugin::checkVersion() {
 			return true;
 		}
 		else {
-			sendMessage("Update available - the plugin has been disabled. Please update and reload the plugin to continue. (Note: .vfpc reload will NOT work.)");
+			sendMessage("Update available - the plugin has been disabled. Please update and reload the plugin to continue. (Note: .vfpc load will NOT work.)");
 		}
 	}
 	else {
-		sendMessage("Failed to check for updates - the plugin has been disabled. If no updates are available, please unload and reload the plugin to try again. (Note: .vfpc reload will NOT work.)");
+		sendMessage("Failed to check for updates - the plugin has been disabled. If no updates are available, please unload and reload the plugin to try again. (Note: .vfpc load will NOT work.)");
 	}
 
 	return false;
