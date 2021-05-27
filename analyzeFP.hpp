@@ -42,6 +42,8 @@ public:
 
 	virtual vector<vector<string>> validizeSid(CFlightPlan flightPlan);
 
+	virtual string MinMaxOutput(size_t origin_int, size_t pos, vector<int> successes);
+
 	virtual void OnFunctionCall(int FunctionId, const char * ItemString, POINT Pt, RECT Area);
 
 	//Define OnGetTagItem function

@@ -333,19 +333,16 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		returnOut[1][9] = "Failed";
 		return returnOut;
 	}
-
-	bool valid = false;
 	size_t pos = string::npos;
 
 	for (size_t i = 0; i < config[origin_int]["Sids"].Size(); i++) {
 		if (config[origin_int]["Sids"][i].HasMember("Point") && !first_wp.compare(config[origin_int]["Sids"][i]["Point"].GetString()) && config[origin_int]["Sids"][i].HasMember("Constraints") && config[origin_int]["Sids"][i]["Constraints"].IsArray()) {
 			pos = i;
-			valid = true;
 		}
 	}
 
 	// Needed SID defined
-	if (valid) {
+	if (pos != string::npos) {
 		const Value& conditions = config[origin_int]["Sids"][pos]["Constraints"];
 
 		int round = 0;
@@ -354,7 +351,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		vector<bool> validity, new_validity;
 		vector<string> results;
 		int Min, Max;
-
+			
 		while (cont && round < 7) {
 			new_validity = {};
 			results = {};
@@ -578,60 +575,19 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					}
 					case 5:
 					{
-						string res;
-
-						int Min, Max;
-						bool min_valid, max_valid = false;
-						bool min, max = false;
+						bool res_minmax = true;
 
 						//Min Level
-						if (conditions[i].HasMember("Min") && (Min = conditions[i]["Min"].GetInt()) > 0) {
-							min = true;
-							if ((RFL / 100) >= Min) {
-								min_valid = true;
-							}
-						}
-						else {
-							min_valid = true;
+						if (conditions[i].HasMember("Min") && (Min = conditions[i]["Min"].GetInt()) > 0 && (RFL / 100) <= Min) {
+							res_minmax = false;
 						}
 
 						//Max Level
-						if (conditions[i].HasMember("Max") && (Max = conditions[i]["Max"].GetInt()) > 0) {
-							max = true;
-							if ((RFL / 100) <= Max) {
-								max_valid = true;
-							}
-						}
-						else {
-							max_valid = true;
+						if (conditions[i].HasMember("Max") && (Max = conditions[i]["Max"].GetInt()) > 0 && (RFL / 100) >= Max) {
+							res_minmax = false;
 						}
 
-						if (min || max) {
-							if (min_valid && max_valid) {
-								new_validity.push_back(true);
-							}
-							else {
-								new_validity.push_back(false);
-
-								if (min && max) {
-									res = "FL" + to_string(Min) + " - " + to_string(Max);
-								}
-								else if (min) {
-									res = "FL" + to_string(Min) + " or Above";
-								}
-								else if (max) {
-									res = "FL" + to_string(Max) + " or Below";
-								}
-								else {
-									res = "All Levels";
-								}
-
-								results.push_back(res);
-							}
-						}
-						else {
-							new_validity.push_back(true);
-						}
+						new_validity.push_back(res_minmax);
 						break;
 					}
 					case 6:
@@ -649,7 +605,6 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 							}
 							else {
 								new_validity.push_back(false);
-								results.push_back("Even");
 							}
 						}
 						else if (direction == "ODD") {
@@ -661,18 +616,10 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 							}
 							else {
 								new_validity.push_back(false);
-								results.push_back("Odd");
 							}
 						}
-						else if (direction == "ANY") {
+						else { //(direction == "ANY")
 							new_validity.push_back(true);
-						}
-						else {
-							string errorText{ "Config Error for Even/Odd on SID: " };
-							errorText += first_wp;
-							sendMessage("Error", errorText);
-							new_validity.push_back(false);
-							results.push_back("Error");
 						}
 						break;
 					}
@@ -702,8 +649,13 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		returnOut[0][9] = "Failed";
 		returnOut[1][9] = "Failed";
 
-		vector<bool>::iterator itr = find(validity.begin(), validity.end(), true);
-		int i = std::distance(validity.begin(), itr);
+		vector<int> successes{};
+
+		for (size_t i = 0; i < validity.size(); i++) {
+			if (validity[i]) {
+				successes.push_back(i);
+			}
+		}
 
 		switch (round) {
 		case 7:
@@ -711,30 +663,25 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			returnOut[0][7] = "Passed Level Direction.";
 			returnOut[0][9] = "Passed";
 
-			returnOut[1][7] = "\"" + string(conditions[i]["Dir"].GetString()) + "\" Passed";
+			returnOut[1][7] = "Passed Level Direction: \"" + string(conditions[validity[0]]["Dir"].GetString()) + "\" Required.";
 			returnOut[1][9] = "Passed";
 		}
 		case 6:
 		{
 			if (round == 6) {
 				string res = "";
-				returnOut[0][7] = "Failed Level Direction: " + string(conditions[i]["Dir"].GetString()) + " Required.";
-				returnOut[1][7] = "\"" + string(conditions[i]["Dir"].GetString()) + "\" Failed";
+				returnOut[0][7] = "Failed Level Direction: \"" + string(conditions[validity[0]]["Dir"].GetString()) + "\" Required.";
+				returnOut[1][7] = "Failed Level Direction: \"" + string(conditions[validity[0]]["Dir"].GetString()) + "\" Required.";
 			}
 
 			returnOut[0][6] = "Passed Min/Max Level.";
-			returnOut[1][6] = 
+			returnOut[1][6] = "Passed " + MinMaxOutput(origin_int, pos, successes);
 		}
 		case 5:
 		{
 			if (round == 5) {
-				string out = "";
-
-				for (string each : results) {
-					out += each + ", ";
-				}
-
-				returnOut[0][6] = "Failed Min/Max Level: " + out.substr(0, out.length() - 2) + ".";
+				returnOut[0][6] = "Failed " + MinMaxOutput(origin_int, pos, successes);
+				returnOut[1][6] = returnOut[0][6];
 			}
 
 			returnOut[0][5] = "Passed Navigation Performance.";
@@ -913,6 +860,82 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		return returnOut;
 	}
 }
+
+string CVFPCPlugin::MinMaxOutput(size_t origin_int, size_t pos, vector<int> successes) {
+	const Value& conditions = config[origin_int]["Sids"][pos]["Constraints"];
+	vector<vector<int>> raw_lvls{};
+	for (int each : successes) {
+		vector<int> lvls = { MININT, MAXINT };
+
+		if (conditions[each].HasMember("Min") && conditions[each]["Min"].IsInt()) {
+			lvls[0] = conditions[each]["Min"].GetInt();
+		}
+
+		if (conditions[each].HasMember("Max") && conditions[each]["Max"].IsInt()) {
+			lvls[1] = conditions[each]["Max"].GetInt();
+		}
+
+		raw_lvls.push_back(lvls);
+	}
+
+	bool changed;
+	size_t i = 0;
+
+	while (i < raw_lvls.size() - 1) {
+		for (size_t j = 0; j < raw_lvls.size(); j++) {
+			if (i == j) {
+				break;
+			}
+			//Item j is a subset of Item i
+			if (raw_lvls[j][0] >= raw_lvls[i][0] && raw_lvls[j][1] <= raw_lvls[i][1]) {
+				raw_lvls.erase(raw_lvls.begin() + j);
+				changed = true;
+				break;
+			}
+			//Item j extends higher than Item i
+			else if (raw_lvls[j][0] >= raw_lvls[i][0]) {
+				raw_lvls[i][1] = raw_lvls[j][1];
+				raw_lvls.erase(raw_lvls.begin() + j);
+				changed = true;
+				break;
+			}
+			//Item j extends lower than Item i
+			else if (raw_lvls[j][1] <= raw_lvls[i][1]) {
+				raw_lvls[i][0] = raw_lvls[j][0];
+				raw_lvls.erase(raw_lvls.begin() + j);
+				changed = true;
+				break;
+			}
+		}
+
+		if (!changed) {
+			i++;
+		}
+	}
+
+	string out = "Min/Max Level: ";
+
+	for (vector<int> each : raw_lvls) {
+		if (each[0] == MININT && each[1] == MAXINT) {
+			out += "Any Level, ";
+		}
+		else if (each[0] == MININT) {
+			out += to_string(each[1]) + "-, ";
+		}
+		else if (each[1] == MAXINT) {
+			out += to_string(each[0]) + "+, ";
+
+		}
+		else {
+			out += to_string(each[0]) + "-" + to_string(each[1]);
+			out += ", ";
+		}
+	}
+
+	out = out.substr(0, out.size() - 2) + ".";
+
+	return out;
+}
 //
 void CVFPCPlugin::OnFunctionCall(int FunctionId, const char * ItemString, POINT Pt, RECT Area) {
 	if (FunctionId == TAG_FUNC_CHECKFP_MENU) {
@@ -937,7 +960,7 @@ void CVFPCPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget,
 			strcpy_s(sItemString, 16, "VFR");
 		}
 		else {
-			vector<string> validize = validizeSid(FlightPlan);
+			vector<string> validize = validizeSid(FlightPlan)[0];
 			vector<string> messageBuffer{ validize }; // 0 = Callsign, 1 = SID, 2 = Engine Type, 3 = Airways, 4 = Nav Performance, 5 = Destination, 6 = Min/Max Flight Level, 7 = Even/Odd, 8 = Syntax, 9 = Passed/Failed
 
 			if (messageBuffer.at(9) == "Passed") {
@@ -993,7 +1016,7 @@ bool CVFPCPlugin::OnCompileCommand(const char * sCommandLine) {
 // Sends to you, which checks were failed and which were passed on the selected aircraft
 void CVFPCPlugin::checkFPDetail() {
 	if (validVersion) {
-		vector<string> messageBuffer{ validizeSid(FlightPlanSelectASEL()) };	// 0 = Callsign, 1 = valid/invalid SID, 2 = SID Name, 3 = Even/Odd, 4 = Minimum Flight Level, 5 = Maximum Flight Level, 6 = Passed
+		vector<string> messageBuffer{ validizeSid(FlightPlanSelectASEL())[0] };	// 0 = Callsign, 1 = valid/invalid SID, 2 = SID Name, 3 = Even/Odd, 4 = Minimum Flight Level, 5 = Maximum Flight Level, 6 = Passed
 		sendMessage(messageBuffer.at(0), "Checking...");
 		string buffer{ messageBuffer.at(1) + " SID | " };
 		if (messageBuffer.at(1).find("Invalid") != 0) {
@@ -1040,6 +1063,10 @@ string CVFPCPlugin::getFails(vector<string> messageBuffer) {
 	}
 	if (messageBuffer.at(8).find("Invalid") == 0) {
 		fail.push_back("CHK");
+	}
+
+	if (fail.size() == 0) {
+		sendMessage("Cero");
 	}
 
 	return fail[failPos % fail.size()];
