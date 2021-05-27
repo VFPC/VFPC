@@ -674,7 +674,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 				returnOut[1][7] = "Failed Level Direction: \"" + string(conditions[validity[0]]["Dir"].GetString()) + "\" Required.";
 			}
 
-			returnOut[0][6] = "Passed Min/Max Level.";
+			returnOut[0][6] = "Passed Min/Max Level.";	
 			returnOut[1][6] = "Passed " + MinMaxOutput(origin_int, pos, successes);
 		}
 		case 5:
@@ -960,8 +960,8 @@ void CVFPCPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget,
 			strcpy_s(sItemString, 16, "VFR");
 		}
 		else {
-			vector<string> validize = validizeSid(FlightPlan)[0];
-			vector<string> messageBuffer{ validize }; // 0 = Callsign, 1 = SID, 2 = Engine Type, 3 = Airways, 4 = Nav Performance, 5 = Destination, 6 = Min/Max Flight Level, 7 = Even/Odd, 8 = Syntax, 9 = Passed/Failed
+			vector<vector<string>> validize = validizeSid(FlightPlan);
+			vector<string> messageBuffer{ validize[0] }; // 0 = Callsign, 1 = SID, 2 = Engine Type, 3 = Airways, 4 = Nav Performance, 5 = Destination, 6 = Min/Max Flight Level, 7 = Even/Odd, 8 = Syntax, 9 = Passed/Failed
 
 			if (messageBuffer.at(9) == "Passed") {
 				*pRGB = TAG_GREEN;
@@ -969,7 +969,7 @@ void CVFPCPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget,
 			}
 			else {
 				*pRGB = TAG_RED;
-				string code = getFails(validize);
+				string code = getFails(validize[0]);
 				strcpy_s(sItemString, 16, code.c_str());
 			}
 		}
@@ -1016,23 +1016,37 @@ bool CVFPCPlugin::OnCompileCommand(const char * sCommandLine) {
 // Sends to you, which checks were failed and which were passed on the selected aircraft
 void CVFPCPlugin::checkFPDetail() {
 	if (validVersion) {
-		vector<string> messageBuffer{ validizeSid(FlightPlanSelectASEL())[0] };	// 0 = Callsign, 1 = valid/invalid SID, 2 = SID Name, 3 = Even/Odd, 4 = Minimum Flight Level, 5 = Maximum Flight Level, 6 = Passed
+		vector<vector<string>> validize = validizeSid(FlightPlanSelectASEL());
+		vector<string> messageBuffer{ validize[0] };	// 0 = Callsign, 1 = valid/invalid SID, 2 = SID Name, 3 = Even/Odd, 4 = Minimum Flight Level, 5 = Maximum Flight Level, 6 = Passed
+		vector<string> logBuffer{ validize[1] };
 		sendMessage(messageBuffer.at(0), "Checking...");
-		string buffer{ messageBuffer.at(1) + " SID | " };
+#
+		string buffer{ messageBuffer.at(1) + " | " };
+		string logbuf{ logBuffer.at(1) + " | " };
+
 		if (messageBuffer.at(1).find("Invalid") != 0) {
 			for (int i = 2; i < 9; i++) {
 				string temp = messageBuffer.at(i);
+				string logtemp = logBuffer.at(i);
 
 				if (temp != "-")
 				{
 					buffer += temp;
 					buffer += " | ";
 				}
+
+				if (logtemp != "-") {
+					logbuf += logtemp;
+					logbuf += " | ";
+				}
 			}
 		}
 
 		buffer += messageBuffer.at(9);
+		logbuf + logBuffer.at(9);
+
 		sendMessage(messageBuffer.at(0), buffer);
+		debugMessage(logBuffer.at(0), logbuf);
 	}
 }
 
