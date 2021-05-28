@@ -362,35 +362,35 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					case 0:
 					{
 						// SID Suffix
-						if (!conditions[i]["suffix"].IsString() || conditions[i]["suffix"].GetString() == sid_suffix) {
+						if (!conditions[i]["Suf"].IsString() || conditions[i]["Suf"].GetString() == sid_suffix) {
 							new_validity.push_back(true);
 						}
 						else {
 							new_validity.push_back(false);
-							results.push_back(conditions[i]["suffix"].GetString());
+							results.push_back(conditions[i]["Suf"].GetString());
 						}
 						break;
 					}
 					case 1:
 					{
 						//Engines (P=piston, T=turboprop, J=jet, E=electric)
-						if (conditions[i]["engine"].IsString()) {
-							if (conditions[i]["engine"].GetString()[0] == flightPlan.GetFlightPlanData().GetEngineType()) {
+						if (conditions[i]["Eng"].IsString()) {
+							if (conditions[i]["Eng"].GetString()[0] == flightPlan.GetFlightPlanData().GetEngineType()) {
 								new_validity.push_back(true);
 							}
 							else {
 								new_validity.push_back(false);
-								results.push_back(conditions[i]["engine"].GetString());
+								results.push_back(conditions[i]["Eng"].GetString());
 							}
 						}
-						else if (conditions[i]["engine"].IsArray() && conditions[i]["engine"].Size()) {
-							if (arrayContains(conditions[i]["engine"], flightPlan.GetFlightPlanData().GetEngineType())) {
+						else if (conditions[i]["Eng"].IsArray() && conditions[i]["Eng"].Size()) {
+							if (arrayContains(conditions[i]["Eng"], flightPlan.GetFlightPlanData().GetEngineType())) {
 								new_validity.push_back(true);
 							}
 							else {
 								new_validity.push_back(false);
-								for (SizeType j = 0; j < conditions[i]["engine"].Size(); i++) {
-									results.push_back(conditions[i]["engine"][j].GetString());
+								for (SizeType j = 0; j < conditions[i]["Eng"].Size(); i++) {
+									results.push_back(conditions[i]["Eng"][j].GetString());
 								}
 							}
 						}
@@ -555,14 +555,10 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					case 4:
 					{
 						//Nav Perf
-						if (conditions[i]["navigation"].IsString()) {
-							string navigation_constraints(conditions[i]["navigation"].GetString());
+						if (conditions[i]["Nav"].IsString()) {
+							string navigation_constraints(conditions[i]["Nav"].GetString());
 							if (string::npos == navigation_constraints.find_first_of(flightPlan.GetFlightPlanData().GetCapibilities())) {
 								new_validity.push_back(false);
-
-								for (size_t i = 0; i < navigation_constraints.length(); i++) {
-									results.push_back(string(1, navigation_constraints[i]));
-								}
 							}
 							else {
 								new_validity.push_back(true);
@@ -685,21 +681,14 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			}
 
 			returnOut[0][5] = "Passed Navigation Performance.";
+			returnOut[1][5] = "Passed Navigation Performance. Required Performance: " + NavPerfOutput(origin_int, pos, successes) + ".";
 		}
 
 		case 4:
 		{
 			if (round == 4) {
-				sort(results.begin(), results.end());
-				results.erase(unique(results.begin(), results.end()), results.end());
-
-				string out = "";
-
-				for (string each : results) {
-					out += each + ", ";
-				}
-
-				returnOut[0][5] = "Failed Navigation Performance. Required Performance: " + out.substr(0, out.length() - 2) + ".";
+				returnOut[0][5] = "Failed Navigation Performance. Required Performance: " + NavPerfOutput(origin_int, pos, successes) + ".";
+				returnOut[1][5] = returnOut[0][5];
 			}
 
 			returnOut[0][4] = "Passed Route.";
@@ -936,6 +925,29 @@ string CVFPCPlugin::MinMaxOutput(size_t origin_int, size_t pos, vector<int> succ
 
 	return out;
 }
+
+string CVFPCPlugin::NavPerfOutput(size_t origin_int, size_t pos, vector<int> successes) {
+	const Value& conditions = config[origin_int]["Sids"][pos]["Constraints"];
+	vector<string> navperf{};
+	for (size_t i = 0; i < successes.size(); i++) {
+		if (conditions[successes[i]].HasMember("Nav") && conditions[successes[i]]["Nav"].IsString()) {
+			navperf.push_back(string(conditions[successes[i]]["Nav"].GetString()));
+		}
+	}
+
+	sort(navperf.begin(), navperf.end());
+	vector<string>::iterator itr = unique(navperf.begin(), navperf.end());
+	navperf.erase(itr, navperf.end());
+
+	string out = "";
+
+	for (string each : navperf) {
+		out += each + ", ";
+	}
+
+	return out.substr(0, out.length() - 2);
+}
+
 //
 void CVFPCPlugin::OnFunctionCall(int FunctionId, const char * ItemString, POINT Pt, RECT Area) {
 	if (FunctionId == TAG_FUNC_CHECKFP_MENU) {
