@@ -468,25 +468,27 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					case 3:
 					{
 						//Airways
-						bool testAllowed = false;
-						bool testBanned = false;
+						bool res = true;
 
 						string perms = "";
 
-
-						if (conditions[i]["Route"].IsArray() && conditions[i]["Route"].Size()) {
-							testAllowed = true;
+						if (conditions[i]["Route"].IsArray() && conditions[i]["Route"].Size() && !routeContains(flightPlan.GetCallsign(), route, conditions[i]["Route"])) {
+							res = false;
+							
+							/*testAllowed = true;
 
 							perms += conditions[i]["Route"][(SizeType)0].GetString();
 
 							for (SizeType j = 1; j < conditions[i]["Route"].Size(); j++) {
 								perms += " or ";
 								perms += conditions[i]["Route"][j].GetString();
-							}
+							}*/
 						}
 
-						if (conditions[i]["NoRoute"].IsArray() && conditions[i]["NoRoute"].Size()) {
-							testBanned = true;
+						if (res && conditions[i]["NoRoute"].IsArray() && conditions[i]["NoRoute"].Size() && routeContains(flightPlan.GetCallsign(), route, conditions[i]["NoRoute"])) {
+							res = false;
+							
+							/*testBanned = true;
 
 							if (perms != "") {
 								perms += " but ";
@@ -499,10 +501,10 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 							for (SizeType j = 1; j < conditions[i]["NoRoute"].Size(); j++) {
 								perms += ", ";
 								perms += conditions[i]["NoRoute"][j].GetString();
-							}
+							}*/
 						}
 
-						if (testAllowed || testBanned) {
+						/*if (testAllowed || testBanned) {
 							bool min = false;
 							bool max = false;
 
@@ -530,11 +532,11 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 							bool allowedPassed = false;
 							bool bannedPassed = false;
 
-							if (testAllowed && routeContains(flightPlan.GetCallsign(), route, conditions[i]["Route"])) {
+							if (testAllowed ) {
 								allowedPassed = true;
 							}
 
-							if (!testBanned || !routeContains(flightPlan.GetCallsign(), route, conditions[i]["NoRoute"])) {
+							if (!testBanned || !) {
 								bannedPassed = true;
 							}
 
@@ -548,8 +550,9 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 						}
 						else {
 							new_validity.push_back(true);
-						}
+						}*/
 
+						new_validity.push_back(res);
 						break;
 					}
 					case 4:
@@ -946,6 +949,22 @@ string CVFPCPlugin::NavPerfOutput(size_t origin_int, size_t pos, vector<int> suc
 	}
 
 	return out.substr(0, out.length() - 2);
+}
+
+string CVFPCPlugin::RouteOutput(size_t origin_int, size_t pos, vector<int> successes) {
+	const Value& conditions = config[origin_int]["Sids"][pos]["Constraints"];
+	vector<string> outroute{};
+	for (size_t i = 0; i < successes.size(); i++) {
+		string out = "";
+		if (conditions[successes[i]].HasMember("Route") && conditions[successes[i]]["Route"].IsString()) {
+			out += conditions[successes[i]]["Route"][(SizeType)0].GetString();
+
+			for (SizeType j = 1; j < conditions[successes[i]]["Route"].Size(); j++) {
+				out += " or ";
+				out += conditions[successes[i]]["Route"][j].GetString();
+			}
+		}
+	}
 }
 
 //
