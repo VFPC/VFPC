@@ -684,28 +684,24 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			}
 
 			returnOut[0][5] = "Passed Navigation Performance.";
-			returnOut[1][5] = "Passed Navigation Performance. Required Performance: " + NavPerfOutput(origin_int, pos, successes) + ".";
+			returnOut[1][5] = "Passed " + NavPerfOutput(origin_int, pos, successes) + ".";
 		}
 
 		case 4:
 		{
 			if (round == 4) {
-				returnOut[0][5] = "Failed Navigation Performance. Required Performance: " + NavPerfOutput(origin_int, pos, successes) + ".";
+				returnOut[0][5] = "Failed " + NavPerfOutput(origin_int, pos, successes) + ".";
 				returnOut[1][5] = returnOut[0][5];
 			}
 
 			returnOut[0][4] = "Passed Route.";
+			returnOut[1][4] = "Passed " + RouteOutput(origin_int, pos, successes) + ".";
 		}
 		case 3:
 		{
 			if (round == 3) {
-				string out = "Valid Initial Routes: ";
-
-				for (string each : results) {
-					out += each + " / ";
-				}
-
-				returnOut[0][4] = "Failed Route - " + out.substr(0, out.length() - 3) + ".";
+				returnOut[0][4] = "Failed " + RouteOutput(origin_int, pos, successes) + ".";
+				returnOut[1][4] = returnOut[0][4];
 			}
 
 			returnOut[0][3] = "Passed Destination.";
@@ -942,7 +938,7 @@ string CVFPCPlugin::NavPerfOutput(size_t origin_int, size_t pos, vector<int> suc
 	vector<string>::iterator itr = unique(navperf.begin(), navperf.end());
 	navperf.erase(itr, navperf.end());
 
-	string out = "";
+	string out = "Navigation Performance. Required Performance: ";
 
 	for (string each : navperf) {
 		out += each + ", ";
@@ -956,7 +952,7 @@ string CVFPCPlugin::RouteOutput(size_t origin_int, size_t pos, vector<int> succe
 	vector<string> outroute{};
 	for (size_t i = 0; i < successes.size(); i++) {
 		string out = "";
-		if (conditions[successes[i]].HasMember("Route") && conditions[successes[i]]["Route"].IsString()) {
+		if (conditions[successes[i]].HasMember("Route") && conditions[successes[i]]["Route"].IsArray() && conditions[successes[i]]["Route"].Size()) {
 			out += conditions[successes[i]]["Route"][(SizeType)0].GetString();
 
 			for (SizeType j = 1; j < conditions[successes[i]]["Route"].Size(); j++) {
@@ -964,7 +960,56 @@ string CVFPCPlugin::RouteOutput(size_t origin_int, size_t pos, vector<int> succe
 				out += conditions[successes[i]]["Route"][j].GetString();
 			}
 		}
+
+		if (conditions[successes[i]].HasMember("NoRoute") && conditions[successes[i]]["NoRoute"].IsArray() && conditions[successes[i]]["NoRoute"].Size()) {
+			if (out != "") {
+				out += " but ";
+			}
+
+			out += "not ";
+
+			out += conditions[i]["NoRoute"][(SizeType)0].GetString();
+
+			for (SizeType j = 1; j < conditions[i]["NoRoute"].Size(); j++) {
+				out += ", ";
+				out += conditions[i]["NoRoute"][j].GetString();
+			}
+		}
+
+		int Min, Max;
+		bool min, max = false;
+
+		if (conditions[i].HasMember("Min") && (Min = conditions[i]["Min"].GetInt()) > 0) {
+			min = true;
+		}
+
+		if (conditions[i].HasMember("Max") && (Max = conditions[i]["Max"].GetInt()) > 0) {
+			max = true;
+		}
+
+		if (min && max) {
+			out += " (FL" + to_string(Min) + " - " + to_string(Max) + ")";
+		}
+		else if (min) {
+			out += " (FL" + to_string(Min) + "+)";
+		}
+		else if (max) {
+			out += " (FL" + to_string(Max) + "-)";
+		}
+		else {
+			out += " (All Levels)";
+		}
+
+		outroute.push_back(out);
 	}
+
+	string out = "Route. Valid Initial Routes: ";
+
+	for (string each : outroute) {
+		out += each + " / ";
+	}
+
+	return out.substr(0, out.length() - 3);
 }
 
 //
