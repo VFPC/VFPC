@@ -147,12 +147,15 @@ void CVFPCPlugin::getSids() {
 }
 
 // Does the checking and magic stuff, so everything will be alright when this is finished! Or not. Who knows?
-vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
-	vector<string> returnValid = {}; // 0 = Callsign, 1 = SID, 2 = Engine Type, 3 = Airways, 4 = Nav Performance, 5 = Destination, 6 = Min/Max Flight Level, 7 = Even/Odd, 8 = Syntax, 9 = Passed/Failed
+vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
+	//out[0] = Normal Output, out[1] = Debug Output
+	vector<vector<string>> returnOut = { vector<string>(), vector<string>() }; // 0 = Callsign, 1 = SID, 2 = Engine Type, 3 = Airways, 4 = Nav Performance, 5 = Destination, 6 = Min/Max Flight Level, 7 = Even/Odd, 8 = Syntax, 9 = Passed/Failed
 
-	returnValid.push_back(flightPlan.GetCallsign());
+	returnOut[0].push_back(flightPlan.GetCallsign());
+	returnOut[1].push_back(flightPlan.GetCallsign());
 	for (int i = 1; i < 10; i++) {
-		returnValid.push_back("-");
+		returnOut[0].push_back("-");
+		returnOut[1].push_back("-");
 	}
 
 	string origin = flightPlan.GetFlightPlanData().GetOrigin(); boost::to_upper(origin);
@@ -197,16 +200,22 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					break;
 				}
 				else {
-					returnValid[8] = "Invalid Speed/Level Change";
-					returnValid[9] = "Failed";
-					return returnValid;
+					returnOut[0][8] = "Invalid Speed/Level Change";
+					returnOut[0][9] = "Failed";
+
+					returnOut[1][8] = "Invalid Route Item: " + route[i];
+					returnOut[1][9] = "Failed";
+					return returnOut;
 				}
 			}
 			default:
 			{
-				returnValid[8] = "Invalid Syntax - Too Many \"/\" Characters in One or More Waypoints";
-				returnValid[9] = "Failed";
-				return returnValid;
+				returnOut[0][8] = "Invalid Syntax - Too Many \"/\" Characters in One or More Waypoints";
+				returnOut[0][9] = "Failed";
+
+				returnOut[0][8] = "Invalid Route Item: " + route[i];
+				returnOut[0][9] = "Failed";
+				return returnOut;
 			}
 		}
 	}
@@ -228,9 +237,9 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 	// Flightplan has SID
 	if (!sid.length()) {
-		returnValid[1] = "Invalid SID - None Set";
-		returnValid[9] = "Failed";
-		return returnValid;
+		returnOut[0][1] = returnOut[1][1] = "Invalid SID - None Set";
+		returnOut[0][9] = returnOut[1][9] = "Failed";
+		return returnOut;
 	}
 
 	string first_wp = sid.substr(0, sid.find_first_of("0123456789"));
@@ -244,9 +253,9 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 	// Did not find a valid SID
 	if (0 == sid_suffix.length() && "VCT" != first_wp) {
-		returnValid[1] = "Invalid SID - None Set";
-		returnValid[9] = "Failed";
-		return returnValid;
+		returnOut[0][1] = returnOut[1][1] = "Invalid SID - None Set";
+		returnOut[0][9] = returnOut[1][9] = "Failed";
+		return returnOut;
 	}
 
 	// Check First Waypoint Correct. Remove SID References & First Waypoint From Route.
@@ -293,39 +302,47 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	}
 	
 	if (!success) {
-		returnValid[1] = "Invalid SID - Route Not From Final SID Fix";
-		returnValid[9] = "Failed";
-		return returnValid;
+		returnOut[0][1] = "Invalid SID - Route Not From Final SID Fix";
+		returnOut[0][9] = "Failed";
+
+		returnOut[1][1] = "Invalid SID - Route must start at " + first_wp + ".";
+		returnOut[1][9] = "Failed";
+		return returnOut;
 	}
 
 	// Airport defined
 	if (airports.find(origin) == airports.end()) {
-		returnValid[1] = "Invalid SID - Airport Not Found";
-		returnValid[9] = "Failed";
-		return returnValid;
+		returnOut[0][1] = "Invalid SID - Airport Not Found";
+		returnOut[0][9] = "Failed";
+
+		returnOut[1][1] = "Invalid SID - " + origin + " not in database.";
+		returnOut[1][9] = "Failed";
+		return returnOut;
 	}
 	else
+	{
 		origin_int = airports[origin];
+	}
 
 	// Any SIDs defined
 	if (!config[origin_int].HasMember("Sids") || !config[origin_int]["Sids"].IsArray()) {
-		returnValid[1] = "Invalid SID - None Defined";
-		returnValid[9] = "Failed";
-		return returnValid;
-	}
+		returnOut[0][1] = "Invalid SID - None Defined";
+		returnOut[0][9] = "Failed";
 
-	bool valid = false;
+		returnOut[1][1] = "Invalid SID - " + origin + " exists in database but has no SIDs defined.";
+		returnOut[1][9] = "Failed";
+		return returnOut;
+	}
 	size_t pos = string::npos;
 
 	for (size_t i = 0; i < config[origin_int]["Sids"].Size(); i++) {
 		if (config[origin_int]["Sids"][i].HasMember("Point") && !first_wp.compare(config[origin_int]["Sids"][i]["Point"].GetString()) && config[origin_int]["Sids"][i].HasMember("Constraints") && config[origin_int]["Sids"][i]["Constraints"].IsArray()) {
 			pos = i;
-			valid = true;
 		}
 	}
 
 	// Needed SID defined
-	if (valid) {
+	if (pos != string::npos) {
 		const Value& conditions = config[origin_int]["Sids"][pos]["Constraints"];
 
 		int round = 0;
@@ -334,10 +351,9 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		vector<bool> validity, new_validity;
 		vector<string> results;
 		int Min, Max;
-
+			
 		while (cont && round < 7) {
 			new_validity = {};
-			results = {};
 
 			for (SizeType i = 0; i < conditions.Size(); i++) {
 				if (round == 0 || validity[i]) {
@@ -345,207 +361,76 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					case 0:
 					{
 						// SID Suffix
-						if (!conditions[i]["suffix"].IsString() || conditions[i]["suffix"].GetString() == sid_suffix) {
+						if (!conditions[i]["Suf"].IsString() || conditions[i]["Suf"].GetString() == sid_suffix) {
 							new_validity.push_back(true);
 						}
 						else {
 							new_validity.push_back(false);
-							results.push_back(conditions[i]["suffix"].GetString());
 						}
 						break;
 					}
 					case 1:
 					{
 						//Engines (P=piston, T=turboprop, J=jet, E=electric)
-						if (conditions[i]["engine"].IsString()) {
-							if (conditions[i]["engine"].GetString()[0] == flightPlan.GetFlightPlanData().GetEngineType()) {
-								new_validity.push_back(true);
-							}
-							else {
-								new_validity.push_back(false);
-								results.push_back(conditions[i]["engine"].GetString());
-							}
+						bool res = true;
+
+						if (conditions[i]["Eng"].IsString() && !conditions[i]["Eng"].GetString() == flightPlan.GetFlightPlanData().GetEngineType()) {
+							res = false;
 						}
-						else if (conditions[i]["engine"].IsArray() && conditions[i]["engine"].Size()) {
-							if (arrayContains(conditions[i]["engine"], flightPlan.GetFlightPlanData().GetEngineType())) {
-								new_validity.push_back(true);
-							}
-							else {
-								new_validity.push_back(false);
-								for (SizeType j = 0; j < conditions[i]["engine"].Size(); i++) {
-									results.push_back(conditions[i]["engine"][j].GetString());
-								}
-							}
+						else if (conditions[i]["Eng"].IsArray() && conditions[i]["Eng"].Size() && !arrayContains(conditions[i]["Eng"], flightPlan.GetFlightPlanData().GetEngineType())) {
+							res = false;
 						}
-						else {
-							new_validity.push_back(true);
-						}
+
+						new_validity.push_back(res);
 						break;
 					}
 					case 2:
 					{
-						bool perm = true;
+						//Destinations
+						bool res = true;
 
 						if (conditions[i]["NoDests"].IsArray() && conditions[i]["NoDests"].Size()) {
 							string dest;
 							if (destArrayContains(conditions[i]["NoDests"], destination.c_str()).size()) {
-								perm = false;
+								res = false;
 							}
 						}
 
 						if (conditions[i]["Dests"].IsArray() && conditions[i]["Dests"].Size()) {
 							string dest;
 							if (!destArrayContains(conditions[i]["Dests"], destination.c_str()).size()) {
-								perm = false;
+								res = false;
 							}
 						}
 
-						new_validity.push_back(perm);
-
-						if (!perm) {
-							string perms = "";
-
-							if (conditions[i]["Dests"].IsArray() && conditions[i]["Dests"].Size()) {
-								for (SizeType j = 0; j < conditions[i]["Dests"].Size(); j++) {
-									string dest = conditions[i]["Dests"][j].GetString();
-
-									if (dest.size() < 4)
-										dest += string(4 - dest.size(), '*');
-
-									if (j != 0) {
-										perms += ",";
-									}
-
-									perms += dest;
-								}
-							}
-							else {
-								perms += " ";
-							}
-
-							perms += ";";
-
-							if (conditions[i]["NoDests"].IsArray() && conditions[i]["NoDests"].Size()) {
-								for (SizeType j = 0; j < conditions[i]["NoDests"].Size(); j++) {
-									string dest = conditions[i]["NoDests"][j].GetString();
-
-									if (dest.size() < 4)
-										dest += string(4 - dest.size(), '*');
-
-									if (j != 0) {
-										perms += ",";
-									}
-
-									perms += dest;
-								}
-							}
-							else {
-								perms += " ";
-							}
-
-							results.push_back(perms);
-						}
-
+						new_validity.push_back(res);
 						break;
 					}
 					case 3:
 					{
-						//Airways
-						bool testAllowed = false;
-						bool testBanned = false;
+						//Route
+						bool res = true;
 
 						string perms = "";
 
-
-						if (conditions[i]["Route"].IsArray() && conditions[i]["Route"].Size()) {
-							testAllowed = true;
-
-							perms += conditions[i]["Route"][(SizeType)0].GetString();
-
-							for (SizeType j = 1; j < conditions[i]["Route"].Size(); j++) {
-								perms += " or ";
-								perms += conditions[i]["Route"][j].GetString();
-							}
+						if (conditions[i].HasMember("Route") && conditions[i]["Route"].IsArray() && conditions[i]["Route"].Size() && !routeContains(flightPlan.GetCallsign(), route, conditions[i]["Route"])) {
+							res = false;
 						}
 
-						if (conditions[i]["NoRoute"].IsArray() && conditions[i]["NoRoute"].Size()) {
-							testBanned = true;
-
-							if (perms != "") {
-								perms += " but ";
-							}
-
-							perms += "not ";
-
-							perms += conditions[i]["NoRoute"][(SizeType)0].GetString();
-
-							for (SizeType j = 1; j < conditions[i]["NoRoute"].Size(); j++) {
-								perms += ", ";
-								perms += conditions[i]["NoRoute"][j].GetString();
-							}
+						if (conditions[i].HasMember("NoRoute") && res && conditions[i]["NoRoute"].IsArray() && conditions[i]["NoRoute"].Size() && routeContains(flightPlan.GetCallsign(), route, conditions[i]["NoRoute"])) {
+							res = false;
 						}
 
-						if (testAllowed || testBanned) {
-							bool min = false;
-							bool max = false;
-
-							if (conditions[i].HasMember("Min") && (Min = conditions[i]["Min"].GetInt()) > 0) {
-								min = true;
-							}
-
-							if (conditions[i].HasMember("Max") && (Max = conditions[i]["Max"].GetInt()) > 0) {
-								max = true;
-							}
-
-							if (min && max) {
-								perms += " (FL" + to_string(Min) + " - " + to_string(Max) + ")";
-							}
-							else if (min) {
-								perms += " (FL" + to_string(Min) + "+)";
-							}
-							else if (max) {
-								perms += " (FL" + to_string(Max) + "-)";
-							}
-							else {
-								perms += " (All Levels)";
-							}
-
-							bool allowedPassed = false;
-							bool bannedPassed = false;
-
-							if (testAllowed && routeContains(flightPlan.GetCallsign(), route, conditions[i]["Route"])) {
-								allowedPassed = true;
-							}
-
-							if (!testBanned || !routeContains(flightPlan.GetCallsign(), route, conditions[i]["NoRoute"])) {
-								bannedPassed = true;
-							}
-
-							if (allowedPassed && bannedPassed) {
-								new_validity.push_back(true);
-							}
-							else {
-								new_validity.push_back(false);
-								results.push_back(perms);
-							}
-						}
-						else {
-							new_validity.push_back(true);
-						}
-
+						new_validity.push_back(res);
 						break;
 					}
 					case 4:
 					{
 						//Nav Perf
-						if (conditions[i]["navigation"].IsString()) {
-							string navigation_constraints(conditions[i]["navigation"].GetString());
+						if (conditions[i].HasMember("Nav") && conditions[i]["Nav"].IsString()) {
+							string navigation_constraints(conditions[i]["Nav"].GetString());
 							if (string::npos == navigation_constraints.find_first_of(flightPlan.GetFlightPlanData().GetCapibilities())) {
 								new_validity.push_back(false);
-
-								for (size_t i = 0; i < navigation_constraints.length(); i++) {
-									results.push_back(string(1, navigation_constraints[i]));
-								}
 							}
 							else {
 								new_validity.push_back(true);
@@ -558,60 +443,19 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					}
 					case 5:
 					{
-						string res;
-
-						int Min, Max;
-						bool min_valid, max_valid = false;
-						bool min, max = false;
+						bool res_minmax = true;
 
 						//Min Level
-						if (conditions[i].HasMember("Min") && (Min = conditions[i]["Min"].GetInt()) > 0) {
-							min = true;
-							if ((RFL / 100) >= Min) {
-								min_valid = true;
-							}
-						}
-						else {
-							min_valid = true;
+						if (conditions[i].HasMember("Min") && (Min = conditions[i]["Min"].GetInt()) > 0 && (RFL / 100) <= Min) {
+							res_minmax = false;
 						}
 
 						//Max Level
-						if (conditions[i].HasMember("Max") && (Max = conditions[i]["Max"].GetInt()) > 0) {
-							max = true;
-							if ((RFL / 100) <= Max) {
-								max_valid = true;
-							}
-						}
-						else {
-							max_valid = true;
+						if (conditions[i].HasMember("Max") && (Max = conditions[i]["Max"].GetInt()) > 0 && (RFL / 100) >= Max) {
+							res_minmax = false;
 						}
 
-						if (min || max) {
-							if (min_valid && max_valid) {
-								new_validity.push_back(true);
-							}
-							else {
-								new_validity.push_back(false);
-
-								if (min && max) {
-									res = "FL" + to_string(Min) + " - " + to_string(Max);
-								}
-								else if (min) {
-									res = "FL" + to_string(Min) + " or Above";
-								}
-								else if (max) {
-									res = "FL" + to_string(Max) + " or Below";
-								}
-								else {
-									res = "All Levels";
-								}
-
-								results.push_back(res);
-							}
-						}
-						else {
-							new_validity.push_back(true);
-						}
+						new_validity.push_back(res_minmax);
 						break;
 					}
 					case 6:
@@ -629,7 +473,6 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 							}
 							else {
 								new_validity.push_back(false);
-								results.push_back("Even");
 							}
 						}
 						else if (direction == "ODD") {
@@ -641,18 +484,10 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 							}
 							else {
 								new_validity.push_back(false);
-								results.push_back("Odd");
 							}
 						}
-						else if (direction == "ANY") {
+						else { //(direction == "ANY")
 							new_validity.push_back(true);
-						}
-						else {
-							string errorText{ "Config Error for Even/Odd on SID: " };
-							errorText += first_wp;
-							sendMessage("Error", errorText);
-							new_validity.push_back(false);
-							results.push_back("Error");
 						}
 						break;
 					}
@@ -672,216 +507,501 @@ vector<string> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			}
 		}
 
-		returnValid[0] = flightPlan.GetCallsign();
+		returnOut[0][0] = flightPlan.GetCallsign();
+		returnOut[1][0] = flightPlan.GetCallsign();
 		for (int i = 1; i < 10; i++) {
-			returnValid[i] = "-";
+			returnOut[0][i] = "-";
+			returnOut[1][i] = "-";
 		}
 
-		returnValid[9] = "Failed";
+		returnOut[0][9] = "Failed";
+		returnOut[1][9] = "Failed";
+
+		vector<int> successes{};
+
+		for (size_t i = 0; i < validity.size(); i++) {
+			if (validity[i]) {
+				successes.push_back(i);
+			}
+		}
 
 		switch (round) {
 		case 7:
 		{
-			vector<bool>::iterator itr = find(validity.begin(), validity.end(), true);
-			int i = std::distance(validity.begin(), itr);
+			returnOut[0][7] = "Passed Level Direction.";
+			returnOut[0][9] = "Passed";
 
-			returnValid[7] = "Passed Level Direction.";
-			returnValid[9] = "Passed";
+			returnOut[1][7] = "Passed " + DirectionOutput(origin_int, pos, successes) + ".";
+			returnOut[1][9] = "Passed";
 		}
 		case 6:
 		{
 			if (round == 6) {
-				returnValid[7] = "Failed Level Direction: " + results[0] + " Required.";
+				string res = "";
+				returnOut[0][7] = "Failed " + DirectionOutput(origin_int, pos, successes) + ".";
+				returnOut[1][7] = returnOut[0][7];
 			}
 
-			returnValid[6] = "Passed Min/Max Level.";
+			returnOut[0][6] = "Passed Min/Max Level.";	
+			returnOut[1][6] = "Passed " + MinMaxOutput(origin_int, pos, successes);
 		}
 		case 5:
 		{
 			if (round == 5) {
-				string out = "";
-
-				for (string each : results) {
-					out += each + ", ";
-				}
-
-				returnValid[6] = "Failed Min/Max Level: " + out.substr(0, out.length() - 2) + ".";
+				returnOut[0][6] = "Failed " + MinMaxOutput(origin_int, pos, successes);
+				returnOut[1][6] = returnOut[0][6];
 			}
 
-			returnValid[5] = "Passed Navigation Performance.";
+			returnOut[0][5] = "Passed Navigation Performance.";
+			returnOut[1][5] = "Passed " + NavPerfOutput(origin_int, pos, successes) + ".";
 		}
 
 		case 4:
 		{
 			if (round == 4) {
-				sort(results.begin(), results.end());
-				results.erase(unique(results.begin(), results.end()), results.end());
-
-				string out = "";
-
-				for (string each : results) {
-					out += each + ", ";
-				}
-
-				returnValid[5] = "Failed Navigation Performance. Required Performance: " + out.substr(0, out.length() - 2) + ".";
+				returnOut[0][5] = "Failed " + NavPerfOutput(origin_int, pos, successes) + ".";
+				returnOut[1][5] = returnOut[0][5];
 			}
 
-			returnValid[4] = "Passed Route.";
+			returnOut[0][4] = "Passed Route.";
+			returnOut[1][4] = "Passed " + RouteOutput(origin_int, pos, successes) + ".";
 		}
 		case 3:
 		{
 			if (round == 3) {
-				string out = "Valid Initial Routes: ";
-
-				for (string each : results) {
-					out += each + " / ";
-				}
-
-				returnValid[4] = "Failed Route - " + out.substr(0, out.length() - 3) + ".";
+				returnOut[0][4] = "Failed " + RouteOutput(origin_int, pos, successes) + ".";
+				returnOut[1][4] = returnOut[0][4];
 			}
 
-			returnValid[3] = "Passed Destination.";
+			returnOut[0][3] = "Passed Destination.";
+			returnOut[1][3] = "Passed " + DestinationOutput(origin_int, pos, successes) + ".";
 		}
 		case 2:
 		{
 			if (round == 2) {
-				vector<vector<string>> res{ vector<string>{}, vector<string>{} };
-
-				for (string each : results) {
-					bool added = false;
-					vector<string> elements = split(each, ';');
-					vector<string> good_new_eles{};
-					vector<string> bad_new_eles{};
-
-					if (elements[0] != " ") {
-						good_new_eles = split(elements[0], ',');
-					}
-
-					if (elements[1] != " ") {
-						bad_new_eles = split(elements[1], ',');
-					}					
-
-					
-					for (string dest : res[0]) {
-						//Remove Duplicates from Whitelist
-						for (size_t k = good_new_eles.size(); k > 0; k--) {
-							string new_ele = good_new_eles[k - 1];
-							if (new_ele.compare(dest) == 0) {
-								good_new_eles.erase(good_new_eles.begin() + k - 1);
-							}
-						}
-
-						//Prevent Previously Whitelisted Elements from Being Blacklisted
-						for (size_t k = bad_new_eles.size(); k > 0; k--) {
-							string new_ele = bad_new_eles[k - 1];
-							if (new_ele.compare(dest) == 0) {
-								bad_new_eles.erase(bad_new_eles.begin() + k - 1);
-							}
-						}
-					}
-
-					//Whitelist Previously Blacklisted Elements
-					for (string dest : good_new_eles) {
-						
-						for (size_t k = res[1].size(); k > 0; k--) {
-							string new_ele = res[1][k - 1];
-							if (new_ele.compare(dest) == 0) {
-								res[1].erase(res[1].begin() + k - 1);
-							}
-						}
-					}
-
-					//Remove Duplicates from Blacklist
-					for (string dest : res[1]) {
-						for (size_t k = bad_new_eles.size(); k > 0; k--) {
-							string new_ele = bad_new_eles[k - 1];
-							if (new_ele.compare(dest) == 0) {
-								bad_new_eles.erase(bad_new_eles.begin() + k - 1);
-							}
-						}
-					}
-
-					res[0].insert(res[0].end(), good_new_eles.begin(), good_new_eles.end());
-					res[1].insert(res[1].end(), bad_new_eles.begin(), bad_new_eles.end());
-				}
-
-				string out = "";
-
-				for (string each : res[0]) {
-					out += each + ", ";
-				}
-
-				for (string each : res[1]) {
-					out += "Not " + each + ", ";
-				}
-
-				if (out == "") {
-					out = "None";
-				}
-				else {
-					out = out.substr(0, out.length() - 2);
-				}
-
-				returnValid[3] = "Failed Destination - Valid Destinations: " + out + ".";
+				returnOut[0][3] = "Failed " + DestinationOutput(origin_int, pos, successes) + ".";
+				returnOut[1][3] = returnOut[0][3];
 			}
 
-			returnValid[2] = "Passed Engine Type.";
+			returnOut[0][2] = "Passed Engine Type.";
+			returnOut[1][2] = "Passed  " + EngineOutput(origin_int, pos, successes) + ".";
 		}
 		case 1:
 		{
 			if (round == 1) {
-				sort(results.begin(), results.end());
-				results.erase(unique(results.begin(), results.end()), results.end());
-
-				string out = "";
-
-				for (string each : results) {
-					if (each == "P") {
-						out += "Piston, ";
-					}
-					else if (each == "T") {
-						out += "Turboprop, ";
-					}
-					else if (each == "J") {
-						out += "Jet, ";
-					}
-					else if (each == "E") {
-						out += "Electric, ";
-					}
-				}
-
-				returnValid[2] = "Failed Engine Type. Needed Type : " + out.substr(0, out.length() - 2) + ".";
+				returnOut[0][2] = "Failed  " + EngineOutput(origin_int, pos, successes) + ".";
+				returnOut[1][2] = returnOut[0][2];
 			}
 
-			returnValid[1] = "Valid SID - " + sid;
+			returnOut[0][1] = "Valid SID - " + sid + ".";
+			returnOut[1][1] = returnOut[0][1] + " Contains Valid " + SuffixOutput(origin_int, pos, successes) + ".";
 			break;
 		}
 		case 0:
 		{
-			sort(results.begin(), results.end());
-			results.erase(unique(results.begin(), results.end()), results.end());
-
-			string out = "";
-
-			for (vector<string>::iterator itr = results.begin(); itr != results.end(); ++itr) {
-				out += *itr + ", ";
-			}
-
-			returnValid[1] = "Invalid SID - " + sid + " Contains Invalid Suffix. Valid Suffices: " + out.substr(0, out.length() - 2) + ".";
-			returnValid[9] = "Failed";
+			returnOut[0][1] = "Invalid SID - " + sid + ". Contains Invalid " + SuffixOutput(origin_int, pos, successes) + ".";
+			returnOut[1][1] = returnOut[0][1];
+			returnOut[0][9] = "Failed";
+			returnOut[1][9] = "Failed";
 
 			break;
 		}
 		}
 
-		return returnValid;
+		return returnOut;
 	}
 	else {
-		returnValid[1] = "Invalid SID - Waypoint Not Found";
-		returnValid[9] = "Failed";
-		return returnValid;
+		returnOut[0][1] = "Invalid SID - SID Not Found";
+		returnOut[0][9] = "Failed";
+		returnOut[1][1] = "Invalid SID - " + sid + " departure not in database.";
+		returnOut[1][9] = "Failed";
+		return returnOut;
 	}
 }
+
+string CVFPCPlugin::DirectionOutput(size_t origin_int, size_t pos, vector<int> successes) {
+	const Value& conditions = config[origin_int]["Sids"][pos]["Constraints"];
+	bool lvls[2] { false, false };
+	for (int each : successes) {
+		if (conditions[each].HasMember("Dir") && conditions[each]["Dir"].IsString()) {
+			string val = conditions[each]["Dir"].GetString();
+			if (val == "EVEN") {
+				lvls[0] = true;
+			}
+			else if (val == "ODD") {
+				lvls[1] = true;
+			}
+		}
+		else {
+			lvls[0] = true;
+			lvls[1] = true;
+		}
+	}
+
+	string out = "Level Direction. Required Direction: ";
+
+	if (lvls[0] && lvls[1]) {
+		out += "Any";
+	}
+	else if (lvls[0]) {
+		out += "Even";
+	}
+	else if (lvls[1]) {
+		out += "Odd";
+	}
+	else {
+		out += "Any";
+	}
+
+	return out;
+}
+
+string CVFPCPlugin::MinMaxOutput(size_t origin_int, size_t pos, vector<int> successes) {
+	const Value& conditions = config[origin_int]["Sids"][pos]["Constraints"];
+	vector<vector<int>> raw_lvls{};
+	for (int each : successes) {
+		vector<int> lvls = { MININT, MAXINT };
+
+		if (conditions[each].HasMember("Min") && conditions[each]["Min"].IsInt()) {
+			lvls[0] = conditions[each]["Min"].GetInt();
+		}
+
+		if (conditions[each].HasMember("Max") && conditions[each]["Max"].IsInt()) {
+			lvls[1] = conditions[each]["Max"].GetInt();
+		}
+
+		raw_lvls.push_back(lvls);
+	}
+
+	bool changed;
+	size_t i = 0;
+
+	while (i < raw_lvls.size() - 1) {
+		for (size_t j = 0; j < raw_lvls.size(); j++) {
+			if (i == j) {
+				break;
+			}
+			//Item j is a subset of Item i
+			if (raw_lvls[j][0] >= raw_lvls[i][0] && raw_lvls[j][1] <= raw_lvls[i][1]) {
+				raw_lvls.erase(raw_lvls.begin() + j);
+				changed = true;
+				break;
+			}
+			//Item j extends higher than Item i
+			else if (raw_lvls[j][0] >= raw_lvls[i][0]) {
+				raw_lvls[i][1] = raw_lvls[j][1];
+				raw_lvls.erase(raw_lvls.begin() + j);
+				changed = true;
+				break;
+			}
+			//Item j extends lower than Item i
+			else if (raw_lvls[j][1] <= raw_lvls[i][1]) {
+				raw_lvls[i][0] = raw_lvls[j][0];
+				raw_lvls.erase(raw_lvls.begin() + j);
+				changed = true;
+				break;
+			}
+		}
+
+		if (!changed) {
+			i++;
+		}
+	}
+
+	string out = "Min/Max Level: ";
+
+	for (vector<int> each : raw_lvls) {
+		if (each[0] == MININT && each[1] == MAXINT) {
+			out += "Any Level, ";
+		}
+		else if (each[0] == MININT) {
+			out += to_string(each[1]) + "-, ";
+		}
+		else if (each[1] == MAXINT) {
+			out += to_string(each[0]) + "+, ";
+
+		}
+		else {
+			out += to_string(each[0]) + "-" + to_string(each[1]);
+			out += ", ";
+		}
+	}
+
+	out = out.substr(0, out.size() - 2) + ".";
+
+	return out;
+}
+
+string CVFPCPlugin::NavPerfOutput(size_t origin_int, size_t pos, vector<int> successes) {
+	const Value& conditions = config[origin_int]["Sids"][pos]["Constraints"];
+	vector<string> navperf{};
+	for (int each : successes) {
+		if (conditions[each].HasMember("Nav") && conditions[each]["Nav"].IsString()) {
+			navperf.push_back(string(conditions[each]["Nav"].GetString()));
+		}
+	}
+
+	sort(navperf.begin(), navperf.end());
+	vector<string>::iterator itr = unique(navperf.begin(), navperf.end());
+	navperf.erase(itr, navperf.end());
+
+	string out = "";
+
+	for (string each : navperf) {
+		out += each + ", ";
+	}
+
+	if (out == "") {
+		out = "None Specified";
+	}
+	else {
+		out = out.substr(0, out.length() - 2);
+	}
+
+	return "Navigation Performance. Required Performance: " + out;
+}
+
+string CVFPCPlugin::RouteOutput(size_t origin_int, size_t pos, vector<int> successes) {
+	const Value& conditions = config[origin_int]["Sids"][pos]["Constraints"];
+	vector<string> outroute{};
+	for (int each : successes) {
+		string out = "";
+		if (conditions[each].HasMember("Route") && conditions[each]["Route"].IsArray() && conditions[each]["Route"].Size()) {
+			out += conditions[each]["Route"][(SizeType)0].GetString();
+
+			for (SizeType j = 1; j < conditions[each]["Route"].Size(); j++) {
+				out += " or ";
+				out += conditions[each]["Route"][j].GetString();
+			}
+		}
+
+		if (conditions[each].HasMember("NoRoute") && conditions[each]["NoRoute"].IsArray() && conditions[each]["NoRoute"].Size()) {
+			if (out != "") {
+				out += " but ";
+			}
+
+			out += "not ";
+
+			out += conditions[each]["NoRoute"][(SizeType)0].GetString();
+
+			for (SizeType j = 1; j < conditions[each]["NoRoute"].Size(); j++) {
+				out += ", ";
+				out += conditions[each]["NoRoute"][j].GetString();
+			}
+		}
+
+		int Min, Max;
+		bool min, max = false;
+
+		if (conditions[each].HasMember("Min") && (Min = conditions[each]["Min"].GetInt()) > 0) {
+			min = true;
+		}
+
+		if (conditions[each].HasMember("Max") && (Max = conditions[each]["Max"].GetInt()) > 0) {
+			max = true;
+		}
+
+		if (min && max) {
+			out += " (FL" + to_string(Min) + " - " + to_string(Max) + ")";
+		}
+		else if (min) {
+			out += " (FL" + to_string(Min) + "+)";
+		}
+		else if (max) {
+			out += " (FL" + to_string(Max) + "-)";
+		}
+		else {
+			out += " (All Levels)";
+		}
+
+		outroute.push_back(out);
+	}
+
+	string out = "";
+
+	for (string each : outroute) {
+		out += each + " / ";
+	}
+
+	if (out == "") {
+		out = "None";
+	}
+	else {
+		out = out.substr(0, out.length() - 3);
+	}
+
+	return "Route. Valid Initial Routes: " + out;
+}
+
+string CVFPCPlugin::DestinationOutput(size_t origin_int, size_t pos, vector<int> successes) {
+	const Value& conditions = config[origin_int]["Sids"][pos]["Constraints"];
+	vector<vector<string>> res{ vector<string>{}, vector<string>{} };
+
+	for (int each : successes) {
+		vector<string> good_new_eles{};
+		if (conditions[each].HasMember("Dests") && conditions[each]["Dests"].IsArray() && conditions[each]["Dests"].Size()) {
+			for (SizeType j = 0; j < conditions[each]["Dests"].Size(); j++) {
+				string dest = conditions[each]["Dests"][j].GetString();
+
+				if (dest.size() < 4)
+					dest += string(4 - dest.size(), '*');
+
+				good_new_eles.push_back(dest);
+			}
+		}
+
+		vector<string> bad_new_eles{};
+		if (conditions[each].HasMember("NoDests") && conditions[each]["NoDests"].IsArray() && conditions[each]["NoDests"].Size()) {
+			for (SizeType j = 0; j < conditions[each]["NoDests"].Size(); j++) {
+				string dest = conditions[each]["NoDests"][j].GetString();
+
+				if (dest.size() < 4)
+					dest += string(4 - dest.size(), '*');
+
+				bad_new_eles.push_back(dest);
+			}
+		}
+
+		bool added = false;
+		for (string dest : res[0]) {
+			//Remove Duplicates from Whitelist
+			for (size_t k = good_new_eles.size(); k > 0; k--) {
+				string new_ele = good_new_eles[k - 1];
+				if (new_ele.compare(dest) == 0) {
+					good_new_eles.erase(good_new_eles.begin() + k - 1);
+				}
+			}
+
+			//Prevent Previously Whitelisted Elements from Being Blacklisted
+			for (size_t k = bad_new_eles.size(); k > 0; k--) {
+				string new_ele = bad_new_eles[k - 1];
+				if (new_ele.compare(dest) == 0) {
+					bad_new_eles.erase(bad_new_eles.begin() + k - 1);
+				}
+			}
+		}
+
+		//Whitelist Previously Blacklisted Elements
+		for (string dest : good_new_eles) {
+
+			for (size_t k = res[1].size(); k > 0; k--) {
+				string new_ele = res[1][k - 1];
+				if (new_ele.compare(dest) == 0) {
+					res[1].erase(res[1].begin() + k - 1);
+				}
+			}
+		}
+
+		//Remove Duplicates from Blacklist
+		for (string dest : res[1]) {
+			for (size_t k = bad_new_eles.size(); k > 0; k--) {
+				string new_ele = bad_new_eles[k - 1];
+				if (new_ele.compare(dest) == 0) {
+					bad_new_eles.erase(bad_new_eles.begin() + k - 1);
+				}
+			}
+		}
+
+		res[0].insert(res[0].end(), good_new_eles.begin(), good_new_eles.end());
+		res[1].insert(res[1].end(), bad_new_eles.begin(), bad_new_eles.end());
+	}
+
+	string out = "";
+
+	for (string each : res[0]) {
+		out += each + ", ";
+	}
+
+	for (string each : res[1]) {
+		out += "Not " + each + ", ";
+	}
+
+	if (out == "") {
+		out = "None";
+	}
+	else {
+		out = out.substr(0, out.length() - 2);
+	}
+
+	return "Destination. Valid Destinations: " + out;
+}
+
+string CVFPCPlugin::EngineOutput(size_t origin_int, size_t pos, vector<int> successes) {
+	const Value& conditions = config[origin_int]["Sids"][pos]["Constraints"];
+	vector<string> engs{};
+	for (int each : successes) {
+		if (conditions[each].HasMember("Eng") && conditions[each]["Eng"].IsString()) {
+			engs.push_back(conditions[each]["Eng"].GetString());
+		}
+		else if (conditions[each]["Eng"].IsArray() && conditions[each]["Eng"].Size()) {
+			for (SizeType j = 0; j < conditions[each]["Eng"].Size(); j++) {
+				string eng = conditions[each]["Eng"][j].GetString();
+
+				engs.push_back(eng);
+			}
+		}
+	}
+
+	sort(engs.begin(), engs.end());
+	vector<string>::iterator itr = unique(engs.begin(), engs.end());
+	engs.erase(itr, engs.end());
+
+	string out = "";
+
+	for (string each : engs) {
+		if (each == "P") {
+			out += "Piston, ";
+		}
+		else if (each == "T") {
+			out += "Turboprop, ";
+		}
+		else if (each == "J") {
+			out += "Jet, ";
+		}
+		else if (each == "E") {
+			out += "Electric, ";
+		}
+	}
+
+	if (out == "") {
+		out = "None Specified";
+	}
+	else {
+		out = out.substr(0, out.length() - 2);
+	}
+
+	return "Engine Type. Type Required: " + out;
+}
+
+string CVFPCPlugin::SuffixOutput(size_t origin_int, size_t pos, vector<int> successes) {
+	const Value& conditions = config[origin_int]["Sids"][pos]["Constraints"];
+	vector<string> suffices{};
+	for (int each : successes) {
+		if (conditions[each].HasMember("Suf") && conditions[each]["Suf"].IsString()) {
+			suffices.push_back(conditions[each]["Suf"].GetString());
+		}
+	}
+
+	sort(suffices.begin(), suffices.end());
+	vector<string>::iterator itr = unique(suffices.begin(), suffices.end());
+	suffices.erase(itr, suffices.end());
+
+	string out = "";
+
+	for (string each : suffices) {
+		out += each + ", ";
+	}
+
+	if (out == "") {
+		out = "None Specified";
+	}
+	else {
+		out = out.substr(0, out.length() - 2);
+	}
+
+	return "Suffix. Valid Suffices: " + out + ".";
+}
+
 //
 void CVFPCPlugin::OnFunctionCall(int FunctionId, const char * ItemString, POINT Pt, RECT Area) {
 	if (FunctionId == TAG_FUNC_CHECKFP_MENU) {
@@ -906,8 +1026,8 @@ void CVFPCPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget,
 			strcpy_s(sItemString, 16, "VFR");
 		}
 		else {
-			vector<string> validize = validizeSid(FlightPlan);
-			vector<string> messageBuffer{ validize }; // 0 = Callsign, 1 = SID, 2 = Engine Type, 3 = Airways, 4 = Nav Performance, 5 = Destination, 6 = Min/Max Flight Level, 7 = Even/Odd, 8 = Syntax, 9 = Passed/Failed
+			vector<vector<string>> validize = validizeSid(FlightPlan);
+			vector<string> messageBuffer{ validize[0] }; // 0 = Callsign, 1 = SID, 2 = Engine Type, 3 = Airways, 4 = Nav Performance, 5 = Destination, 6 = Min/Max Flight Level, 7 = Even/Odd, 8 = Syntax, 9 = Passed/Failed
 
 			if (messageBuffer.at(9) == "Passed") {
 				*pRGB = TAG_GREEN;
@@ -915,7 +1035,7 @@ void CVFPCPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget,
 			}
 			else {
 				*pRGB = TAG_RED;
-				string code = getFails(validize);
+				string code = getFails(validize[0]);
 				strcpy_s(sItemString, 16, code.c_str());
 			}
 		}
@@ -962,23 +1082,37 @@ bool CVFPCPlugin::OnCompileCommand(const char * sCommandLine) {
 // Sends to you, which checks were failed and which were passed on the selected aircraft
 void CVFPCPlugin::checkFPDetail() {
 	if (validVersion) {
-		vector<string> messageBuffer{ validizeSid(FlightPlanSelectASEL()) };	// 0 = Callsign, 1 = valid/invalid SID, 2 = SID Name, 3 = Even/Odd, 4 = Minimum Flight Level, 5 = Maximum Flight Level, 6 = Passed
+		vector<vector<string>> validize = validizeSid(FlightPlanSelectASEL());
+		vector<string> messageBuffer{ validize[0] };	// 0 = Callsign, 1 = valid/invalid SID, 2 = SID Name, 3 = Even/Odd, 4 = Minimum Flight Level, 5 = Maximum Flight Level, 6 = Passed
+		vector<string> logBuffer{ validize[1] };
 		sendMessage(messageBuffer.at(0), "Checking...");
-		string buffer{ messageBuffer.at(1) + " SID | " };
+#
+		string buffer{ messageBuffer.at(1) + " | " };
+		string logbuf{ logBuffer.at(1) + " | " };
+
 		if (messageBuffer.at(1).find("Invalid") != 0) {
 			for (int i = 2; i < 9; i++) {
 				string temp = messageBuffer.at(i);
+				string logtemp = logBuffer.at(i);
 
 				if (temp != "-")
 				{
 					buffer += temp;
 					buffer += " | ";
 				}
+
+				if (logtemp != "-") {
+					logbuf += logtemp;
+					logbuf += " | ";
+				}
 			}
 		}
 
 		buffer += messageBuffer.at(9);
+		logbuf + logBuffer.at(9);
+
 		sendMessage(messageBuffer.at(0), buffer);
+		debugMessage(logBuffer.at(0), logbuf);
 	}
 }
 
@@ -1009,6 +1143,10 @@ string CVFPCPlugin::getFails(vector<string> messageBuffer) {
 	}
 	if (messageBuffer.at(8).find("Invalid") == 0) {
 		fail.push_back("CHK");
+	}
+
+	if (fail.size() == 0) {
+		sendMessage("Cero");
 	}
 
 	return fail[failPos % fail.size()];

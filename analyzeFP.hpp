@@ -40,7 +40,21 @@ public:
 
 	virtual void getSids();
 
-	virtual vector<string> validizeSid(CFlightPlan flightPlan);
+	virtual vector<vector<string>> validizeSid(CFlightPlan flightPlan);
+
+	virtual string DirectionOutput(size_t origin_int, size_t pos, vector<int> successes);
+
+	virtual string MinMaxOutput(size_t origin_int, size_t pos, vector<int> successes);
+
+	virtual string NavPerfOutput(size_t origin_int, size_t pos, vector<int> successes);
+
+	virtual string RouteOutput(size_t origin_int, size_t pos, vector<int> successes);
+
+	virtual string DestinationOutput(size_t origin_int, size_t pos, vector<int> successes);
+
+	virtual string EngineOutput(size_t origin_int, size_t pos, vector<int> successes);
+
+	virtual string SuffixOutput(size_t origin_int, size_t pos, vector<int> successes);
 
 	virtual void OnFunctionCall(int FunctionId, const char * ItemString, POINT Pt, RECT Area);
 
