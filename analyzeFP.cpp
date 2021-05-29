@@ -531,15 +531,15 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			returnOut[0][7] = "Passed Level Direction.";
 			returnOut[0][9] = "Passed";
 
-			returnOut[1][7] = "Passed Level Direction: \"" + string(conditions[validity[0]]["Dir"].GetString()) + "\" Required.";
+			returnOut[1][7] = "Passed " + DirectionOutput(origin_int, pos, successes) + ".";
 			returnOut[1][9] = "Passed";
 		}
 		case 6:
 		{
 			if (round == 6) {
 				string res = "";
-				returnOut[0][7] = "Failed Level Direction: \"" + string(conditions[validity[0]]["Dir"].GetString()) + "\" Required.";
-				returnOut[1][7] = "Failed Level Direction: \"" + string(conditions[validity[0]]["Dir"].GetString()) + "\" Required.";
+				returnOut[0][7] = "Failed " + DirectionOutput(origin_int, pos, successes) + ".";
+				returnOut[1][7] = returnOut[0][7];
 			}
 
 			returnOut[0][6] = "Passed Min/Max Level.";	
@@ -617,6 +617,43 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		returnOut[1][9] = "Failed";
 		return returnOut;
 	}
+}
+
+string CVFPCPlugin::DirectionOutput(size_t origin_int, size_t pos, vector<int> successes) {
+	const Value& conditions = config[origin_int]["Sids"][pos]["Constraints"];
+	bool lvls[2] { false, false };
+	for (int each : successes) {
+		if (conditions[each].HasMember("Dir") && conditions[each]["Dir"].IsString()) {
+			string val = conditions[each]["Dir"].GetString();
+			if (val == "EVEN") {
+				lvls[0] = true;
+			}
+			else if (val == "ODD") {
+				lvls[1] = true;
+			}
+		}
+		else {
+			lvls[0] = true;
+			lvls[1] = true;
+		}
+	}
+
+	string out = "Level Direction. Required Direction: ";
+
+	if (lvls[0] && lvls[1]) {
+		out += "Any";
+	}
+	else if (lvls[0]) {
+		out += "Even";
+	}
+	else if (lvls[1]) {
+		out += "Odd";
+	}
+	else {
+		out += "Any";
+	}
+
+	return out;
 }
 
 string CVFPCPlugin::MinMaxOutput(size_t origin_int, size_t pos, vector<int> successes) {
@@ -698,9 +735,9 @@ string CVFPCPlugin::MinMaxOutput(size_t origin_int, size_t pos, vector<int> succ
 string CVFPCPlugin::NavPerfOutput(size_t origin_int, size_t pos, vector<int> successes) {
 	const Value& conditions = config[origin_int]["Sids"][pos]["Constraints"];
 	vector<string> navperf{};
-	for (size_t i = 0; i < successes.size(); i++) {
-		if (conditions[successes[i]].HasMember("Nav") && conditions[successes[i]]["Nav"].IsString()) {
-			navperf.push_back(string(conditions[successes[i]]["Nav"].GetString()));
+	for (int each : successes) {
+		if (conditions[each].HasMember("Nav") && conditions[each]["Nav"].IsString()) {
+			navperf.push_back(string(conditions[each]["Nav"].GetString()));
 		}
 	}
 
@@ -727,40 +764,40 @@ string CVFPCPlugin::NavPerfOutput(size_t origin_int, size_t pos, vector<int> suc
 string CVFPCPlugin::RouteOutput(size_t origin_int, size_t pos, vector<int> successes) {
 	const Value& conditions = config[origin_int]["Sids"][pos]["Constraints"];
 	vector<string> outroute{};
-	for (size_t i = 0; i < successes.size(); i++) {
+	for (int each : successes) {
 		string out = "";
-		if (conditions[successes[i]].HasMember("Route") && conditions[successes[i]]["Route"].IsArray() && conditions[successes[i]]["Route"].Size()) {
-			out += conditions[successes[i]]["Route"][(SizeType)0].GetString();
+		if (conditions[each].HasMember("Route") && conditions[each]["Route"].IsArray() && conditions[each]["Route"].Size()) {
+			out += conditions[each]["Route"][(SizeType)0].GetString();
 
-			for (SizeType j = 1; j < conditions[successes[i]]["Route"].Size(); j++) {
+			for (SizeType j = 1; j < conditions[each]["Route"].Size(); j++) {
 				out += " or ";
-				out += conditions[successes[i]]["Route"][j].GetString();
+				out += conditions[each]["Route"][j].GetString();
 			}
 		}
 
-		if (conditions[successes[i]].HasMember("NoRoute") && conditions[successes[i]]["NoRoute"].IsArray() && conditions[successes[i]]["NoRoute"].Size()) {
+		if (conditions[each].HasMember("NoRoute") && conditions[each]["NoRoute"].IsArray() && conditions[each]["NoRoute"].Size()) {
 			if (out != "") {
 				out += " but ";
 			}
 
 			out += "not ";
 
-			out += conditions[successes[i]]["NoRoute"][(SizeType)0].GetString();
+			out += conditions[each]["NoRoute"][(SizeType)0].GetString();
 
-			for (SizeType j = 1; j < conditions[successes[i]]["NoRoute"].Size(); j++) {
+			for (SizeType j = 1; j < conditions[each]["NoRoute"].Size(); j++) {
 				out += ", ";
-				out += conditions[successes[i]]["NoRoute"][j].GetString();
+				out += conditions[each]["NoRoute"][j].GetString();
 			}
 		}
 
 		int Min, Max;
 		bool min, max = false;
 
-		if (conditions[i].HasMember("Min") && (Min = conditions[i]["Min"].GetInt()) > 0) {
+		if (conditions[each].HasMember("Min") && (Min = conditions[each]["Min"].GetInt()) > 0) {
 			min = true;
 		}
 
-		if (conditions[i].HasMember("Max") && (Max = conditions[i]["Max"].GetInt()) > 0) {
+		if (conditions[each].HasMember("Max") && (Max = conditions[each]["Max"].GetInt()) > 0) {
 			max = true;
 		}
 
@@ -800,11 +837,11 @@ string CVFPCPlugin::DestinationOutput(size_t origin_int, size_t pos, vector<int>
 	const Value& conditions = config[origin_int]["Sids"][pos]["Constraints"];
 	vector<vector<string>> res{ vector<string>{}, vector<string>{} };
 
-	for (size_t i = 0; i < successes.size(); i++) {
+	for (int each : successes) {
 		vector<string> good_new_eles{};
-		if (conditions[successes[i]].HasMember("Dests") && conditions[successes[i]]["Dests"].IsArray() && conditions[successes[i]]["Dests"].Size()) {
-			for (SizeType j = 0; j < conditions[i]["Dests"].Size(); j++) {
-				string dest = conditions[successes[i]]["Dests"][j].GetString();
+		if (conditions[each].HasMember("Dests") && conditions[each]["Dests"].IsArray() && conditions[each]["Dests"].Size()) {
+			for (SizeType j = 0; j < conditions[each]["Dests"].Size(); j++) {
+				string dest = conditions[each]["Dests"][j].GetString();
 
 				if (dest.size() < 4)
 					dest += string(4 - dest.size(), '*');
@@ -814,9 +851,9 @@ string CVFPCPlugin::DestinationOutput(size_t origin_int, size_t pos, vector<int>
 		}
 
 		vector<string> bad_new_eles{};
-		if (conditions[successes[i]].HasMember("NoDests") && conditions[successes[i]]["NoDests"].IsArray() && conditions[successes[i]]["NoDests"].Size()) {
-			for (SizeType j = 0; j < conditions[i]["NoDests"].Size(); j++) {
-				string dest = conditions[successes[i]]["NoDests"][j].GetString();
+		if (conditions[each].HasMember("NoDests") && conditions[each]["NoDests"].IsArray() && conditions[each]["NoDests"].Size()) {
+			for (SizeType j = 0; j < conditions[each]["NoDests"].Size(); j++) {
+				string dest = conditions[each]["NoDests"][j].GetString();
 
 				if (dest.size() < 4)
 					dest += string(4 - dest.size(), '*');
@@ -892,13 +929,13 @@ string CVFPCPlugin::DestinationOutput(size_t origin_int, size_t pos, vector<int>
 string CVFPCPlugin::EngineOutput(size_t origin_int, size_t pos, vector<int> successes) {
 	const Value& conditions = config[origin_int]["Sids"][pos]["Constraints"];
 	vector<string> engs{};
-	for (size_t i = 0; i < successes.size(); i++) {
-		if (conditions[successes[i]].HasMember("Eng") && conditions[successes[i]]["Eng"].IsString()) {
-			engs.push_back(conditions[successes[i]]["Eng"].GetString());
+	for (int each : successes) {
+		if (conditions[each].HasMember("Eng") && conditions[each]["Eng"].IsString()) {
+			engs.push_back(conditions[each]["Eng"].GetString());
 		}
-		else if (conditions[successes[i]]["Eng"].IsArray() && conditions[successes[i]]["Eng"].Size()) {
-			for (SizeType j = 0; j < conditions[i]["Eng"].Size(); j++) {
-				string eng = conditions[successes[i]]["Eng"][j].GetString();
+		else if (conditions[each]["Eng"].IsArray() && conditions[each]["Eng"].Size()) {
+			for (SizeType j = 0; j < conditions[each]["Eng"].Size(); j++) {
+				string eng = conditions[each]["Eng"][j].GetString();
 
 				engs.push_back(eng);
 			}
@@ -939,9 +976,9 @@ string CVFPCPlugin::EngineOutput(size_t origin_int, size_t pos, vector<int> succ
 string CVFPCPlugin::SuffixOutput(size_t origin_int, size_t pos, vector<int> successes) {
 	const Value& conditions = config[origin_int]["Sids"][pos]["Constraints"];
 	vector<string> suffices{};
-	for (size_t i = 0; i < successes.size(); i++) {
-		if (conditions[successes[i]].HasMember("Suf") && conditions[successes[i]]["Suf"].IsString()) {
-			suffices.push_back(conditions[successes[i]]["Suf"].GetString());
+	for (int each : successes) {
+		if (conditions[each].HasMember("Suf") && conditions[each]["Suf"].IsString()) {
+			suffices.push_back(conditions[each]["Suf"].GetString());
 		}
 	}
 
