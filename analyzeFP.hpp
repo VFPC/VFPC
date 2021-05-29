@@ -50,6 +50,10 @@ public:
 
 	virtual string DestinationOutput(size_t origin_int, size_t pos, vector<int> successes);
 
+	virtual string EngineOutput(size_t origin_int, size_t pos, vector<int> successes);
+
+	virtual string SuffixOutput(size_t origin_int, size_t pos, vector<int> successes);
+
 	virtual void OnFunctionCall(int FunctionId, const char * ItemString, POINT Pt, RECT Area);
 
 	//Define OnGetTagItem function

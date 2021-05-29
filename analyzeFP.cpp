@@ -354,7 +354,6 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			
 		while (cont && round < 7) {
 			new_validity = {};
-			results = {};
 
 			for (SizeType i = 0; i < conditions.Size(); i++) {
 				if (round == 0 || validity[i]) {
@@ -367,40 +366,27 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 						}
 						else {
 							new_validity.push_back(false);
-							results.push_back(conditions[i]["Suf"].GetString());
 						}
 						break;
 					}
 					case 1:
 					{
 						//Engines (P=piston, T=turboprop, J=jet, E=electric)
-						if (conditions[i]["Eng"].IsString()) {
-							if (conditions[i]["Eng"].GetString()[0] == flightPlan.GetFlightPlanData().GetEngineType()) {
-								new_validity.push_back(true);
-							}
-							else {
-								new_validity.push_back(false);
-								results.push_back(conditions[i]["Eng"].GetString());
-							}
+						bool res = true;
+
+						if (conditions[i]["Eng"].IsString() && !conditions[i]["Eng"].GetString() == flightPlan.GetFlightPlanData().GetEngineType()) {
+							res = false;
 						}
-						else if (conditions[i]["Eng"].IsArray() && conditions[i]["Eng"].Size()) {
-							if (arrayContains(conditions[i]["Eng"], flightPlan.GetFlightPlanData().GetEngineType())) {
-								new_validity.push_back(true);
-							}
-							else {
-								new_validity.push_back(false);
-								for (SizeType j = 0; j < conditions[i]["Eng"].Size(); i++) {
-									results.push_back(conditions[i]["Eng"][j].GetString());
-								}
-							}
+						else if (conditions[i]["Eng"].IsArray() && conditions[i]["Eng"].Size() && !arrayContains(conditions[i]["Eng"], flightPlan.GetFlightPlanData().GetEngineType())) {
+							res = false;
 						}
-						else {
-							new_validity.push_back(true);
-						}
+
+						new_validity.push_back(res);
 						break;
 					}
 					case 2:
 					{
+						//Destinations
 						bool res = true;
 
 						if (conditions[i]["NoDests"].IsArray() && conditions[i]["NoDests"].Size()) {
@@ -598,49 +584,25 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			}
 
 			returnOut[0][2] = "Passed Engine Type.";
+			returnOut[1][2] = "Passed  " + EngineOutput(origin_int, pos, successes) + ".";
 		}
 		case 1:
 		{
 			if (round == 1) {
-				sort(results.begin(), results.end());
-				results.erase(unique(results.begin(), results.end()), results.end());
-
-				string out = "";
-
-				for (string each : results) {
-					if (each == "P") {
-						out += "Piston, ";
-					}
-					else if (each == "T") {
-						out += "Turboprop, ";
-					}
-					else if (each == "J") {
-						out += "Jet, ";
-					}
-					else if (each == "E") {
-						out += "Electric, ";
-					}
-				}
-
-				returnOut[0][2] = "Failed Engine Type. Needed Type : " + out.substr(0, out.length() - 2) + ".";
+				returnOut[0][2] = "Failed  " + EngineOutput(origin_int, pos, successes) + ".";
+				returnOut[1][2] = returnOut[0][2];
 			}
 
-			returnOut[0][1] = "Valid SID - " + sid;
+			returnOut[0][1] = "Valid SID - " + sid + ".";
+			returnOut[1][1] = returnOut[0][1] + " Contains Valid " + SuffixOutput(origin_int, pos, successes) + ".";
 			break;
 		}
 		case 0:
 		{
-			sort(results.begin(), results.end());
-			results.erase(unique(results.begin(), results.end()), results.end());
-
-			string out = "";
-
-			for (vector<string>::iterator itr = results.begin(); itr != results.end(); ++itr) {
-				out += *itr + ", ";
-			}
-
-			returnOut[0][1] = "Invalid SID - " + sid + " Contains Invalid Suffix. Valid Suffices: " + out.substr(0, out.length() - 2) + ".";
+			returnOut[0][1] = "Invalid SID - " + sid + ". Contains Invalid " + SuffixOutput(origin_int, pos, successes) + ".";
+			returnOut[1][1] = returnOut[0][1];
 			returnOut[0][9] = "Failed";
+			returnOut[1][9] = "Failed";
 
 			break;
 		}
@@ -925,6 +887,82 @@ string CVFPCPlugin::DestinationOutput(size_t origin_int, size_t pos, vector<int>
 	}
 
 	return "Destination. Valid Destinations: " + out;
+}
+
+string CVFPCPlugin::EngineOutput(size_t origin_int, size_t pos, vector<int> successes) {
+	const Value& conditions = config[origin_int]["Sids"][pos]["Constraints"];
+	vector<string> engs{};
+	for (size_t i = 0; i < successes.size(); i++) {
+		if (conditions[successes[i]].HasMember("Eng") && conditions[successes[i]]["Eng"].IsString()) {
+			engs.push_back(conditions[successes[i]]["Eng"].GetString());
+		}
+		else if (conditions[successes[i]]["Eng"].IsArray() && conditions[successes[i]]["Eng"].Size()) {
+			for (SizeType j = 0; j < conditions[i]["Eng"].Size(); j++) {
+				string eng = conditions[successes[i]]["Eng"][j].GetString();
+
+				engs.push_back(eng);
+			}
+		}
+	}
+
+	sort(engs.begin(), engs.end());
+	vector<string>::iterator itr = unique(engs.begin(), engs.end());
+	engs.erase(itr, engs.end());
+
+	string out = "";
+
+	for (string each : engs) {
+		if (each == "P") {
+			out += "Piston, ";
+		}
+		else if (each == "T") {
+			out += "Turboprop, ";
+		}
+		else if (each == "J") {
+			out += "Jet, ";
+		}
+		else if (each == "E") {
+			out += "Electric, ";
+		}
+	}
+
+	if (out == "") {
+		out = "None Specified";
+	}
+	else {
+		out = out.substr(0, out.length() - 2);
+	}
+
+	return "Engine Type. Type Required: " + out;
+}
+
+string CVFPCPlugin::SuffixOutput(size_t origin_int, size_t pos, vector<int> successes) {
+	const Value& conditions = config[origin_int]["Sids"][pos]["Constraints"];
+	vector<string> suffices{};
+	for (size_t i = 0; i < successes.size(); i++) {
+		if (conditions[successes[i]].HasMember("Suf") && conditions[successes[i]]["Suf"].IsString()) {
+			suffices.push_back(conditions[successes[i]]["Suf"].GetString());
+		}
+	}
+
+	sort(suffices.begin(), suffices.end());
+	vector<string>::iterator itr = unique(suffices.begin(), suffices.end());
+	suffices.erase(itr, suffices.end());
+
+	string out = "";
+
+	for (string each : suffices) {
+		out += each + ", ";
+	}
+
+	if (out == "") {
+		out = "None Specified";
+	}
+	else {
+		out = out.substr(0, out.length() - 2);
+	}
+
+	return "Suffix. Valid Suffices: " + out + ".";
 }
 
 //
