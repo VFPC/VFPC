@@ -48,6 +48,8 @@ public:
 
 	virtual string RouteOutput(size_t origin_int, size_t pos, vector<int> successes);
 
+	virtual string DestinationOutput(size_t origin_int, size_t pos, vector<int> successes);
+
 	virtual void OnFunctionCall(int FunctionId, const char * ItemString, POINT Pt, RECT Area);
 
 	//Define OnGetTagItem function

@@ -401,156 +401,39 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					}
 					case 2:
 					{
-						bool perm = true;
+						bool res = true;
 
 						if (conditions[i]["NoDests"].IsArray() && conditions[i]["NoDests"].Size()) {
 							string dest;
 							if (destArrayContains(conditions[i]["NoDests"], destination.c_str()).size()) {
-								perm = false;
+								res = false;
 							}
 						}
 
 						if (conditions[i]["Dests"].IsArray() && conditions[i]["Dests"].Size()) {
 							string dest;
 							if (!destArrayContains(conditions[i]["Dests"], destination.c_str()).size()) {
-								perm = false;
+								res = false;
 							}
 						}
 
-						new_validity.push_back(perm);
-
-						if (!perm) {
-							string perms = "";
-
-							if (conditions[i]["Dests"].IsArray() && conditions[i]["Dests"].Size()) {
-								for (SizeType j = 0; j < conditions[i]["Dests"].Size(); j++) {
-									string dest = conditions[i]["Dests"][j].GetString();
-
-									if (dest.size() < 4)
-										dest += string(4 - dest.size(), '*');
-
-									if (j != 0) {
-										perms += ",";
-									}
-
-									perms += dest;
-								}
-							}
-							else {
-								perms += " ";
-							}
-
-							perms += ";";
-
-							if (conditions[i]["NoDests"].IsArray() && conditions[i]["NoDests"].Size()) {
-								for (SizeType j = 0; j < conditions[i]["NoDests"].Size(); j++) {
-									string dest = conditions[i]["NoDests"][j].GetString();
-
-									if (dest.size() < 4)
-										dest += string(4 - dest.size(), '*');
-
-									if (j != 0) {
-										perms += ",";
-									}
-
-									perms += dest;
-								}
-							}
-							else {
-								perms += " ";
-							}
-
-							results.push_back(perms);
-						}
-
+						new_validity.push_back(res);
 						break;
 					}
 					case 3:
 					{
-						//Airways
+						//Route
 						bool res = true;
 
 						string perms = "";
 
-						if (conditions[i]["Route"].IsArray() && conditions[i]["Route"].Size() && !routeContains(flightPlan.GetCallsign(), route, conditions[i]["Route"])) {
+						if (conditions[i].HasMember("Route") && conditions[i]["Route"].IsArray() && conditions[i]["Route"].Size() && !routeContains(flightPlan.GetCallsign(), route, conditions[i]["Route"])) {
 							res = false;
-							
-							/*testAllowed = true;
-
-							perms += conditions[i]["Route"][(SizeType)0].GetString();
-
-							for (SizeType j = 1; j < conditions[i]["Route"].Size(); j++) {
-								perms += " or ";
-								perms += conditions[i]["Route"][j].GetString();
-							}*/
 						}
 
-						if (res && conditions[i]["NoRoute"].IsArray() && conditions[i]["NoRoute"].Size() && routeContains(flightPlan.GetCallsign(), route, conditions[i]["NoRoute"])) {
+						if (conditions[i].HasMember("NoRoute") && res && conditions[i]["NoRoute"].IsArray() && conditions[i]["NoRoute"].Size() && routeContains(flightPlan.GetCallsign(), route, conditions[i]["NoRoute"])) {
 							res = false;
-							
-							/*testBanned = true;
-
-							if (perms != "") {
-								perms += " but ";
-							}
-
-							perms += "not ";
-
-							perms += conditions[i]["NoRoute"][(SizeType)0].GetString();
-
-							for (SizeType j = 1; j < conditions[i]["NoRoute"].Size(); j++) {
-								perms += ", ";
-								perms += conditions[i]["NoRoute"][j].GetString();
-							}*/
 						}
-
-						/*if (testAllowed || testBanned) {
-							bool min = false;
-							bool max = false;
-
-							if (conditions[i].HasMember("Min") && (Min = conditions[i]["Min"].GetInt()) > 0) {
-								min = true;
-							}
-
-							if (conditions[i].HasMember("Max") && (Max = conditions[i]["Max"].GetInt()) > 0) {
-								max = true;
-							}
-
-							if (min && max) {
-								perms += " (FL" + to_string(Min) + " - " + to_string(Max) + ")";
-							}
-							else if (min) {
-								perms += " (FL" + to_string(Min) + "+)";
-							}
-							else if (max) {
-								perms += " (FL" + to_string(Max) + "-)";
-							}
-							else {
-								perms += " (All Levels)";
-							}
-
-							bool allowedPassed = false;
-							bool bannedPassed = false;
-
-							if (testAllowed ) {
-								allowedPassed = true;
-							}
-
-							if (!testBanned || !) {
-								bannedPassed = true;
-							}
-
-							if (allowedPassed && bannedPassed) {
-								new_validity.push_back(true);
-							}
-							else {
-								new_validity.push_back(false);
-								results.push_back(perms);
-							}
-						}
-						else {
-							new_validity.push_back(true);
-						}*/
 
 						new_validity.push_back(res);
 						break;
@@ -558,7 +441,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					case 4:
 					{
 						//Nav Perf
-						if (conditions[i]["Nav"].IsString()) {
+						if (conditions[i].HasMember("Nav") && conditions[i]["Nav"].IsString()) {
 							string navigation_constraints(conditions[i]["Nav"].GetString());
 							if (string::npos == navigation_constraints.find_first_of(flightPlan.GetFlightPlanData().GetCapibilities())) {
 								new_validity.push_back(false);
@@ -705,88 +588,13 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			}
 
 			returnOut[0][3] = "Passed Destination.";
+			returnOut[1][3] = "Passed " + DestinationOutput(origin_int, pos, successes) + ".";
 		}
 		case 2:
 		{
 			if (round == 2) {
-				vector<vector<string>> res{ vector<string>{}, vector<string>{} };
-
-				for (string each : results) {
-					bool added = false;
-					vector<string> elements = split(each, ';');
-					vector<string> good_new_eles{};
-					vector<string> bad_new_eles{};
-
-					if (elements[0] != " ") {
-						good_new_eles = split(elements[0], ',');
-					}
-
-					if (elements[1] != " ") {
-						bad_new_eles = split(elements[1], ',');
-					}					
-
-					
-					for (string dest : res[0]) {
-						//Remove Duplicates from Whitelist
-						for (size_t k = good_new_eles.size(); k > 0; k--) {
-							string new_ele = good_new_eles[k - 1];
-							if (new_ele.compare(dest) == 0) {
-								good_new_eles.erase(good_new_eles.begin() + k - 1);
-							}
-						}
-
-						//Prevent Previously Whitelisted Elements from Being Blacklisted
-						for (size_t k = bad_new_eles.size(); k > 0; k--) {
-							string new_ele = bad_new_eles[k - 1];
-							if (new_ele.compare(dest) == 0) {
-								bad_new_eles.erase(bad_new_eles.begin() + k - 1);
-							}
-						}
-					}
-
-					//Whitelist Previously Blacklisted Elements
-					for (string dest : good_new_eles) {
-						
-						for (size_t k = res[1].size(); k > 0; k--) {
-							string new_ele = res[1][k - 1];
-							if (new_ele.compare(dest) == 0) {
-								res[1].erase(res[1].begin() + k - 1);
-							}
-						}
-					}
-
-					//Remove Duplicates from Blacklist
-					for (string dest : res[1]) {
-						for (size_t k = bad_new_eles.size(); k > 0; k--) {
-							string new_ele = bad_new_eles[k - 1];
-							if (new_ele.compare(dest) == 0) {
-								bad_new_eles.erase(bad_new_eles.begin() + k - 1);
-							}
-						}
-					}
-
-					res[0].insert(res[0].end(), good_new_eles.begin(), good_new_eles.end());
-					res[1].insert(res[1].end(), bad_new_eles.begin(), bad_new_eles.end());
-				}
-
-				string out = "";
-
-				for (string each : res[0]) {
-					out += each + ", ";
-				}
-
-				for (string each : res[1]) {
-					out += "Not " + each + ", ";
-				}
-
-				if (out == "") {
-					out = "None";
-				}
-				else {
-					out = out.substr(0, out.length() - 2);
-				}
-
-				returnOut[0][3] = "Failed Destination - Valid Destinations: " + out + ".";
+				returnOut[0][3] = "Failed " + DestinationOutput(origin_int, pos, successes) + ".";
+				returnOut[1][3] = returnOut[0][3];
 			}
 
 			returnOut[0][2] = "Passed Engine Type.";
@@ -938,13 +746,20 @@ string CVFPCPlugin::NavPerfOutput(size_t origin_int, size_t pos, vector<int> suc
 	vector<string>::iterator itr = unique(navperf.begin(), navperf.end());
 	navperf.erase(itr, navperf.end());
 
-	string out = "Navigation Performance. Required Performance: ";
+	string out = "";
 
 	for (string each : navperf) {
 		out += each + ", ";
 	}
 
-	return out.substr(0, out.length() - 2);
+	if (out == "") {
+		out = "None Specified";
+	}
+	else {
+		out = out.substr(0, out.length() - 2);
+	}
+
+	return "Navigation Performance. Required Performance: " + out;
 }
 
 string CVFPCPlugin::RouteOutput(size_t origin_int, size_t pos, vector<int> successes) {
@@ -968,11 +783,11 @@ string CVFPCPlugin::RouteOutput(size_t origin_int, size_t pos, vector<int> succe
 
 			out += "not ";
 
-			out += conditions[i]["NoRoute"][(SizeType)0].GetString();
+			out += conditions[successes[i]]["NoRoute"][(SizeType)0].GetString();
 
-			for (SizeType j = 1; j < conditions[i]["NoRoute"].Size(); j++) {
+			for (SizeType j = 1; j < conditions[successes[i]]["NoRoute"].Size(); j++) {
 				out += ", ";
-				out += conditions[i]["NoRoute"][j].GetString();
+				out += conditions[successes[i]]["NoRoute"][j].GetString();
 			}
 		}
 
@@ -1003,13 +818,113 @@ string CVFPCPlugin::RouteOutput(size_t origin_int, size_t pos, vector<int> succe
 		outroute.push_back(out);
 	}
 
-	string out = "Route. Valid Initial Routes: ";
+	string out = "";
 
 	for (string each : outroute) {
 		out += each + " / ";
 	}
 
-	return out.substr(0, out.length() - 3);
+	if (out == "") {
+		out = "None";
+	}
+	else {
+		out = out.substr(0, out.length() - 3);
+	}
+
+	return "Route. Valid Initial Routes: " + out;
+}
+
+string CVFPCPlugin::DestinationOutput(size_t origin_int, size_t pos, vector<int> successes) {
+	const Value& conditions = config[origin_int]["Sids"][pos]["Constraints"];
+	vector<vector<string>> res{ vector<string>{}, vector<string>{} };
+
+	for (size_t i = 0; i < successes.size(); i++) {
+		vector<string> good_new_eles{};
+		if (conditions[successes[i]].HasMember("Dests") && conditions[successes[i]]["Dests"].IsArray() && conditions[successes[i]]["Dests"].Size()) {
+			for (SizeType j = 0; j < conditions[i]["Dests"].Size(); j++) {
+				string dest = conditions[successes[i]]["Dests"][j].GetString();
+
+				if (dest.size() < 4)
+					dest += string(4 - dest.size(), '*');
+
+				good_new_eles.push_back(dest);
+			}
+		}
+
+		vector<string> bad_new_eles{};
+		if (conditions[successes[i]].HasMember("NoDests") && conditions[successes[i]]["NoDests"].IsArray() && conditions[successes[i]]["NoDests"].Size()) {
+			for (SizeType j = 0; j < conditions[i]["NoDests"].Size(); j++) {
+				string dest = conditions[successes[i]]["NoDests"][j].GetString();
+
+				if (dest.size() < 4)
+					dest += string(4 - dest.size(), '*');
+
+				bad_new_eles.push_back(dest);
+			}
+		}
+
+		bool added = false;
+		for (string dest : res[0]) {
+			//Remove Duplicates from Whitelist
+			for (size_t k = good_new_eles.size(); k > 0; k--) {
+				string new_ele = good_new_eles[k - 1];
+				if (new_ele.compare(dest) == 0) {
+					good_new_eles.erase(good_new_eles.begin() + k - 1);
+				}
+			}
+
+			//Prevent Previously Whitelisted Elements from Being Blacklisted
+			for (size_t k = bad_new_eles.size(); k > 0; k--) {
+				string new_ele = bad_new_eles[k - 1];
+				if (new_ele.compare(dest) == 0) {
+					bad_new_eles.erase(bad_new_eles.begin() + k - 1);
+				}
+			}
+		}
+
+		//Whitelist Previously Blacklisted Elements
+		for (string dest : good_new_eles) {
+
+			for (size_t k = res[1].size(); k > 0; k--) {
+				string new_ele = res[1][k - 1];
+				if (new_ele.compare(dest) == 0) {
+					res[1].erase(res[1].begin() + k - 1);
+				}
+			}
+		}
+
+		//Remove Duplicates from Blacklist
+		for (string dest : res[1]) {
+			for (size_t k = bad_new_eles.size(); k > 0; k--) {
+				string new_ele = bad_new_eles[k - 1];
+				if (new_ele.compare(dest) == 0) {
+					bad_new_eles.erase(bad_new_eles.begin() + k - 1);
+				}
+			}
+		}
+
+		res[0].insert(res[0].end(), good_new_eles.begin(), good_new_eles.end());
+		res[1].insert(res[1].end(), bad_new_eles.begin(), bad_new_eles.end());
+	}
+
+	string out = "";
+
+	for (string each : res[0]) {
+		out += each + ", ";
+	}
+
+	for (string each : res[1]) {
+		out += "Not " + each + ", ";
+	}
+
+	if (out == "") {
+		out = "None";
+	}
+	else {
+		out = out.substr(0, out.length() - 2);
+	}
+
+	return "Destination. Valid Destinations: " + out;
 }
 
 //
