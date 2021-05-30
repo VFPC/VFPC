@@ -343,16 +343,21 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 	// Needed SID defined
 	if (pos != string::npos) {
-		const Value& conditions = config[origin_int]["Sids"][pos]["Constraints"];
+		const Value& sid = config[origin_int]["Sids"][pos];
+		const Value& conditions = sid["Constraints"];
 
 		int round = 0;
+
+		bool sections[10]{};
+		fill(begin(sections), end(sections), true);
+
 		bool cont = true;
 
 		vector<bool> validity, new_validity;
 		vector<string> results;
 		int Min, Max;
 			
-		while (cont && round < 7) {
+		while (all_of(new_validity.begin(), new_validity.end(), [](bool v) { return v; }) && round < 8) {
 			new_validity = {};
 
 			for (SizeType i = 0; i < conditions.Size(); i++) {
@@ -360,13 +365,83 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					switch (round) {
 					case 0:
 					{
-						// SID Suffix
-						if (!conditions[i]["Suf"].IsString() || conditions[i]["Suf"].GetString() == sid_suffix) {
-							new_validity.push_back(true);
+						bool sidwide = true;
+						bool res = true;
+						// Restrictions Array
+						if (conditions[i].HasMember("override") && conditions[i]["override"].IsBool() && conditions[i]["override"].GetBool()) {
+							sidwide = false;
 						}
-						else {
-							new_validity.push_back(false);
+
+						if (conditions[i]["Restrictions"].IsArray() && conditions[i]["Restrictions"].Size()) {
+							res = false;
+							for (size_t j = 0; j < conditions[i]["Restrictions"].Size(); j++) {
+								bool temp = true;
+
+								if (conditions[i]["Restrictions"][j]["types"].IsArray() && conditions[i]["Restrictions"][j]["types"].Size() &&
+									!arrayContains(conditions[i]["Restrictions"][j]["types"], flightPlan.GetFlightPlanData().GetEngineType()) &&
+									!arrayContains(conditions[i]["Restrictions"][j]["types"], flightPlan.GetFlightPlanData().GetAircraftType()) {
+									temp = false;
+								}
+
+								if (conditions[i]["Restrictions"][j]["suffix"].IsArray() && conditions[i]["Restrictions"][j]["suffixs"].Size() &&
+									!arrayContains(conditions[i]["Restrictions"][j]["suffix"], sid_suffix)) {
+									temp = false;
+								}
+
+								if (conditions[i]["Restrictions"][j].HasMember("start")
+									&& conditions[i]["Restrictions"][j]["start"].HasMember("date")
+									&& conditions[i]["Restrictions"][j]["start"]["date"].IsInt()
+									&& conditions[i]["Restrictions"][j]["start"].HasMember("time")
+									&& conditions[i]["Restrictions"][j]["start"]["time"].IsString()
+									&& conditions[i]["Restrictions"][j].HasMember("end")
+									&& conditions[i]["Restrictions"][j]["end"].HasMember("date")
+									&& conditions[i]["Restrictions"][j]["end"]["date"].IsInt()
+									&& conditions[i]["Restrictions"][j]["end"].HasMember("time")
+									&& conditions[i]["Restrictions"][j]["end"]["time"].IsString()) {
+									//stick some time zone code here
+								}
+
+								if (temp) {
+									res = true;
+								}
+							}
 						}
+
+						if (sidwide && sid["Restrictions"].IsArray() && sid["Restrictions"].Size()) {
+							for (size_t j = 0; j < sid["Restrictions"].Size(); j++) {
+								bool temp = true;
+
+								if (sid["Restrictions"][j]["types"].IsArray() && sid["Restrictions"][j]["types"].Size() &&
+									!arrayContains(sid[j]["types"], flightPlan.GetFlightPlanData().GetEngineType()) &&
+									!arrayContains(sid["Restrictions"][j]["types"], flightPlan.GetFlightPlanData().GetAircraftType()) {
+									temp = false;
+								}
+
+								if (sid["Restrictions"][j]["suffix"].IsArray() && sid["Restrictions"][j]["suffixs"].Size() &&
+									!arrayContains(sid["Restrictions"][j]["suffix"], sid_suffix)) {
+									temp = false;
+								}
+
+								if (sid["Restrictions"][j].HasMember("start")
+									&& sid["Restrictions"][j]["start"].HasMember("date")
+									&& sid["Restrictions"][j]["start"]["date"].IsInt()
+									&& sid["Restrictions"][j]["start"].HasMember("time")
+									&& sid["Restrictions"][j]["start"]["time"].IsString()
+									&& sid["Restrictions"][j].HasMember("end")
+									&& sid["Restrictions"][j]["end"].HasMember("date")
+									&& sid["Restrictions"][j]["end"]["date"].IsInt()
+									&& sid["Restrictions"][j]["end"].HasMember("time")
+									&& sid["Restrictions"][j]["end"]["time"].IsString()) {
+									//stick some time zone code here
+								}
+
+								if (temp) {
+									res = true;
+								}
+							}
+						}
+
+						new_validity.push_back(res);
 						break;
 					}
 					case 1:
