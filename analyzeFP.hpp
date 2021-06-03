@@ -42,6 +42,8 @@ public:
 
 	virtual vector<vector<string>> validizeSid(CFlightPlan flightPlan);
 
+	virtual bool CheckRestrictions(size_t origin_int, size_t pos);
+
 	virtual string DirectionOutput(size_t origin_int, size_t pos, vector<int> successes);
 
 	virtual string MinMaxOutput(size_t origin_int, size_t pos, vector<int> successes);

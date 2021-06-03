@@ -213,8 +213,8 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 				returnOut[0][8] = "Invalid Syntax - Too Many \"/\" Characters in One or More Waypoints";
 				returnOut[0][9] = "Failed";
 
-				returnOut[0][8] = "Invalid Route Item: " + route[i];
-				returnOut[0][9] = "Failed";
+				returnOut[1][8] = "Invalid Route Item: " + route[i];
+				returnOut[1][9] = "Failed";
 				return returnOut;
 			}
 		}
@@ -692,6 +692,10 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		returnOut[1][9] = "Failed";
 		return returnOut;
 	}
+}
+
+bool CVFPCPlugin::CheckRestrictions(size_t origin_int, size_t pos) {
+
 }
 
 string CVFPCPlugin::DirectionOutput(size_t origin_int, size_t pos, vector<int> successes) {
