@@ -343,8 +343,8 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 	// Needed SID defined
 	if (pos != string::npos) {
-		const Value& sid = config[origin_int]["Sids"][pos];
-		const Value& conditions = sid["Constraints"];
+		const Value& sid_ele = config[origin_int]["Sids"][pos];
+		const Value& conditions = sid_ele["Constraints"];
 
 		int round = 0;
 
@@ -407,31 +407,31 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 							}
 						}
 
-						if (sidwide && sid["Restrictions"].IsArray() && sid["Restrictions"].Size()) {
-							for (size_t j = 0; j < sid["Restrictions"].Size(); j++) {
+						if (sidwide && sid_ele["Restrictions"].IsArray() && sid_ele["Restrictions"].Size()) {
+							for (size_t j = 0; j < sid_ele["Restrictions"].Size(); j++) {
 								bool temp = true;
 
-								if (sid["Restrictions"][j]["types"].IsArray() && sid["Restrictions"][j]["types"].Size() &&
-									!arrayContains(sid[j]["types"], flightPlan.GetFlightPlanData().GetEngineType()) &&
-									!arrayContains(sid["Restrictions"][j]["types"], flightPlan.GetFlightPlanData().GetAircraftType()) {
+								if (sid_ele["Restrictions"][j]["types"].IsArray() && sid_ele["Restrictions"][j]["types"].Size() &&
+									!arrayContains(sid_ele[j]["types"], flightPlan.GetFlightPlanData().GetEngineType()) &&
+									!arrayContains(sid_ele["Restrictions"][j]["types"], flightPlan.GetFlightPlanData().GetAircraftType()) {
 									temp = false;
 								}
 
-								if (sid["Restrictions"][j]["suffix"].IsArray() && sid["Restrictions"][j]["suffixs"].Size() &&
-									!arrayContains(sid["Restrictions"][j]["suffix"], sid_suffix)) {
+								if (sid_ele["Restrictions"][j]["suffix"].IsArray() && sid_ele["Restrictions"][j]["suffixs"].Size() &&
+									!arrayContains(sid_ele["Restrictions"][j]["suffix"], sid_suffix)) {
 									temp = false;
 								}
 
-								if (sid["Restrictions"][j].HasMember("start")
-									&& sid["Restrictions"][j]["start"].HasMember("date")
-									&& sid["Restrictions"][j]["start"]["date"].IsInt()
-									&& sid["Restrictions"][j]["start"].HasMember("time")
-									&& sid["Restrictions"][j]["start"]["time"].IsString()
-									&& sid["Restrictions"][j].HasMember("end")
-									&& sid["Restrictions"][j]["end"].HasMember("date")
-									&& sid["Restrictions"][j]["end"]["date"].IsInt()
-									&& sid["Restrictions"][j]["end"].HasMember("time")
-									&& sid["Restrictions"][j]["end"]["time"].IsString()) {
+								if (sid_ele["Restrictions"][j].HasMember("start")
+									&& sid_ele["Restrictions"][j]["start"].HasMember("date")
+									&& sid_ele["Restrictions"][j]["start"]["date"].IsInt()
+									&& sid_ele["Restrictions"][j]["start"].HasMember("time")
+									&& sid_ele["Restrictions"][j]["start"]["time"].IsString()
+									&& sid_ele["Restrictions"][j].HasMember("end")
+									&& sid_ele["Restrictions"][j]["end"].HasMember("date")
+									&& sid_ele["Restrictions"][j]["end"]["date"].IsInt()
+									&& sid_ele["Restrictions"][j]["end"].HasMember("time")
+									&& sid_ele["Restrictions"][j]["end"]["time"].IsString()) {
 									//stick some time zone code here
 								}
 
@@ -445,21 +445,6 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 						break;
 					}
 					case 1:
-					{
-						//Engines (P=piston, T=turboprop, J=jet, E=electric)
-						bool res = true;
-
-						if (conditions[i]["Eng"].IsString() && !conditions[i]["Eng"].GetString() == flightPlan.GetFlightPlanData().GetEngineType()) {
-							res = false;
-						}
-						else if (conditions[i]["Eng"].IsArray() && conditions[i]["Eng"].Size() && !arrayContains(conditions[i]["Eng"], flightPlan.GetFlightPlanData().GetEngineType())) {
-							res = false;
-						}
-
-						new_validity.push_back(res);
-						break;
-					}
-					case 2:
 					{
 						//Destinations
 						bool res = true;
@@ -481,7 +466,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 						new_validity.push_back(res);
 						break;
 					}
-					case 3:
+					case 2:
 					{
 						//Route
 						bool res = true;
@@ -499,7 +484,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 						new_validity.push_back(res);
 						break;
 					}
-					case 4:
+					case 3:
 					{
 						//Nav Perf
 						if (conditions[i].HasMember("Nav") && conditions[i]["Nav"].IsString()) {
@@ -516,7 +501,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 						}
 						break;
 					}
-					case 5:
+					case 4:
 					{
 						bool res_minmax = true;
 
@@ -533,7 +518,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 						new_validity.push_back(res_minmax);
 						break;
 					}
-					case 6:
+					case 5:
 					{
 						//Even/Odd Levels
 						string direction = conditions[i]["Dir"].GetString();
@@ -601,7 +586,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		}
 
 		switch (round) {
-		case 7:
+		case 6:
 		{
 			returnOut[0][7] = "Passed Level Direction.";
 			returnOut[0][9] = "Passed";
@@ -609,7 +594,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			returnOut[1][7] = "Passed " + DirectionOutput(origin_int, pos, successes) + ".";
 			returnOut[1][9] = "Passed";
 		}
-		case 6:
+		case 5:
 		{
 			if (round == 6) {
 				string res = "";
@@ -620,7 +605,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			returnOut[0][6] = "Passed Min/Max Level.";	
 			returnOut[1][6] = "Passed " + MinMaxOutput(origin_int, pos, successes);
 		}
-		case 5:
+		case 4:
 		{
 			if (round == 5) {
 				returnOut[0][6] = "Failed " + MinMaxOutput(origin_int, pos, successes);
@@ -631,7 +616,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			returnOut[1][5] = "Passed " + NavPerfOutput(origin_int, pos, successes) + ".";
 		}
 
-		case 4:
+		case 3:
 		{
 			if (round == 4) {
 				returnOut[0][5] = "Failed " + NavPerfOutput(origin_int, pos, successes) + ".";
@@ -641,7 +626,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			returnOut[0][4] = "Passed Route.";
 			returnOut[1][4] = "Passed " + RouteOutput(origin_int, pos, successes) + ".";
 		}
-		case 3:
+		case 2:
 		{
 			if (round == 3) {
 				returnOut[0][4] = "Failed " + RouteOutput(origin_int, pos, successes) + ".";
@@ -651,21 +636,11 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			returnOut[0][3] = "Passed Destination.";
 			returnOut[1][3] = "Passed " + DestinationOutput(origin_int, pos, successes) + ".";
 		}
-		case 2:
+		case 1:
 		{
 			if (round == 2) {
 				returnOut[0][3] = "Failed " + DestinationOutput(origin_int, pos, successes) + ".";
 				returnOut[1][3] = returnOut[0][3];
-			}
-
-			returnOut[0][2] = "Passed Engine Type.";
-			returnOut[1][2] = "Passed  " + EngineOutput(origin_int, pos, successes) + ".";
-		}
-		case 1:
-		{
-			if (round == 1) {
-				returnOut[0][2] = "Failed  " + EngineOutput(origin_int, pos, successes) + ".";
-				returnOut[1][2] = returnOut[0][2];
 			}
 
 			returnOut[0][1] = "Valid SID - " + sid + ".";
