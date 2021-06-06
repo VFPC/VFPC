@@ -14,7 +14,7 @@
 #include "rapidjson/stringbuffer.h"
 
 #define MY_PLUGIN_NAME      "VFPC (UK)"
-#define MY_PLUGIN_VERSION   "3.1.1"
+#define MY_PLUGIN_VERSION   "3.2.0"
 #define MY_PLUGIN_DEVELOPER "Lenny Colton, Jan Fries, Hendrik Peter, Sven Czarnian"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO  "VATSIM (UK) Flight Plan Checker"
@@ -34,7 +34,9 @@ public:
 	CVFPCPlugin();
 	virtual ~CVFPCPlugin();
 
-	void webCall(string endpoint, Document& out);
+	virtual void timeCall();
+
+	virtual void webCall(string endpoint, Document& out);
 
 	virtual bool checkVersion();
 
@@ -42,21 +44,19 @@ public:
 
 	virtual vector<vector<string>> validizeSid(CFlightPlan flightPlan);
 
-	virtual bool CheckRestrictions(size_t origin_int, size_t pos);
+	virtual string DirectionOutput(size_t origin_int, size_t pos, vector<size_t> successes);
 
-	virtual string DirectionOutput(size_t origin_int, size_t pos, vector<int> successes);
+	virtual string MinMaxOutput(size_t origin_int, size_t pos, vector<size_t> successes);
 
-	virtual string MinMaxOutput(size_t origin_int, size_t pos, vector<int> successes);
+	virtual string NavPerfOutput(size_t origin_int, size_t pos, vector< size_t> successes);
 
-	virtual string NavPerfOutput(size_t origin_int, size_t pos, vector<int> successes);
+	virtual string RouteOutput(size_t origin_int, size_t pos, vector<size_t> successes);
 
-	virtual string RouteOutput(size_t origin_int, size_t pos, vector<int> successes);
+	virtual string DestinationOutput(size_t origin_int, size_t pos, vector<size_t> successes);
 
-	virtual string DestinationOutput(size_t origin_int, size_t pos, vector<int> successes);
+	//virtual string EngineOutput(size_t origin_int, size_t pos, vector<int> successes);
 
-	virtual string EngineOutput(size_t origin_int, size_t pos, vector<int> successes);
-
-	virtual string SuffixOutput(size_t origin_int, size_t pos, vector<int> successes);
+	//virtual string SuffixOutput(size_t origin_int, size_t pos, vector<int> successes);
 
 	virtual void OnFunctionCall(int FunctionId, const char * ItemString, POINT Pt, RECT Area);
 
