@@ -434,8 +434,8 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 									temp = false;
 								}
 
-								if (conditions[i]["restrictions"][j]["suffix"].IsArray() && conditions[i]["restrictions"][j]["suffixs"].Size() &&
-									!arrayContains(conditions[i]["restrictions"][j]["suffix"], sid_suffix)) {
+								if (conditions[i]["restrictions"][j]["suffix"].IsArray() && conditions[i]["restrictions"][j]["suffix"].Size() &&
+									!arrayContainsEnding(conditions[i]["restrictions"][j]["suffix"], sid_suffix)) {
 									temp = false;
 								}
 
@@ -468,9 +468,9 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 										string endstring = conditions[i]["restrictions"][j]["end"]["time"].GetString();
 
 										starttime[0] = stoi(startstring.substr(0, 2));
-										starttime[1] = stoi(startstring.substr(3, 2));
+										starttime[1] = stoi(startstring.substr(2, 2));
 										endtime[0] = stoi(endstring.substr(0, 2));
-										endtime[1] = stoi(endstring.substr(3, 2));
+										endtime[1] = stoi(endstring.substr(2, 2));
 									}
 
 									bool valid = true;
@@ -551,8 +551,8 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 									temp = false;
 								}
 
-								if (sid_ele["restrictions"][j]["suffix"].IsArray() && sid_ele["restrictions"][j]["suffixs"].Size() &&
-									!arrayContains(sid_ele["restrictions"][j]["suffix"], sid_suffix)) {
+								if (sid_ele["restrictions"][j]["suffix"].IsArray() && sid_ele["restrictions"][j]["suffix"].Size() &&
+									!arrayContainsEnding(sid_ele["restrictions"][j]["suffix"], sid_suffix)) {
 									temp = false;
 								}
 
@@ -585,9 +585,9 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 										string endstring = sid_ele["restrictions"][j]["end"]["time"].GetString();
 
 										starttime[0] = stoi(startstring.substr(0, 2));
-										starttime[1] = stoi(startstring.substr(3, 2));
+										starttime[1] = stoi(startstring.substr(2, 2));
 										endtime[0] = stoi(endstring.substr(0, 2));
-										endtime[1] = stoi(endstring.substr(3, 2));
+										endtime[1] = stoi(endstring.substr(2, 2));
 									}
 
 									bool valid = true;

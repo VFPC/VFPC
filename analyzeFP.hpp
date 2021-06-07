@@ -103,6 +103,27 @@ public:
 		return false;
 	}
 
+	bool arrayContainsEnding(const Value& a, string s) {
+		for (SizeType i = 0; i < a.Size(); i++) {
+			string comp = a[i].GetString();
+			int pos = s.size() - comp.size();
+			if (pos < 0)
+				continue;
+
+			bool valid = true;
+
+			for (SizeType i = 0; i < comp.size(); i++) {
+				if (comp[i] != s[pos + i])
+					valid = false;
+			}
+
+			if (valid)
+				return true;
+			
+		}
+		return false;
+	}
+
 	bool arrayContains(const Value& a, char s) {
 		for (SizeType i = 0; i < a.Size(); i++) {
 			if (a[i].GetString()[0] == s)
