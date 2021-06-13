@@ -924,7 +924,69 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 }
 
 string CVFPCPlugin::RestrictionsOutput(size_t origin_int, size_t pos, vector<size_t> successes, bool rests[]) {
+	if (!rests[1] && !rests[2]) {
 
+	}
+	else if (!rests[1]) {
+
+	}
+	else if (!rests[2]) {
+
+	}
+	else {
+		return "";
+	}
+}
+
+string CVFPCPlugin::SuffixOutput(size_t origin_int, size_t pos, vector<size_t> successes) {
+	vector<string> suffices{};
+	const Value& sid_eles = config[origin_int]["sids"];
+	const Value& conditions = config[origin_int]["sids"][pos]["constraints"];
+
+	if (sid_eles["restrictions"].IsArray() && sid_eles["restrictions"].Size()) {
+		for (size_t i = 0; i < sid_eles["restrictions"].Size(); i++) {
+			if (sid_eles["restrictions"][i]["suffix"].IsArray() && sid_eles["restrictions"][i]["suffix"].Size()) {
+				for (size_t j = 0; j < sid_eles["restrictions"][i]["suffix"].Size(); j++) {
+					if (sid_eles["restrictions"][i]["suffix"][j].IsString()) {
+						suffices.push_back(sid_eles["restrictions"][i]["suffix"][j].GetString());
+					}
+				}
+			}
+		}
+	}
+
+	for (size_t each : successes) {
+		if (conditions[each]["restrictions"].IsArray() && conditions[each]["restrictions"].Size()) {
+			for (size_t i = 0; i < conditions[each]["restrictions"].Size(); i++) {
+				if (conditions[each]["restrictions"][i]["suffix"].IsArray() && conditions[each]["restrictions"][i]["suffix"].Size()) {
+					for (size_t j = 0; j < conditions[each]["restrictions"][i]["suffix"].Size(); j++) {
+						if (conditions[each]["restrictions"][i]["suffix"][j].IsString()) {
+							suffices.push_back(conditions[each]["restrictions"][i]["suffix"][j].GetString());
+						}
+					}
+				}
+			}
+		}
+	}
+
+	string out = "Suffix. Valid Suffices: ";
+
+	sort(suffices.begin(), suffices.end());
+	vector<string>::iterator itr = unique(suffices.begin(), suffices.end());
+	suffices.erase(itr, suffices.end());
+	
+	if (suffices.size() == 0) {
+		out += "None.";
+	}
+	else {
+		for (string each : suffices) {
+			out += each + ", ";
+		}
+
+		out = out.substr(0, out.size() - 2) + ".";
+	}
+
+	return out;
 }
 
 string CVFPCPlugin::DirectionOutput(size_t origin_int, size_t pos, vector<size_t> successes) {
@@ -1447,6 +1509,9 @@ string CVFPCPlugin::getFails(vector<string> messageBuffer) {
 	}
 	if (messageBuffer.at(7).find("Failed") == 0) {
 		fail.push_back("RST");
+	}
+	else if (messageBuffer.at(7).find("Invalid") == 0) {
+		fail.push_back("SUF");
 	}
 	if (messageBuffer.at(8).find("Invalid") == 0) {
 		fail.push_back("CHK");

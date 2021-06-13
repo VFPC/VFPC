@@ -46,6 +46,8 @@ public:
 
 	virtual string RestrictionsOutput(size_t origin_int, size_t pos, vector<size_t> successes, bool rests[]);
 
+	virtual string SuffixOutput(size_t origin_int, size_t pos, vector<size_t> successes);
+
 	virtual string DirectionOutput(size_t origin_int, size_t pos, vector<size_t> successes);
 
 	virtual string MinMaxOutput(size_t origin_int, size_t pos, vector<size_t> successes);
@@ -143,6 +145,7 @@ public:
 		}
 		return s;
 	}
+
 	bool routeContains(string cs, vector<string> rte, const Value& valid) {
 		for (SizeType i = 0; i < valid.Size(); i++) {
 			string r = valid[i].GetString();
@@ -174,6 +177,27 @@ public:
 			}
 		}
 		return false;
+	}
+
+	string dayIntToString(int day) {
+		switch (day) {
+		case 0:
+			return "Monday";
+		case 1:
+			return "Tuesday";
+		case 2:
+			return "Wednesday";
+		case 3:
+			return "Thursday";
+		case 4:
+			return "Friday";
+		case 5:
+			return "Saturday";
+		case 6:
+			return "Sunday";
+		default:
+			return "Out of Range";
+		}
 	}
 
 	virtual bool OnCompileCommand(const char * sCommandLine);
