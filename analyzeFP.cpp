@@ -408,6 +408,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 		vector<bool> validity, new_validity;
 		vector<string> results;
+		bool restFails[3]{ 0 }; // 0 = Suffix, 1 = Aircraft/Engines, 2 = Date/Time Restrictions
 		int Min, Max;
 			
 		while (round < 6) {
@@ -537,15 +538,23 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 							for (size_t j = 0; j < conditions[i]["restrictions"].Size(); j++) {
 								bool temp = true;
 
-								if (conditions[i]["restrictions"][j]["types"].IsArray() && conditions[i]["restrictions"][j]["types"].Size() &&
-									!arrayContains(conditions[i]["restrictions"][j]["types"], flightPlan.GetFlightPlanData().GetEngineType()) &&
-									!arrayContains(conditions[i]["restrictions"][j]["types"], flightPlan.GetFlightPlanData().GetAircraftType())) {
-									temp = false;
+								if (conditions[i]["restrictions"][j]["types"].IsArray() && conditions[i]["restrictions"][j]["types"].Size()) {
+									if (arrayContains(conditions[i]["restrictions"][j]["types"], flightPlan.GetFlightPlanData().GetEngineType()) ||
+										arrayContains(conditions[i]["restrictions"][j]["types"], flightPlan.GetFlightPlanData().GetAircraftType())) {
+										restFails[1] = true;
+									}
+									else {
+										temp = false;
+									}
 								}
 
-								if (conditions[i]["restrictions"][j]["suffix"].IsArray() && conditions[i]["restrictions"][j]["suffix"].Size() &&
-									!arrayContainsEnding(conditions[i]["restrictions"][j]["suffix"], sid_suffix)) {
-									temp = false;
+								if (conditions[i]["restrictions"][j]["suffix"].IsArray() && conditions[i]["restrictions"][j]["suffix"].Size()) {
+									if (arrayContainsEnding(conditions[i]["restrictions"][j]["suffix"], sid_suffix)) {
+										restFails[0] = true;
+									}
+									else {
+										temp = false;
+									}
 								}
 
 								if (conditions[i]["restrictions"][j].HasMember("start") && conditions[i]["restrictions"][j].HasMember("end")) {
@@ -639,7 +648,10 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 										}
 									}
 
-									if (!valid) {
+									if (valid) {
+										restFails[2] = true;
+									}
+									else {
 										temp = false;
 									}
 								}
@@ -653,6 +665,25 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 						if (sidwide && sid_ele["restrictions"].IsArray() && sid_ele["restrictions"].Size()) {
 							for (size_t j = 0; j < sid_ele["restrictions"].Size(); j++) {
 								bool temp = true;
+
+								if (sid_ele["restrictions"][j]["types"].IsArray() && sid_ele["restrictions"][j]["types"].Size()) {
+									if (arrayContains(sid_ele["restrictions"][j]["types"], flightPlan.GetFlightPlanData().GetEngineType()) ||
+										arrayContains(sid_ele["restrictions"][j]["types"], flightPlan.GetFlightPlanData().GetAircraftType())) {
+										restFails[1] = true;
+									}
+									else {
+										temp = false;
+									}
+								}
+
+								if (sid_ele["restrictions"][j]["suffix"].IsArray() && sid_ele["restrictions"][j]["suffix"].Size()) {
+									if (arrayContainsEnding(sid_ele["restrictions"][j]["suffix"], sid_suffix)) {
+										restFails[0] = true;
+									}
+									else {
+										temp = false;
+									}
+								}
 
 								if (sid_ele["restrictions"][j]["types"].IsArray() && sid_ele["restrictions"][j]["types"].Size() &&
 									!arrayContains(sid_ele[j]["types"], flightPlan.GetFlightPlanData().GetEngineType()) &&
@@ -756,7 +787,10 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 										}
 									}
 
-									if (!valid) {
+									if (valid) {
+										restFails[2] = true;
+									}
+									else {
 										temp = false;
 									}
 								}
@@ -887,6 +921,10 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		returnOut[1][9] = "Failed";
 		return returnOut;
 	}
+}
+
+string CVFPCPlugin::RestrictionsOutput(size_t origin_int, size_t pos, vector<size_t> successes, bool rests[]) {
+
 }
 
 string CVFPCPlugin::DirectionOutput(size_t origin_int, size_t pos, vector<size_t> successes) {
@@ -1271,10 +1309,6 @@ string CVFPCPlugin::DestinationOutput(size_t origin_int, size_t pos, vector<size
 
 	return "Suffix. Valid Suffices: " + out + ".";
 }*/
-
-string CVFPCPlugin::RestrictionsOutput(size_t origin_int, size_t pos, vector<size_t> successes) {
-
-}
 
 //
 void CVFPCPlugin::OnFunctionCall(int FunctionId, const char * ItemString, POINT Pt, RECT Area) {

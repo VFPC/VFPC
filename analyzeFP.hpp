@@ -44,6 +44,8 @@ public:
 
 	virtual vector<vector<string>> validizeSid(CFlightPlan flightPlan);
 
+	virtual string RestrictionsOutput(size_t origin_int, size_t pos, vector<size_t> successes, bool rests[]);
+
 	virtual string DirectionOutput(size_t origin_int, size_t pos, vector<size_t> successes);
 
 	virtual string MinMaxOutput(size_t origin_int, size_t pos, vector<size_t> successes);
@@ -57,8 +59,6 @@ public:
 	//virtual string EngineOutput(size_t origin_int, size_t pos, vector<int> successes);
 
 	//virtual string SuffixOutput(size_t origin_int, size_t pos, vector<int> successes);
-
-	virtual string RestrictionsOutput(size_t origin_int, size_t pos, vector<size_t> successes);
 
 	virtual void OnFunctionCall(int FunctionId, const char * ItemString, POINT Pt, RECT Area);
 
