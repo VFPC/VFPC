@@ -44,7 +44,7 @@ public:
 
 	virtual vector<vector<string>> validizeSid(CFlightPlan flightPlan);
 
-	virtual string RestrictionsOutput(size_t origin_int, size_t pos, vector<size_t> successes, bool rests[]);
+	virtual string RestrictionsOutput(size_t origin_int, size_t pos, vector<size_t> successes, bool type, bool time);
 
 	virtual string SuffixOutput(size_t origin_int, size_t pos, vector<size_t> successes);
 
@@ -155,8 +155,8 @@ public:
 			}
 
 			vector<string> current = split(r, ' ');
-			for (std::size_t i = 0; i < current.size(); i++) {
-				boost::to_upper(current[i]);
+			for (std::size_t j = 0; j < current.size(); j++) {
+				boost::to_upper(current[j]);
 			}
 
 			bool admissible = true;
@@ -165,8 +165,8 @@ public:
 				admissible = false;
 			}
 			else {
-				for (SizeType i = 0; i < current.size(); i++) {
-					if (current[i] != rte[i] && current[i] != "*") {
+				for (SizeType j = 0; j < current.size(); j++) {
+					if (current[j] != rte[j] && current[j] != "*") {
 						admissible = false;
 					}
 				}
