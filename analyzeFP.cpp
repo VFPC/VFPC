@@ -399,9 +399,6 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 	// Needed SID defined
 	if (pos != string::npos) {
-		if (flightPlan.GetCallsign() == "BAW86Y") {
-			route;
-		}
 		const Value& sid_ele = config[origin_int]["sids"][pos];
 		const Value& conditions = sid_ele["constraints"];
 
