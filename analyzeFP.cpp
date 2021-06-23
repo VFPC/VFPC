@@ -119,11 +119,11 @@ void CVFPCPlugin::timeCall() {
 
 	if (doc.HasMember("datetime") && doc["datetime"].IsString() && doc.HasMember("day_of_week") && doc["day_of_week"].IsInt()) {
 		string hour = ((string)doc["datetime"].GetString()).substr(11, 2);
-		string min = ((string)doc["datetime"].GetString()).substr(14, 2);
+		string mins = ((string)doc["datetime"].GetString()).substr(14, 2);
 
 		timedata[0] = doc["day_of_week"].GetInt();
 		timedata[1] = stoi(hour);
-		timedata[2] = stoi(min);
+		timedata[2] = stoi(mins);
 	}
 }
 
@@ -281,7 +281,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	}
 
 	//Remove Speed/Level Data From Start Of Route
-	if (regex_match(route[0], lvl_chng)) {
+	if (route.size() > 0 && regex_match(route[0], lvl_chng)) {
 		route.erase(route.begin());
 	}
 
@@ -316,14 +316,15 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	// Check First Waypoint Correct. Remove SID References & First Waypoint From Route.
 	bool success = false;
 	bool stop = false;
-	
-	while (!stop) {
+
+	while (!stop && route.size() > 0) {
 		size_t wp_size = first_wp.size();
 		size_t entry_size = route[0].size();
 		if (route[0].substr(0, wp_size) == first_wp) {
 			//First Waypoint
 			if (wp_size == entry_size) {
 				success = true;
+				stop = true;
 			}
 			//3 or 5 Letter Waypoint SID - In Full
 			else if (entry_size > wp_size && isdigit(route[0][wp_size])) {
@@ -398,6 +399,9 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 	// Needed SID defined
 	if (pos != string::npos) {
+		if (flightPlan.GetCallsign() == "BAW86Y") {
+			route;
+		}
 		const Value& sid_ele = config[origin_int]["sids"][pos];
 		const Value& conditions = sid_ele["constraints"];
 
@@ -1357,13 +1361,14 @@ string CVFPCPlugin::RouteOutput(size_t origin_int, size_t pos, vector<size_t> su
 		}
 
 		int Min, Max;
-		bool min, max = false;
+		bool min = false;
+		bool max = false;
 
-		if (conditions[each].HasMember("min") && (Min = conditions[each]["min"].GetInt()) > 0) {
+		if (conditions[each].HasMember("min") && conditions[each]["min"].IsInt() && (Min = conditions[each]["min"].GetInt()) > 0) {
 			min = true;
 		}
 
-		if (conditions[each].HasMember("max") && (Max = conditions[each]["max"].GetInt()) > 0) {
+		if (conditions[each].HasMember("max") && conditions[each]["max"].IsInt() && (Max = conditions[each]["max"].GetInt()) > 0) {
 			max = true;
 		}
 
