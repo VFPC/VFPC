@@ -525,7 +525,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					case 5:
 					{
 						bool sidwide = true;
-						bool res = true;
+						bool res = false;
 						// Restrictions Array
 						if (conditions[i].HasMember("override") && conditions[i]["override"].IsBool() && conditions[i]["override"].GetBool()) {
 							sidwide = false;
@@ -816,15 +816,12 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			}
 		}
 
-		returnOut[0][0] = flightPlan.GetCallsign();
-		returnOut[1][0] = flightPlan.GetCallsign();
+		returnOut[1][0] = returnOut[0][0] = flightPlan.GetCallsign();
 		for (size_t i = 1; i < returnOut[0].size(); i++) {
-			returnOut[0][i] = "-";
-			returnOut[1][i] = "-";
+			returnOut[1][i] = returnOut[0][i] = "-";
 		}
 
-		returnOut[0].back() = "Failed";
-		returnOut[1].back() = "Failed";
+		returnOut[1].back() = returnOut[0].back() = "Failed";
 
 		vector<size_t> successes{};
 
