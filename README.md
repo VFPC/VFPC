@@ -42,4 +42,4 @@ UK VFPC (UK VATSIM Flight Plan Checker) is a plugin for EuroScope that checks fi
 - `check <callsign>` - Equivalent of clicking the "Show Checks" button for an aircraft. Replace `<callsign>` with the logon callsign of the aircraft.
 
 ## Disclaimer
-The plugin is currently in active development and you may encounter **unforseen bugs or other issues**. Please report them - we'll fix them as soon as we can. You run this plugin at your own risk - the developers are all volunteers and accept no liability for any problems or damage to your system.
+The plugin is currently in active development and you may encounter **unforseen bugs or other issues**. Please report them - we'll fix them as soon as we can. You run this plugin at your own risk - the developers are all volunteers and accept no liability for any problems encountered or damage to your system.
