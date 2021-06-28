@@ -27,6 +27,8 @@ UK VFPC (UK VATSIM Flight Plan Checker) is a plugin for EuroScope that checks fi
 - `NAV` - Navigation performance is invalid for this SID/route.
 - Alternating `MIN` and `MAX` - Filed altitude is outside of the allocated altitude block for this route.
 - `DIR` - Filed altitude is in violation of the Odd/Even altitude requirement for this route.
+- `SUF` - Assigned SID suffix is banned for this route.
+- `RST` - Assigned SID (and suffix) is invalid for this aircraft type and/or for the current day and time.
 - `CHK` - Some kind of syntax error - (Bad characters in route, Invalid step climb instruction, etc.)
 
 ## Initial Setup:
