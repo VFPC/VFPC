@@ -527,6 +527,8 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 						bool sidwide = true;
 						bool checked = false;
 						bool res = false;
+
+						restFails[0] = true;
 						// Restrictions Array
 						if (conditions[i].HasMember("override") && conditions[i]["override"].IsBool() && conditions[i]["override"].GetBool()) {
 							sidwide = false;
@@ -546,10 +548,15 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 								}
 
 								if (conditions[i]["restrictions"][j]["suffix"].IsArray() && conditions[i]["restrictions"][j]["suffix"].Size()) {
-									if (!arrayContainsEnding(conditions[i]["restrictions"][j]["suffix"], sid_suffix)) {
-										restFails[0] = true;
+									if (arrayContainsEnding(conditions[i]["restrictions"][j]["suffix"], sid_suffix)) {
+										restFails[0] = false;
+									}
+									else {
 										temp = false;
 									}
+								}
+								else {
+									restFails[0] = false;
 								}
 
 								if (conditions[i]["restrictions"][j].HasMember("start") && conditions[i]["restrictions"][j].HasMember("end")) {
@@ -669,10 +676,15 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 								}
 
 								if (sid_ele["restrictions"][j]["suffix"].IsArray() && sid_ele["restrictions"][j]["suffix"].Size()) {
-									if (!arrayContainsEnding(sid_ele["restrictions"][j]["suffix"], sid_suffix)) {
-										restFails[0] = true;
+									if (arrayContainsEnding(sid_ele["restrictions"][j]["suffix"], sid_suffix)) {
+										restFails[0] = false;
+									}
+									else {
 										temp = false;
 									}
+								}
+								else {
+									restFails[0] = false;
 								}
 
 								if (sid_ele["restrictions"][j].HasMember("start") && sid_ele["restrictions"][j].HasMember("end")) {
@@ -834,8 +846,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					returnOut[1][7] = returnOut[0][7] = "Invalid " + SuffixOutput(origin_int, pos, successes);
 				}
 				else {
-					returnOut[0][8] = "Failed " + RestrictionsOutput(origin_int, pos, successes, restFails[1], restFails[2]);
-					returnOut[1][8] = "Failed " + RestrictionsOutput(origin_int, pos, successes, restFails[1], restFails[2]);
+					returnOut[1][8] = returnOut[0][8] = "Failed " + RestrictionsOutput(origin_int, pos, successes, restFails[1], restFails[2]) + " " + AlternativesOutput(origin_int, pos, successes);
 				}
 			}
 
@@ -898,6 +909,46 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		returnOut[1].back() = returnOut[0].back() = "Failed";
 		return returnOut;
 	}
+}
+
+string CVFPCPlugin::AlternativesOutput(size_t origin_int, size_t pos, vector<size_t> successes) {
+	string out = "";
+	const Value& sid_ele = config[origin_int]["sids"][pos];
+	const Value& conditions = sid_ele["constraints"];
+
+	if (sid_ele["restrictions"].IsArray() && sid_ele["restrictions"].Size()) {
+		for (size_t i = 0; i < sid_ele["restrictions"].Size(); i++) {
+			if (sid_ele["restrictions"][i]["alt"].IsArray() && sid_ele["restrictions"][i]["alt"].Size()) {
+				for (size_t j = 0; j < sid_ele["restrictions"][i]["alt"].Size(); j++) {
+					if (sid_ele["restrictions"][i]["alt"][j].IsString()) {
+						out += sid_ele["restrictions"][i]["alt"][j].GetString();
+						out += ", ";
+					}
+				}
+			}
+		}
+	}
+
+	for (size_t each : successes) {
+		if (conditions[each]["restrictions"].IsArray() && conditions[each]["restrictions"].Size()) {
+			for (size_t i = 0; i < conditions[each]["restrictions"].Size(); i++) {
+				if (conditions[each]["restrictions"][i]["alt"].IsArray() && conditions[each]["restrictions"][i]["alt"].Size()) {
+					for (size_t j = 0; j < conditions[each]["restrictions"][i]["alt"].Size(); j++) {
+						if (conditions[each]["restrictions"][i]["alt"][j].IsString()) {
+							out += conditions[each]["restrictions"][i]["alt"][j].GetString();
+							out += ", ";
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if (out == "") {
+		out = "None";
+	}
+
+	return "Recommended Alternatives: " + out.substr(0, out.size() - 2) + ".";
 }
 
 string CVFPCPlugin::RestrictionsOutput(size_t origin_int, size_t pos, vector<size_t> successes, bool check_type, bool check_time) {
@@ -991,11 +1042,13 @@ string CVFPCPlugin::RestrictionsOutput(size_t origin_int, size_t pos, vector<siz
 				}
 
 				if (start != "" && end != "") {
-					this_rest[1] = start + " to " + end;
+					this_rest[1] = start + " and " + end;
 				}
 			}
 
-			rests.push_back(this_rest);
+			if (!all_of(this_rest[0].begin(), this_rest[0].end(), isspace) || !all_of(this_rest[1].begin(), this_rest[1].end(), isspace)) {
+				rests.push_back(this_rest);
+			}
 		}
 	}
 
@@ -1014,13 +1067,13 @@ string CVFPCPlugin::RestrictionsOutput(size_t origin_int, size_t pos, vector<siz
 									this_rest[0] += "All Pistons, ";
 								}
 								else if (item == "T") {
-									this_rest[0] += "Turboprop, ";
+									this_rest[0] += "All Turboprops, ";
 								}
 								else if (item == "J") {
-									this_rest[0] += "Jet, ";
+									this_rest[0] += "All Jets, ";
 								}
 								else if (item == "E") {
-									this_rest[0] += "Electric, ";
+									this_rest[0] += "All Electric Aircraft, ";
 								}
 							}
 							else {
@@ -1090,7 +1143,9 @@ string CVFPCPlugin::RestrictionsOutput(size_t origin_int, size_t pos, vector<siz
 					}
 				}
 
-				rests.push_back(this_rest);
+				if (!all_of(this_rest[0].begin(), this_rest[0].end(), isspace) || !all_of(this_rest[1].begin(), this_rest[1].end(), isspace)) {
+					rests.push_back(this_rest);
+				}
 			}
 		}
 	}
@@ -1123,8 +1178,8 @@ string CVFPCPlugin::RestrictionsOutput(size_t origin_int, size_t pos, vector<siz
 
 string CVFPCPlugin::SuffixOutput(size_t origin_int, size_t pos, vector<size_t> successes) {
 	vector<string> suffices{};
-	const Value& sid_eles = config[origin_int]["sids"];
-	const Value& conditions = config[origin_int]["sids"][pos]["constraints"];
+	const Value& sid_eles = config[origin_int]["sids"][pos];
+	const Value& conditions = sid_eles["constraints"];
 
 	if (sid_eles["restrictions"].IsArray() && sid_eles["restrictions"].Size()) {
 		for (size_t i = 0; i < sid_eles["restrictions"].Size(); i++) {
@@ -1695,9 +1750,7 @@ string CVFPCPlugin::getFails(vector<string> messageBuffer) {
 		fail.push_back("SUF");
 	}
 	if (messageBuffer.at(8).find("Failed") == 0) {
-		fail.push_back("A/C");
-		fail.push_back("DAT");
-		fail.push_back("TME");
+		fail.push_back("RST");
 	}
 	if (messageBuffer.at(messageBuffer.size() - 2).find("Invalid") == 0) {
 		fail.push_back("CHK");
