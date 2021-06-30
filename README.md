@@ -12,6 +12,8 @@ UK VFPC (UK VATSIM Flight Plan Checker) is a plugin for EuroScope that checks fi
 - Checks that the filed initial route is valid to the given destination.
 - Checks that the filed altitude follows any odd/even restrictions.
 - Checks that the filed altitude is within the allocated altitude block for the filed route.
+- Checks that the assigned SID is valid for the aircraft type operating the flight.
+- Checks that the assigned SID is valid on the current day/time.
 - Checks that there are no obvious syntax errors within the flight plan. (Invalid step climbs, Random symbol characters, etc.)
 
 ## Check Results
