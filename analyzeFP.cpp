@@ -216,6 +216,21 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	string origin = flightPlan.GetFlightPlanData().GetOrigin(); boost::to_upper(origin);
 	string destination = flightPlan.GetFlightPlanData().GetDestination(); boost::to_upper(destination);
 	SizeType origin_int;
+
+	// Airport defined
+	if (airports.find(origin) == airports.end()) {
+		returnOut[0][1] = "Invalid SID - Airport Not Found";
+		returnOut[0].back() = "Failed";
+
+		returnOut[1][1] = "Invalid SID - " + origin + " not in database.";
+		returnOut[1].back() = "Failed";
+		return returnOut;
+	}
+	else
+	{
+		origin_int = airports[origin];
+	}
+
 	int RFL = flightPlan.GetFlightPlanData().GetFinalAltitude();
 
 	vector<string> route = split(flightPlan.GetFlightPlanData().GetRoute(), ' ');
@@ -364,20 +379,6 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		returnOut[1][1] = "Invalid SID - Route must start at " + first_wp + ".";
 		returnOut[1].back() = "Failed";
 		return returnOut;
-	}
-
-	// Airport defined
-	if (airports.find(origin) == airports.end()) {
-		returnOut[0][1] = "Invalid SID - Airport Not Found";
-		returnOut[0].back() = "Failed";
-
-		returnOut[1][1] = "Invalid SID - " + origin + " not in database.";
-		returnOut[1].back() = "Failed";
-		return returnOut;
-	}
-	else
-	{
-		origin_int = airports[origin];
 	}
 
 	// Any SIDs defined
@@ -1624,7 +1625,7 @@ void CVFPCPlugin::OnFunctionCall(int FunctionId, const char * ItemString, POINT 
 
 // Get FlightPlan, and therefore get the first waypoint of the flightplan (ie. SID). Check if the (RFL/1000) corresponds to the SID Min FL and report output "OK" or "FPL"
 void CVFPCPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int ItemCode, int TagData, char sItemString[16], int* pColorCode, COLORREF* pRGB, double* pFontSize){
-	if (validVersion && ItemCode == TAG_ITEM_FPCHECK) {
+	if (validVersion && ItemCode == TAG_ITEM_FPCHECK && airports.find(FlightPlan.GetFlightPlanData().GetOrigin()) != airports.end()) {
 		string FlightPlanString = FlightPlan.GetFlightPlanData().GetRoute();
 		int RFL = FlightPlan.GetFlightPlanData().GetFinalAltitude();
 
