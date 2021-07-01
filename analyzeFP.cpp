@@ -312,17 +312,25 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		return returnOut;
 	}
 
-	string first_wp = sid.substr(0, sid.find_first_of("0123456789"));
-	if (0 != first_wp.length())
-		boost::to_upper(first_wp);
+	string first_wp;
 	string sid_suffix;
-	if (first_wp.length() != sid.length()) {
-		sid_suffix = sid.substr(sid.find_first_of("0123456789"), sid.length());
-		boost::to_upper(sid_suffix);
+	if (origin == "EGLL" && sid == "CHK") {
+		first_wp = "CPT";
+		sid_suffix = "CHK";
+	}
+	else {
+		first_wp = sid.substr(0, sid.find_first_of("0123456789"));
+		if (0 != first_wp.length())
+			boost::to_upper(first_wp);
+		
+		if (first_wp.length() != sid.length()) {
+			sid_suffix = sid.substr(sid.find_first_of("0123456789"), sid.length());
+			boost::to_upper(sid_suffix);
+		}
 	}
 
 	// Did not find a valid SID
-	if (0 == sid_suffix.length() && "CHK" != first_wp) {
+	if (0 == sid_suffix.length() && "VCT" != first_wp) {
 		returnOut[0][1] = returnOut[1][1] = "Invalid SID - None Set";
 		returnOut[0].back() = returnOut[1].back() = "Failed";
 		return returnOut;
