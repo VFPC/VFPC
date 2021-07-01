@@ -322,7 +322,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	}
 
 	// Did not find a valid SID
-	if (0 == sid_suffix.length() && "VCT" != first_wp) {
+	if (0 == sid_suffix.length() && "CHK" != first_wp) {
 		returnOut[0][1] = returnOut[1][1] = "Invalid SID - None Set";
 		returnOut[0].back() = returnOut[1].back() = "Failed";
 		return returnOut;
