@@ -14,7 +14,7 @@
 #include "rapidjson/stringbuffer.h"
 
 #define MY_PLUGIN_NAME      "VFPC (UK)"
-#define MY_PLUGIN_VERSION   "3.1.1"
+#define MY_PLUGIN_VERSION   "3.2.0"
 #define MY_PLUGIN_DEVELOPER "Lenny Colton, Jan Fries, Hendrik Peter, Sven Czarnian"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO  "VATSIM (UK) Flight Plan Checker"
@@ -34,7 +34,9 @@ public:
 	CVFPCPlugin();
 	virtual ~CVFPCPlugin();
 
-	void webCall(string endpoint, Document& out);
+	virtual void timeCall();
+
+	virtual void webCall(string endpoint, Document& out);
 
 	virtual bool checkVersion();
 
@@ -42,19 +44,25 @@ public:
 
 	virtual vector<vector<string>> validizeSid(CFlightPlan flightPlan);
 
-	virtual string DirectionOutput(size_t origin_int, size_t pos, vector<int> successes);
+	virtual string AlternativesOutput(size_t origin_int, size_t pos, vector<size_t> successes);
 
-	virtual string MinMaxOutput(size_t origin_int, size_t pos, vector<int> successes);
+	virtual string RestrictionsOutput(size_t origin_int, size_t pos, vector<size_t> successes, bool type, bool time);
 
-	virtual string NavPerfOutput(size_t origin_int, size_t pos, vector<int> successes);
+	virtual string SuffixOutput(size_t origin_int, size_t pos, vector<size_t> successes);
 
-	virtual string RouteOutput(size_t origin_int, size_t pos, vector<int> successes);
+	virtual string DirectionOutput(size_t origin_int, size_t pos, vector<size_t> successes);
 
-	virtual string DestinationOutput(size_t origin_int, size_t pos, vector<int> successes);
+	virtual string MinMaxOutput(size_t origin_int, size_t pos, vector<size_t> successes);
 
-	virtual string EngineOutput(size_t origin_int, size_t pos, vector<int> successes);
+	virtual string NavPerfOutput(size_t origin_int, size_t pos, vector< size_t> successes);
 
-	virtual string SuffixOutput(size_t origin_int, size_t pos, vector<int> successes);
+	virtual string RouteOutput(size_t origin_int, size_t pos, vector<size_t> successes);
+
+	virtual string DestinationOutput(size_t origin_int, size_t pos, vector<size_t> successes);
+
+	//virtual string EngineOutput(size_t origin_int, size_t pos, vector<int> successes);
+
+	//virtual string SuffixOutput(size_t origin_int, size_t pos, vector<int> successes);
 
 	virtual void OnFunctionCall(int FunctionId, const char * ItemString, POINT Pt, RECT Area);
 
@@ -101,6 +109,27 @@ public:
 		return false;
 	}
 
+	bool arrayContainsEnding(const Value& a, string s) {
+		for (SizeType i = 0; i < a.Size(); i++) {
+			string comp = a[i].GetString();
+			int pos = s.size() - comp.size();
+			if (pos < 0)
+				continue;
+
+			bool valid = true;
+
+			for (SizeType i = 0; i < comp.size(); i++) {
+				if (comp[i] != s[pos + i])
+					valid = false;
+			}
+
+			if (valid)
+				return true;
+			
+		}
+		return false;
+	}
+
 	bool arrayContains(const Value& a, char s) {
 		for (SizeType i = 0; i < a.Size(); i++) {
 			if (a[i].GetString()[0] == s)
@@ -118,6 +147,7 @@ public:
 		}
 		return s;
 	}
+
 	bool routeContains(string cs, vector<string> rte, const Value& valid) {
 		for (SizeType i = 0; i < valid.Size(); i++) {
 			string r = valid[i].GetString();
@@ -127,8 +157,8 @@ public:
 			}
 
 			vector<string> current = split(r, ' ');
-			for (std::size_t i = 0; i < current.size(); i++) {
-				boost::to_upper(current[i]);
+			for (std::size_t j = 0; j < current.size(); j++) {
+				boost::to_upper(current[j]);
 			}
 
 			bool admissible = true;
@@ -137,8 +167,8 @@ public:
 				admissible = false;
 			}
 			else {
-				for (SizeType i = 0; i < current.size(); i++) {
-					if (current[i] != rte[i] && current[i] != "*") {
+				for (SizeType j = 0; j < current.size(); j++) {
+					if (current[j] != rte[j] && current[j] != "*") {
 						admissible = false;
 					}
 				}
@@ -149,6 +179,27 @@ public:
 			}
 		}
 		return false;
+	}
+
+	string dayIntToString(int day) {
+		switch (day) {
+		case 0:
+			return "Monday";
+		case 1:
+			return "Tuesday";
+		case 2:
+			return "Wednesday";
+		case 3:
+			return "Thursday";
+		case 4:
+			return "Friday";
+		case 5:
+			return "Saturday";
+		case 6:
+			return "Sunday";
+		default:
+			return "Out of Range";
+		}
 	}
 
 	virtual bool OnCompileCommand(const char * sCommandLine);
@@ -162,6 +213,8 @@ public:
 	virtual void checkFPDetail();
 
 	virtual string getFails(vector<string> messageBuffer);
+
+	virtual void APICalls();
 
 	virtual void OnTimer(int Count);
 
