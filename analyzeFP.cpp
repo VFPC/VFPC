@@ -483,52 +483,60 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					}
 					case 3:
 					{
-						bool res_minmax = true;
+						bool res = true;
 
 						//Min Level
 						if (conditions[i].HasMember("min") && (Min = conditions[i]["min"].GetInt()) > 0 && (RFL / 100) <= Min) {
-							res_minmax = false;
+							res = false;
 						}
 
 						//Max Level
 						if (conditions[i].HasMember("max") && (Max = conditions[i]["max"].GetInt()) > 0 && (RFL / 100) >= Max) {
-							res_minmax = false;
+							res = false;
 						}
 
-						new_validity.push_back(res_minmax);
+						new_validity.push_back(res);
 						break;
 					}
 					case 4:
 					{
-						//Even/Odd Levels
-						string direction = conditions[i]["dir"].GetString();
-						boost::to_upper(direction);
+						//Assume any level valid if no "EVEN" or "ODD" declaration
+						bool res = true;
 
-						if (direction == "EVEN") {
-							if ((RFL > 41000 && (RFL / 1000 - 41) % 4 == 2)) {
-								new_validity.push_back(true);
+						//Even/Odd Levels
+						if (conditions[i].HasMember("dir") && conditions[i]["dir"].IsString()) {
+							string direction = conditions[i]["dir"].GetString();
+							boost::to_upper(direction);
+
+							if (direction == "EVEN") {
+								//Assume invalid until condition matched
+								res = false;
+
+								//Non-RVSM (Above FL410)
+								if ((RFL > 41000 && (RFL / 1000 - 41) % 4 == 2)) {
+									res = true;
+								}
+								//RVSM (FL290-410) or Below FL290
+								else if (RFL <= 41000 && (RFL / 1000) % 2 == 0) {
+									res = true;
+								}
 							}
-							else if (RFL <= 41000 && (RFL / 1000) % 2 == 0) {
-								new_validity.push_back(true);
-							}
-							else {
-								new_validity.push_back(false);
+							else if (direction == "ODD") {
+								//Assume invalid until condition matched
+								res = false;
+
+								//Non-RVSM (Above FL410)
+								if ((RFL > 41000 && (RFL / 1000 - 41) % 4 == 0)) {
+									res = true;
+								}
+								//RVSM (FL290-410) or Below FL290
+								else if (RFL <= 41000 && (RFL / 1000) % 2 == 1) {
+									res = true;
+								}
 							}
 						}
-						else if (direction == "ODD") {
-							if ((RFL > 41000 && (RFL / 1000 - 41) % 4 == 0)) {
-								new_validity.push_back(true);
-							}
-							else if (RFL <= 41000 && (RFL / 1000) % 2 == 1) {
-								new_validity.push_back(true);
-							}
-							else {
-								new_validity.push_back(false);
-							}
-						}
-						else { //(direction == "ANY")
-							new_validity.push_back(true);
-						}
+
+						new_validity.push_back(res);
 						break;
 					}
 					case 5:
