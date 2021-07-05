@@ -312,17 +312,25 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		return returnOut;
 	}
 
-	string first_wp = sid.substr(0, sid.find_first_of("0123456789"));
-	if (0 != first_wp.length())
-		boost::to_upper(first_wp);
+	string first_wp;
 	string sid_suffix;
-	if (first_wp.length() != sid.length()) {
-		sid_suffix = sid.substr(sid.find_first_of("0123456789"), sid.length());
-		boost::to_upper(sid_suffix);
+	if (origin == "EGLL" && sid == "CHK") {
+		first_wp = "CPT";
+		sid_suffix = "CHK";
+	}
+	else {
+		first_wp = sid.substr(0, sid.find_first_of("0123456789"));
+		if (0 != first_wp.length())
+			boost::to_upper(first_wp);
+		
+		if (first_wp.length() != sid.length()) {
+			sid_suffix = sid.substr(sid.find_first_of("0123456789"), sid.length());
+			boost::to_upper(sid_suffix);
+		}
 	}
 
 	// Did not find a valid SID
-	if (0 == sid_suffix.length() && "CHK" != first_wp) {
+	if (0 == sid_suffix.length() && "VCT" != first_wp) {
 		returnOut[0][1] = returnOut[1][1] = "Invalid SID - None Set";
 		returnOut[0].back() = returnOut[1].back() = "Failed";
 		return returnOut;
@@ -475,52 +483,60 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					}
 					case 3:
 					{
-						bool res_minmax = true;
+						bool res = true;
 
 						//Min Level
 						if (conditions[i].HasMember("min") && (Min = conditions[i]["min"].GetInt()) > 0 && (RFL / 100) <= Min) {
-							res_minmax = false;
+							res = false;
 						}
 
 						//Max Level
 						if (conditions[i].HasMember("max") && (Max = conditions[i]["max"].GetInt()) > 0 && (RFL / 100) >= Max) {
-							res_minmax = false;
+							res = false;
 						}
 
-						new_validity.push_back(res_minmax);
+						new_validity.push_back(res);
 						break;
 					}
 					case 4:
 					{
-						//Even/Odd Levels
-						string direction = conditions[i]["dir"].GetString();
-						boost::to_upper(direction);
+						//Assume any level valid if no "EVEN" or "ODD" declaration
+						bool res = true;
 
-						if (direction == "EVEN") {
-							if ((RFL > 41000 && (RFL / 1000 - 41) % 4 == 2)) {
-								new_validity.push_back(true);
+						//Even/Odd Levels
+						if (conditions[i].HasMember("dir") && conditions[i]["dir"].IsString()) {
+							string direction = conditions[i]["dir"].GetString();
+							boost::to_upper(direction);
+
+							if (direction == "EVEN") {
+								//Assume invalid until condition matched
+								res = false;
+
+								//Non-RVSM (Above FL410)
+								if ((RFL > 41000 && (RFL / 1000 - 41) % 4 == 2)) {
+									res = true;
+								}
+								//RVSM (FL290-410) or Below FL290
+								else if (RFL <= 41000 && (RFL / 1000) % 2 == 0) {
+									res = true;
+								}
 							}
-							else if (RFL <= 41000 && (RFL / 1000) % 2 == 0) {
-								new_validity.push_back(true);
-							}
-							else {
-								new_validity.push_back(false);
+							else if (direction == "ODD") {
+								//Assume invalid until condition matched
+								res = false;
+
+								//Non-RVSM (Above FL410)
+								if ((RFL > 41000 && (RFL / 1000 - 41) % 4 == 0)) {
+									res = true;
+								}
+								//RVSM (FL290-410) or Below FL290
+								else if (RFL <= 41000 && (RFL / 1000) % 2 == 1) {
+									res = true;
+								}
 							}
 						}
-						else if (direction == "ODD") {
-							if ((RFL > 41000 && (RFL / 1000 - 41) % 4 == 0)) {
-								new_validity.push_back(true);
-							}
-							else if (RFL <= 41000 && (RFL / 1000) % 2 == 1) {
-								new_validity.push_back(true);
-							}
-							else {
-								new_validity.push_back(false);
-							}
-						}
-						else { //(direction == "ANY")
-							new_validity.push_back(true);
-						}
+
+						new_validity.push_back(res);
 						break;
 					}
 					case 5:
@@ -1535,82 +1551,6 @@ string CVFPCPlugin::DestinationOutput(size_t origin_int, size_t pos, vector<size
 
 	return "Destination. Valid Destinations: " + out;
 }
-
-/*string CVFPCPlugin::EngineOutput(size_t origin_int, size_t pos, vector<int> successes) {
-	const Value& conditions = config[origin_int]["Sids"][pos]["Constraints"];
-	vector<string> engs{};
-	for (int each : successes) {
-		if (conditions[each].HasMember("Eng") && conditions[each]["Eng"].IsString()) {
-			engs.push_back(conditions[each]["Eng"].GetString());
-		}
-		else if (conditions[each]["Eng"].IsArray() && conditions[each]["Eng"].Size()) {
-			for (SizeType j = 0; j < conditions[each]["Eng"].Size(); j++) {
-				string eng = conditions[each]["Eng"][j].GetString();
-
-				engs.push_back(eng);
-			}
-		}
-	}
-
-	sort(engs.begin(), engs.end());
-	vector<string>::iterator itr = unique(engs.begin(), engs.end());
-	engs.erase(itr, engs.end());
-
-	string out = "";
-
-	for (string each : engs) {
-		if (each == "P") {
-			out += "Piston, ";
-		}
-		else if (each == "T") {
-			out += "Turboprop, ";
-		}
-		else if (each == "J") {
-			out += "Jet, ";
-		}
-		else if (each == "E") {
-			out += "Electric, ";
-		}
-	}
-
-	if (out == "") {
-		out = "None Specified";
-	}
-	else {
-		out = out.substr(0, out.length() - 2);
-	}
-
-	return "Engine Type. Type Required: " + out;
-}*/
-
-/*string CVFPCPlugin::SuffixOutput(size_t origin_int, size_t pos, vector<int> successes) {
-	const Value& conditions = config[origin_int]["Sids"][pos]["Constraints"];
-	vector<string> suffices{};
-	for (int each : successes) {
-		if (conditions[each].HasMember("Suf") && conditions[each]["Suf"].IsString()) {
-			suffices.push_back(conditions[each]["Suf"].GetString());
-		}
-	}
-
-	sort(suffices.begin(), suffices.end());
-	vector<string>::iterator itr = unique(suffices.begin(), suffices.end());
-	suffices.erase(itr, suffices.end());
-
-	string out = "";
-
-	for (string each : suffices) {
-		out += each + ", ";
-	}
-
-	if (out == "") {
-		out = "None Specified";
-	}
-	else {
-		out = out.substr(0, out.length() - 2);
-	}
-
-	return "Suffix. Valid Suffices: " + out + ".";
-}*/
 
 //
 void CVFPCPlugin::OnFunctionCall(int FunctionId, const char * ItemString, POINT Pt, RECT Area) {
