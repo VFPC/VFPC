@@ -549,6 +549,11 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 				}
 			}
 		}
+
+		//Initialise validity array to fully true#
+		for (SizeType i = 0; i < conditions.Size(); i++) {
+			validity.push_back(true);
+		}
 			
 		//Constraints Array
 		while (round < 6) {
@@ -680,8 +685,8 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 						restFails[0] = true;
 						// Restrictions Array - Only test if SID-wide failed or is overriden for this constraint.
 						if (!sidwide || (conditions[i].HasMember("override") && conditions[i]["override"].IsBool() && conditions[i]["override"].GetBool())) {
+							res = false;
 							if (conditions[i]["restrictions"].IsArray() && conditions[i]["restrictions"].Size()) {
-								res = false;
 								for (size_t j = 0; j < conditions[i]["restrictions"].Size(); j++) {
 									bool temp = true;
 
@@ -926,7 +931,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 				returnOut[1][7] = "Valid " + SuffixOutput(origin_int, pos);
 
 				//sidFails[1] or [2] must be false to get here
-				returnOut[1][8] = returnOut[0][8] = "Failed " + RestrictionsOutput(origin_int, pos, restFails[1], restFails[2]) + " " + AlternativesOutput(origin_int, pos);
+				returnOut[1][8] = returnOut[0][8] = "Failed " + RestrictionsOutput(origin_int, pos, sidFails[1], sidFails[2]) + " " + AlternativesOutput(origin_int, pos);
 			}
 		}
 
