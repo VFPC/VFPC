@@ -920,14 +920,13 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		else {
 			if (sidFails[0]) {
 				returnOut[1][7] = returnOut[0][7] = "Invalid " + SuffixOutput(origin_int, pos);
-
-				if (!sidFails[1] || !sidFails[2]) {
-					returnOut[1][8] = returnOut[0][8] = "Failed " + RestrictionsOutput(origin_int, pos, restFails[1], restFails[2]) + " " + AlternativesOutput(origin_int, pos);
-				}
 			}
 			else {
 				returnOut[0][7] = "Valid Suffix.";
 				returnOut[1][7] = "Valid " + SuffixOutput(origin_int, pos);
+
+				//sidFails[1] or [2] must be false to get here
+				returnOut[1][8] = returnOut[0][8] = "Failed " + RestrictionsOutput(origin_int, pos, restFails[1], restFails[2]) + " " + AlternativesOutput(origin_int, pos);
 			}
 		}
 
