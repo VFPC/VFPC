@@ -1029,16 +1029,16 @@ string CVFPCPlugin::RestrictionsOutput(size_t origin_int, size_t pos, bool check
 
 						if (item.size() == 1) {
 							if (item == "P") {
-								this_rest[0] += "All Pistons, ";
+								this_rest[0] += "All Pistons";
 							}
 							else if (item == "T") {
-								this_rest[0] += "All Turboprops, ";
+								this_rest[0] += "All Turboprops";
 							}
 							else if (item == "J") {
-								this_rest[0] += "All Jets, ";
+								this_rest[0] += "All Jets";
 							}
 							else if (item == "E") {
-								this_rest[0] += "All Electric Aircraft, ";
+								this_rest[0] += "All Electric Aircraft";
 							}
 						}
 						else {
@@ -1047,10 +1047,10 @@ string CVFPCPlugin::RestrictionsOutput(size_t origin_int, size_t pos, bool check
 
 						this_rest[0] += ", ";
 					}
+				}
 
-					if (this_rest[0] != "") {
-						this_rest[0] = this_rest[0].substr(0, this_rest[0].size() - 2);
-					}
+				if (this_rest[0] != "") {
+					this_rest[0] = this_rest[0].substr(0, this_rest[0].size() - 2);
 				}
 			}
 
@@ -1157,16 +1157,16 @@ string CVFPCPlugin::RestrictionsOutput(size_t origin_int, size_t pos, vector<siz
 
 						if (item.size() == 1) {
 							if (item == "P") {
-								this_rest[0] += "All Pistons, ";
+								this_rest[0] += "All Pistons";
 							}
 							else if (item == "T") {
-								this_rest[0] += "All Turboprops, ";
+								this_rest[0] += "All Turboprops";
 							}
 							else if (item == "J") {
-								this_rest[0] += "All Jets, ";
+								this_rest[0] += "All Jets";
 							}
 							else if (item == "E") {
-								this_rest[0] += "All Electric Aircraft, ";
+								this_rest[0] += "All Electric Aircraft";
 							}
 						}
 						else {
@@ -1175,10 +1175,10 @@ string CVFPCPlugin::RestrictionsOutput(size_t origin_int, size_t pos, vector<siz
 
 						this_rest[0] += ", ";
 					}
+				}
 
-					if (this_rest[0] != "") {
-						this_rest[0] = this_rest[0].substr(0, this_rest[0].size() - 2);
-					}
+				if (this_rest[0] != "") {
+					this_rest[0] = this_rest[0].substr(0, this_rest[0].size() - 2);
 				}
 			}
 
@@ -1254,16 +1254,16 @@ string CVFPCPlugin::RestrictionsOutput(size_t origin_int, size_t pos, vector<siz
 
 							if (item.size() == 1) {
 								if (item == "P") {
-									this_rest[0] += "All Pistons, ";
+									this_rest[0] += "All Pistons";
 								}
 								else if (item == "T") {
-									this_rest[0] += "All Turboprops, ";
+									this_rest[0] += "All Turboprops";
 								}
 								else if (item == "J") {
-									this_rest[0] += "All Jets, ";
+									this_rest[0] += "All Jets";
 								}
 								else if (item == "E") {
-									this_rest[0] += "All Electric Aircraft, ";
+									this_rest[0] += "All Electric Aircraft";
 								}
 							}
 							else {
@@ -1272,10 +1272,10 @@ string CVFPCPlugin::RestrictionsOutput(size_t origin_int, size_t pos, vector<siz
 
 							this_rest[0] += ", ";
 						}
+					}
 
-						if (this_rest[0] != "") {
-							this_rest[0] = this_rest[0].substr(0, this_rest[0].size() - 2);
-						}
+					if (this_rest[0] != "") {
+						this_rest[0] = this_rest[0].substr(0, this_rest[0].size() - 2);
 					}
 				}
 
