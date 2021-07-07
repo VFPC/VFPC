@@ -44,17 +44,11 @@ public:
 
 	virtual vector<vector<string>> validizeSid(CFlightPlan flightPlan);
 
-	virtual string AlternativesOutput(size_t origin_int, size_t pos);
+	virtual string AlternativesOutput(size_t origin_int, size_t pos, vector<size_t> successes = {});
 
-	virtual string AlternativesOutput(size_t origin_int, size_t pos, vector<size_t> successes);
+	virtual string RestrictionsOutput(size_t origin_int, size_t pos, bool type, bool time, vector<size_t> successes = {});
 
-	virtual string RestrictionsOutput(size_t origin_int, size_t pos, bool type, bool time);
-
-	virtual string RestrictionsOutput(size_t origin_int, size_t pos, vector<size_t> successes, bool type, bool time);
-
-	virtual string SuffixOutput(size_t origin_int, size_t pos);
-
-	virtual string SuffixOutput(size_t origin_int, size_t pos, vector<size_t> successes);
+	virtual string SuffixOutput(size_t origin_int, size_t pos, vector<size_t> successes = {});
 
 	virtual string DirectionOutput(size_t origin_int, size_t pos, vector<size_t> successes);
 
