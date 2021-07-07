@@ -34,11 +34,13 @@ public:
 	CVFPCPlugin();
 	virtual ~CVFPCPlugin();
 
-	virtual void timeCall();
+	virtual bool webCall(string url, string& out);
 
-	virtual bool webCall(string endpoint, Document& out);
+	virtual bool timeCall();
 
-	virtual bool checkVersion();
+	virtual bool APICall(string endpoint, Document& out);
+
+	virtual bool versionCall();
 
 	virtual bool fileCall(Document &out);
 
@@ -46,17 +48,11 @@ public:
 
 	virtual vector<vector<string>> validizeSid(CFlightPlan flightPlan);
 
-	virtual string AlternativesOutput(size_t origin_int, size_t pos);
+	virtual string AlternativesOutput(size_t origin_int, size_t pos, vector<size_t> successes = {});
 
-	virtual string AlternativesOutput(size_t origin_int, size_t pos, vector<size_t> successes);
+	virtual string RestrictionsOutput(size_t origin_int, size_t pos, bool type, bool time, vector<size_t> successes = {});
 
-	virtual string RestrictionsOutput(size_t origin_int, size_t pos, bool type, bool time);
-
-	virtual string RestrictionsOutput(size_t origin_int, size_t pos, vector<size_t> successes, bool type, bool time);
-
-	virtual string SuffixOutput(size_t origin_int, size_t pos);
-
-	virtual string SuffixOutput(size_t origin_int, size_t pos, vector<size_t> successes);
+	virtual string SuffixOutput(size_t origin_int, size_t pos, vector<size_t> successes = {});
 
 	virtual string DirectionOutput(size_t origin_int, size_t pos, vector<size_t> successes);
 
@@ -222,7 +218,7 @@ public:
 
 	virtual string getFails(vector<string> messageBuffer);
 
-	virtual void APICalls();
+	virtual void runWebCalls();
 
 	virtual void OnTimer(int Count);
 
