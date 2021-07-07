@@ -234,9 +234,10 @@ void CVFPCPlugin::getSids() {
 	airports.clear();
 	for (SizeType i = 0; i < config.Size(); i++) {
 		const Value& airport = config[i];
-		string airport_icao = airport["icao"].GetString();
-
-		airports.insert(pair<string, SizeType>(airport_icao, i));
+		if (airport.HasMember("icao") && airport["icao"].IsString()) {
+			string airport_icao = airport["icao"].GetString();
+			airports.insert(pair<string, SizeType>(airport_icao, i));
+		}
 	}
 }
 
