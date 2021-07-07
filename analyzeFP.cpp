@@ -82,28 +82,35 @@ void CVFPCPlugin::sendMessage(string message) {
 	DisplayUserMessage("VFPC", "System", message.c_str(), true, true, true, false, false);
 }
 
-void CVFPCPlugin::timeCall() {
-	Document doc;
+bool CVFPCPlugin::webCall(string url, string& out) {
 	CURL* curl = curl_easy_init();
-	string url = "http://worldtimeapi.org/api/timezone/Europe/London";
-
 	curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 
 	uint64_t httpCode = 0;
-	std::string readBuffer;
 
-	//curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-	//curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10);
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10);
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &out);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curlCallback);
 
 	curl_easy_perform(curl);
 	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
 	curl_easy_cleanup(curl);
 
-	if (httpCode == 200)
+	if (httpCode == 200) {
+		return true;
+	}
+	
+	return false;
+}
+
+bool CVFPCPlugin::timeCall() {
+	Document doc;
+	string url = "http://worldtimeapi.org/api/timezone/Europe/London";
+	string buf = "";
+
+	if (webCall(url, buf))
 	{
-		if (doc.Parse<0>(readBuffer.c_str()).HasParseError())
+		if (doc.Parse<0>(buf.c_str()).HasParseError())
 		{
 			sendMessage("An error occurred whilst reading date/time data. The plugin will not automatically attempt to reload from the API. To restart data fetching, type \".vfpc load\".");
 			debugMessage("Error", str(boost::format("Config Parse: %s (Offset: %i)\n'") % config.GetParseError() % config.GetErrorOffset()));
@@ -129,27 +136,13 @@ void CVFPCPlugin::timeCall() {
 	}
 }
 
-bool CVFPCPlugin::webCall(string endpoint, Document& out) {
-	CURL* curl = curl_easy_init();
+bool CVFPCPlugin::APICall(string endpoint, Document& out) {
 	string url = MY_API_ADDRESS + endpoint;
+	string buf = "";
 
-	curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-
-	uint64_t httpCode = 0;
-	std::string readBuffer;
-
-	//curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-	//curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10);
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curlCallback);
-
-	curl_easy_perform(curl);
-	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
-	curl_easy_cleanup(curl);
-
-	if (httpCode == 200)
+	if (webCall(url, buf))
 	{
-		if (out.Parse<0>(readBuffer.c_str()).HasParseError())
+		if (out.Parse<0>(buf.c_str()).HasParseError())
 		{
 			sendMessage("An error occurred whilst reading data. The plugin will not automatically attempt to reload from the API. To restart data fetching, type \".vfpc load\".");
 			debugMessage("Error", str(boost::format("Config Parse: %s (Offset: %i)\n'") % config.GetParseError() % config.GetErrorOffset()));
@@ -172,7 +165,7 @@ bool CVFPCPlugin::webCall(string endpoint, Document& out) {
 
 bool CVFPCPlugin::checkVersion() {
 	Document version;
-	webCall("version", version);
+	APICall("version", version);
 	
 	if (version.HasMember("VFPC_Version") && version["VFPC_Version"].IsString()) {
 		vector<string> current = split(version["VFPC_Version"].GetString(), '.');
@@ -230,7 +223,7 @@ bool CVFPCPlugin::fileCall(Document &out) {
 
 void CVFPCPlugin::getSids() {
 	if (autoLoad) {
-		autoLoad = webCall("mongoFull", config);
+		autoLoad = APICall("mongoFull", config);
 	}
 	else if (fileLoad) {
 		fileLoad = fileCall(config);

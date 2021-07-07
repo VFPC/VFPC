@@ -34,9 +34,11 @@ public:
 	CVFPCPlugin();
 	virtual ~CVFPCPlugin();
 
-	virtual void timeCall();
+	virtual bool webCall(string url, string& out);
 
-	virtual bool webCall(string endpoint, Document& out);
+	virtual bool timeCall();
+
+	virtual bool APICall(string endpoint, Document& out);
 
 	virtual bool checkVersion();
 
