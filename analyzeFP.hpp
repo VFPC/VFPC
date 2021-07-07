@@ -13,7 +13,7 @@
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 
-#define MY_PLUGIN_NAME      "UK VFPC"
+#define MY_PLUGIN_NAME      "VFPC (UK)"
 #define MY_PLUGIN_VERSION   "3.3.0"
 #define MY_PLUGIN_DEVELOPER "Lenny Colton, Jan Fries, Hendrik Peter, Sven Czarnian"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
