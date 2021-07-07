@@ -14,7 +14,7 @@
 #include "rapidjson/stringbuffer.h"
 
 #define MY_PLUGIN_NAME      "VFPC (UK)"
-#define MY_PLUGIN_VERSION   "3.2.1"
+#define MY_PLUGIN_VERSION   "3.3.0"
 #define MY_PLUGIN_DEVELOPER "Lenny Colton, Jan Fries, Hendrik Peter, Sven Czarnian"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO  "VATSIM (UK) Flight Plan Checker"
@@ -44,9 +44,15 @@ public:
 
 	virtual vector<vector<string>> validizeSid(CFlightPlan flightPlan);
 
+	virtual string AlternativesOutput(size_t origin_int, size_t pos);
+
 	virtual string AlternativesOutput(size_t origin_int, size_t pos, vector<size_t> successes);
 
+	virtual string RestrictionsOutput(size_t origin_int, size_t pos, bool type, bool time);
+
 	virtual string RestrictionsOutput(size_t origin_int, size_t pos, vector<size_t> successes, bool type, bool time);
+
+	virtual string SuffixOutput(size_t origin_int, size_t pos);
 
 	virtual string SuffixOutput(size_t origin_int, size_t pos, vector<size_t> successes);
 
