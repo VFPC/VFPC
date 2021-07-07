@@ -48,17 +48,6 @@ CVFPCPlugin::~CVFPCPlugin()
 {
 }
 
-/*
-	Custom Functions
-*/
-
-/*size_t CVFPCPlugin::WriteFunction(void *contents, size_t size, size_t nmemb, void *out)
-{
-	// For Curl, we should assume that the data is not null terminated, so add a null terminator on the end
-	((std::string*)out)->append(reinterpret_cast<char*>(contents) + '\0', size * nmemb);
-	return size * nmemb;
-}*/
-
 //Stores output of HTTP request in string
 static size_t curlCallback(void *contents, size_t size, size_t nmemb, void *outString)
 {
