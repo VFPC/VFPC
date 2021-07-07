@@ -5,11 +5,12 @@
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
-bool blink, debugMode, validVersion, autoLoad;
+bool blink, debugMode, validVersion, autoLoad, fileLoad;
 
 vector<int> timedata;
 
-size_t failPos, relCount;
+size_t failPos;
+int relCount;
 
 std::future<void> fut;
 
@@ -23,6 +24,7 @@ CVFPCPlugin::CVFPCPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_
 	debugMode = false;
 	validVersion = true; //Reset in first timer call
 	autoLoad = true;
+	fileLoad = false;
 
 	failPos = 0;
 	relCount = 0;
@@ -189,7 +191,12 @@ bool CVFPCPlugin::checkVersion() {
 }
 
 void CVFPCPlugin::getSids() {
-	webCall("mongoFull", config);
+	if (autoLoad) {
+		webCall("mongoFull", config);
+	}
+	else if (fileLoad) {
+		
+	}
 
 	airports.clear();
 
@@ -1821,8 +1828,13 @@ bool CVFPCPlugin::OnCompileCommand(const char * sCommandLine) {
 		}
 		return true;
 	}
+	//Disable API and load from Sid.json file
+	else if (startsWith(".vfpc file", sCommandLine))
+	{
+		return true;
+	}
 	//Activate Debug Logging
-	if (startsWith(".vfpc log", sCommandLine)) {
+	else if (startsWith(".vfpc log", sCommandLine)) {
 		if (debugMode) {
 			debugMessage("Info", "Logging mode deactivated.");
 			debugMode = false;
@@ -1833,7 +1845,7 @@ bool CVFPCPlugin::OnCompileCommand(const char * sCommandLine) {
 		return true;
 	}
 	//Text-Equivalent of "Show Checks" Button
-	if (startsWith(".vfpc check", sCommandLine))
+	else if (startsWith(".vfpc check", sCommandLine))
 	{
 		checkFPDetail();
 		return true;
@@ -1927,7 +1939,7 @@ void CVFPCPlugin::OnTimer(int Counter) {
 	
 		blink = !blink;
 
-		//2520 is Lowest Common Multiple of Numbers 1-0
+		//2520 is Lowest Common Multiple of Numbers 1-9
 		if (failPos < 2520) {
 			failPos++;
 		}
@@ -1941,8 +1953,7 @@ void CVFPCPlugin::OnTimer(int Counter) {
 		}
 
 		// Loading proper Sids, when logged in
-		if (GetConnectionType() != CONNECTION_TYPE_NO && autoLoad && relCount == 0) {
-			string callsign{ ControllerMyself().GetCallsign() };
+		if (GetConnectionType() != CONNECTION_TYPE_NO && relCount == 0) {
 			fut = std::async(std::launch::async, &CVFPCPlugin::APICalls, this);
 			relCount--;
 		}
