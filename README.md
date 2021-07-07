@@ -39,9 +39,12 @@ UK VFPC (UK VATSIM Flight Plan Checker) is a plugin for EuroScope that checks fi
 
 ## Chat Commands:
 - `.vfpc` - Root command. Must be placed before any of the below commands in order for them to run.
-- `load` - Attempts to reactivate automatic data loading if it has been disabled for some reason. (Server connection lost, etc.)
-- `debug` - Activates debug logging into a separate message box, named "VFPC Log"
-- `check <callsign>` - Equivalent of clicking the "Show Checks" button for an aircraft. Replace `<callsign>` with the logon callsign of the aircraft.
+- `.vfpc load` - Attempts to reactivate automatic data loading if it has been disabled for some reason. (Server connection lost, loading data from file, etc.)
+- `.vfpc debug` - Activates debug logging into a separate message box, named "VFPC Log"
+- `.vfpc file`- Deactivates loading from the API, and conducts a one-time load from the `Sid.json` file instead. Can also be used to reload from `Sid.json` after making changes.
+- `.vfpc check <callsign>` - Equivalent of clicking the "Show Checks" button for an aircraft. Replace `<callsign>` with the logon callsign of the aircraft.
+
+**N.B.** Disabling automatic data loading (or loading from a file) will only last until the plugin is unloaded (including when EuroScope is closed). When the plugin is next loaded, it will always attempt to load from the API.
 
 ## Disclaimer
 The plugin is currently in active development and you may encounter **unforseen bugs or other issues**. Please report them - we'll fix them as soon as we can. You run this plugin at your own risk - the developers are all volunteers and accept no liability for any problems encountered or damage to your system.
