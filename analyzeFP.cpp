@@ -129,7 +129,7 @@ void CVFPCPlugin::timeCall() {
 	}
 }
 
-void CVFPCPlugin::webCall(string endpoint, Document& out) {
+bool CVFPCPlugin::webCall(string endpoint, Document& out) {
 	CURL* curl = curl_easy_init();
 	string url = MY_API_ADDRESS + endpoint;
 
@@ -153,17 +153,21 @@ void CVFPCPlugin::webCall(string endpoint, Document& out) {
 		{
 			sendMessage("An error occurred whilst reading data. The plugin will not automatically attempt to reload from the API. To restart data fetching, type \".vfpc load\".");
 			debugMessage("Error", str(boost::format("Config Parse: %s (Offset: %i)\n'") % config.GetParseError() % config.GetErrorOffset()));
+			return false;
 
-			out.Parse<0>("[{\"Icao\": \"XXXX\"}]");
+			out.Parse<0>("[]");
 		}
 	}
 	else
 	{
 		sendMessage("An error occurred whilst downloading data. The plugin will not automatically attempt to reload from the API. Check your connection and restart data fetching by typing \".vfpc load\".");
 		debugMessage("Error", str(boost::format("Config Download: %s (Offset: %i)\n'") % config.GetParseError() % config.GetErrorOffset()));
+		return false;
 
-		out.Parse<0>("[{\"Icao\": \"XXXX\"}]");
+		out.Parse<0>("[]");
 	}
+
+	return true;
 }
 
 bool CVFPCPlugin::checkVersion() {
@@ -190,12 +194,46 @@ bool CVFPCPlugin::checkVersion() {
 	return false;
 }
 
+bool CVFPCPlugin::fileCall(Document &out) {
+	char DllPathFile[_MAX_PATH];
+	GetModuleFileNameA(HINSTANCE(&__ImageBase), DllPathFile, sizeof(DllPathFile));
+	string pfad = DllPathFile;
+	pfad.resize(pfad.size() - strlen("VFPC.dll"));
+	pfad += "Sid.json";
+
+	stringstream ss;
+	ifstream ifs;
+	ifs.open(pfad.c_str(), ios::binary);
+
+	if (ifs.is_open()) {
+		ss << ifs.rdbuf();
+		ifs.close();
+
+		if (out.Parse<0>(ss.str().c_str()).HasParseError()) {
+			sendMessage("An error occurred whilst reading data. The plugin will not automatically attempt to reload. To restart data fetching from the API, type \".vfpc load\". To reattempt loading data from the Sid.json file, type \".vfpc file\".");
+			debugMessage("Error", str(boost::format("Config Parse: %s (Offset: %i)\n'") % out.GetParseError() % out.GetErrorOffset()));
+
+			out.Parse<0>("[]");
+			return false;
+		}
+
+		return true;
+	}
+	else {
+		sendMessage("Sid.json file not found. The plugin will not automatically attempt to reload. To restart data fetching from the API, type \".vfpc load\". To reattempt loading data from the Sid.json file, type \".vfpc file\".");
+		debugMessage("Error", "Sid.json file not found.");
+
+		out.Parse<0>("[]");
+		return false;
+	}
+}
+
 void CVFPCPlugin::getSids() {
 	if (autoLoad) {
-		webCall("mongoFull", config);
+		autoLoad = webCall("mongoFull", config);
 	}
 	else if (fileLoad) {
-		
+		fileLoad = fileCall(config);
 	}
 
 	airports.clear();
@@ -1626,6 +1664,7 @@ bool CVFPCPlugin::OnCompileCommand(const char * sCommandLine) {
 			debugMessage("Warning", "Auto-load activation attempted whilst already active.");
 		}
 		else {
+			fileLoad = false;
 			autoLoad = true;
 			relCount = 0;
 			sendMessage("Auto-Load Activated.");
@@ -1636,6 +1675,11 @@ bool CVFPCPlugin::OnCompileCommand(const char * sCommandLine) {
 	//Disable API and load from Sid.json file
 	else if (startsWith(".vfpc file", sCommandLine))
 	{
+		autoLoad = false;
+		fileLoad = true;
+		sendMessage("Attempting to load from Sid.json file.");
+		debugMessage("Info", "Will now load from Sid.json file.");
+		getSids();
 		return true;
 	}
 	//Activate Debug Logging
@@ -1761,6 +1805,10 @@ void CVFPCPlugin::OnTimer(int Counter) {
 		if (GetConnectionType() != CONNECTION_TYPE_NO && relCount == 0) {
 			fut = std::async(std::launch::async, &CVFPCPlugin::APICalls, this);
 			relCount--;
+		}
+		else if (GetConnectionType() == CONNECTION_TYPE_NO) {
+			airports.clear();
+			config.Clear();
 		}
 	}
 }
