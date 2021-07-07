@@ -36,9 +36,11 @@ public:
 
 	virtual void timeCall();
 
-	virtual void webCall(string endpoint, Document& out);
+	virtual bool webCall(string endpoint, Document& out);
 
 	virtual bool checkVersion();
+
+	virtual bool fileCall(Document &out);
 
 	virtual void getSids();
 
