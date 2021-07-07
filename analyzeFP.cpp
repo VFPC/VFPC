@@ -17,7 +17,7 @@ std::future<void> fut;
 using namespace std;
 using namespace EuroScopePlugIn;
 
-// Run on Plugin Initialization
+//Run on Plugin Initialization
 CVFPCPlugin::CVFPCPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_PLUGIN_VERSION, MY_PLUGIN_DEVELOPER, MY_PLUGIN_COPYRIGHT)
 {
 	blink = false;
@@ -43,7 +43,7 @@ CVFPCPlugin::CVFPCPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_
 	}
 }
 
-// Run on Plugin destruction, Ie. Closing EuroScope or unloading plugin
+//Run on Plugin Destruction (Closing EuroScope or unloading plugin)
 CVFPCPlugin::~CVFPCPlugin()
 {
 }
