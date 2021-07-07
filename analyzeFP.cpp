@@ -59,6 +59,7 @@ CVFPCPlugin::~CVFPCPlugin()
 	return size * nmemb;
 }*/
 
+//Stores output of HTTP request in string
 static size_t curlCallback(void *contents, size_t size, size_t nmemb, void *outString)
 {
 	// For Curl, we should assume that the data is not null terminated, so add a null terminator on the end
@@ -66,6 +67,7 @@ static size_t curlCallback(void *contents, size_t size, size_t nmemb, void *outS
 	return size * nmemb;
 }
 
+//Send message to user via "VFPC Log" channel
 void CVFPCPlugin::debugMessage(string type, string message) {
 	// Display Debug Message if debugMode = true
 	if (debugMode) {
@@ -73,15 +75,18 @@ void CVFPCPlugin::debugMessage(string type, string message) {
 	}
 }
 
+//Send message to user via "VFPC" channel
 void CVFPCPlugin::sendMessage(string type, string message) {
 	// Show a message
 	DisplayUserMessage("VFPC", type.c_str(), message.c_str(), true, true, true, true, false);
 }
 
+//Send system message to user via "VFPC" channel
 void CVFPCPlugin::sendMessage(string message) {
 	DisplayUserMessage("VFPC", "System", message.c_str(), true, true, true, false, false);
 }
 
+//CURL call, saves output to passed string reference
 bool CVFPCPlugin::webCall(string url, string& out) {
 	CURL* curl = curl_easy_init();
 	curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
@@ -103,6 +108,7 @@ bool CVFPCPlugin::webCall(string url, string& out) {
 	return false;
 }
 
+//Makes CURL call to Date/Time server and stores output
 bool CVFPCPlugin::timeCall() {
 	Document doc;
 	string url = "http://worldtimeapi.org/api/timezone/Europe/London";
@@ -136,6 +142,7 @@ bool CVFPCPlugin::timeCall() {
 	}
 }
 
+//Makes CURL call to API server for data and stores output
 bool CVFPCPlugin::APICall(string endpoint, Document& out) {
 	string url = MY_API_ADDRESS + endpoint;
 	string buf = "";
@@ -163,7 +170,8 @@ bool CVFPCPlugin::APICall(string endpoint, Document& out) {
 	return true;
 }
 
-bool CVFPCPlugin::checkVersion() {
+//Makes CURL call to API server for current version and stores output
+bool CVFPCPlugin::versionCall() {
 	Document version;
 	APICall("version", version);
 	
@@ -187,6 +195,7 @@ bool CVFPCPlugin::checkVersion() {
 	return false;
 }
 
+//Loads data from file
 bool CVFPCPlugin::fileCall(Document &out) {
 	char DllPathFile[_MAX_PATH];
 	GetModuleFileNameA(HINSTANCE(&__ImageBase), DllPathFile, sizeof(DllPathFile));
@@ -221,16 +230,19 @@ bool CVFPCPlugin::fileCall(Document &out) {
 	}
 }
 
+//Loads data and sorts into airports
 void CVFPCPlugin::getSids() {
+	//Load data from API
 	if (autoLoad) {
 		autoLoad = APICall("mongoFull", config);
 	}
+	//Load data from Sid.json file
 	else if (fileLoad) {
 		fileLoad = fileCall(config);
 	}
 
+	//Sort new data into airports
 	airports.clear();
-
 	for (SizeType i = 0; i < config.Size(); i++) {
 		const Value& airport = config[i];
 		string airport_icao = airport["icao"].GetString();
@@ -239,7 +251,7 @@ void CVFPCPlugin::getSids() {
 	}
 }
 
-// Does the checking and magic stuff, so everything will be alright when this is finished! Or not. Who knows?
+//Checks flight plan
 vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	//out[0] = Normal Output, out[1] = Debug Output
 	vector<vector<string>> returnOut = { vector<string>(), vector<string>() }; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Route, 4 = Nav Performance, 5 = Min/Max Flight Level, 6 = Even/Odd, 7 = Suffix, 8 = Aircraft Type, 9 = Date/Time, 10 = Syntax, 11 = Passed/Failed
@@ -983,6 +995,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	}
 }
 
+//Outputs recommended alternatives (from Restrictions array) as string
 string CVFPCPlugin::AlternativesOutput(size_t origin_int, size_t pos, vector<size_t> successes) {
 	string out = "";
 	const Value& sid_ele = config[origin_int]["sids"][pos];
@@ -1023,6 +1036,7 @@ string CVFPCPlugin::AlternativesOutput(size_t origin_int, size_t pos, vector<siz
 	return "Recommended Alternatives: " + out.substr(0, out.size() - 2) + ".";
 }
 
+//Outputs aircraft type and date/time restrictions (from Restrictions array) as string
 string CVFPCPlugin::RestrictionsOutput(size_t origin_int, size_t pos, bool check_type, bool check_time, vector<size_t> successes) {
 	vector<vector<string>> rests{};
 	const Value& sid_ele = config[origin_int]["sids"][pos];
@@ -1248,6 +1262,7 @@ string CVFPCPlugin::RestrictionsOutput(size_t origin_int, size_t pos, bool check
 	return "SID Restrictions: " + out + ".";
 }
 
+//Outputs valid suffices (from Restrictions array) as string
 string CVFPCPlugin::SuffixOutput(size_t origin_int, size_t pos, vector<size_t> successes) {
 	vector<string> suffices{};
 	const Value& sid_eles = config[origin_int]["sids"][pos];
@@ -1299,6 +1314,7 @@ string CVFPCPlugin::SuffixOutput(size_t origin_int, size_t pos, vector<size_t> s
 	return out;
 }
 
+//Outputs valid cruise level direction (from Constraints array) as string
 string CVFPCPlugin::DirectionOutput(size_t origin_int, size_t pos, vector<size_t> successes) {
 	const Value& conditions = config[origin_int]["sids"][pos]["constraints"];
 	bool lvls[2] { false, false };
@@ -1336,6 +1352,7 @@ string CVFPCPlugin::DirectionOutput(size_t origin_int, size_t pos, vector<size_t
 	return out;
 }
 
+//Outputs valid cruise level blocks (from Constraints array) as string
 string CVFPCPlugin::MinMaxOutput(size_t origin_int, size_t pos, vector<size_t> successes) {
 	const Value& conditions = config[origin_int]["sids"][pos]["constraints"];
 	vector<vector<int>> raw_lvls{};
@@ -1412,6 +1429,7 @@ string CVFPCPlugin::MinMaxOutput(size_t origin_int, size_t pos, vector<size_t> s
 	return out;
 }
 
+//Outputs valid navigational performance (from Constraints array) as string
 string CVFPCPlugin::NavPerfOutput(size_t origin_int, size_t pos, vector<size_t> successes) {
 	const Value& conditions = config[origin_int]["sids"][pos]["constraints"];
 	vector<string> navperf{};
@@ -1441,6 +1459,7 @@ string CVFPCPlugin::NavPerfOutput(size_t origin_int, size_t pos, vector<size_t> 
 	return "Navigation Performance. Required Performance: " + out;
 }
 
+//Outputs valid initial routes (from Constraints array) as string
 string CVFPCPlugin::RouteOutput(size_t origin_int, size_t pos, vector<size_t> successes) {
 	const Value& conditions = config[origin_int]["sids"][pos]["constraints"];
 	vector<string> outroute{};
@@ -1514,6 +1533,7 @@ string CVFPCPlugin::RouteOutput(size_t origin_int, size_t pos, vector<size_t> su
 	return "Route. Valid Initial Routes: " + out;
 }
 
+//Outputs valid destinations (from Constraints array) as string
 string CVFPCPlugin::DestinationOutput(size_t origin_int, size_t pos, vector<size_t> successes) {
 	const Value& conditions = config[origin_int]["sids"][pos]["constraints"];
 	vector<vector<string>> res{ vector<string>{}, vector<string>{} };
@@ -1607,7 +1627,7 @@ string CVFPCPlugin::DestinationOutput(size_t origin_int, size_t pos, vector<size
 	return "Destination. Valid Destinations: " + out;
 }
 
-//
+//Handles departure list menu and menu items
 void CVFPCPlugin::OnFunctionCall(int FunctionId, const char * ItemString, POINT Pt, RECT Area) {
 	if (FunctionId == TAG_FUNC_CHECKFP_MENU) {
 		OpenPopupList(Area, "Check FP", 1);
@@ -1618,7 +1638,7 @@ void CVFPCPlugin::OnFunctionCall(int FunctionId, const char * ItemString, POINT 
 	}
 }
 
-// Get FlightPlan, and therefore get the first waypoint of the flightplan (ie. SID). Check if the (RFL/1000) corresponds to the SID Min FL and report output "OK" or "FPL"
+//Gets flight plan, checks if (S/D)VFR, calls checking algorithms, and outputs pass/fail result to departure list item
 void CVFPCPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int ItemCode, int TagData, char sItemString[16], int* pColorCode, COLORREF* pRGB, double* pFontSize){
 	if (validVersion && ItemCode == TAG_ITEM_FPCHECK && airports.find(FlightPlan.GetFlightPlanData().GetOrigin()) != airports.end()) {
 		string FlightPlanString = FlightPlan.GetFlightPlanData().GetRoute();
@@ -1626,7 +1646,7 @@ void CVFPCPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget,
 
 		*pColorCode = TAG_COLOR_RGB_DEFINED;
 		string fpType{ FlightPlan.GetFlightPlanData().GetPlanType() };
-		if (fpType == "V") {
+		if (fpType == "V" || fpType == "S" || fpType == "D") {
 			*pRGB = TAG_GREEN;
 			strcpy_s(sItemString, 16, "VFR");
 		}
@@ -1648,6 +1668,7 @@ void CVFPCPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget,
 	}
 }
 
+//Handles console commands
 bool CVFPCPlugin::OnCompileCommand(const char * sCommandLine) {
 	//Restart Automatic Data Loading
 	if (startsWith(".vfpc load", sCommandLine))
@@ -1695,7 +1716,7 @@ bool CVFPCPlugin::OnCompileCommand(const char * sCommandLine) {
 	return false;
 }
 
-// Sends to you, which checks were failed and which were passed on the selected aircraft
+//Compiles and outputs check details to user
 void CVFPCPlugin::checkFPDetail() {
 	if (validVersion) {
 		vector<vector<string>> validize = validizeSid(FlightPlanSelectASEL());
@@ -1731,6 +1752,7 @@ void CVFPCPlugin::checkFPDetail() {
 	}
 }
 
+//Compiles list of failed elements in flight plan, in preparation for adding to departure list
 string CVFPCPlugin::getFails(vector<string> messageBuffer) {
 	vector<string> fail;
 
@@ -1766,12 +1788,14 @@ string CVFPCPlugin::getFails(vector<string> messageBuffer) {
 	return fail[failPos % fail.size()];
 }
 
-void CVFPCPlugin::APICalls() {
-	validVersion = checkVersion();
-	getSids();
+//Runs all web/file calls at once
+void CVFPCPlugin::runWebCalls() {
+	validVersion = versionCall();
 	timeCall();
+	getSids();
 }
 
+//Runs once per second, when EuroScope clock updates
 void CVFPCPlugin::OnTimer(int Counter) {
 	if (validVersion) {
 		if (relCount == -1 && fut.valid() && fut.wait_for(1ms) == std::future_status::ready) {
@@ -1796,7 +1820,7 @@ void CVFPCPlugin::OnTimer(int Counter) {
 
 		// Loading proper Sids, when logged in
 		if (GetConnectionType() != CONNECTION_TYPE_NO && relCount == 0) {
-			fut = std::async(std::launch::async, &CVFPCPlugin::APICalls, this);
+			fut = std::async(std::launch::async, &CVFPCPlugin::runWebCalls, this);
 			relCount--;
 		}
 		else if (GetConnectionType() == CONNECTION_TYPE_NO) {

@@ -40,7 +40,7 @@ public:
 
 	virtual bool APICall(string endpoint, Document& out);
 
-	virtual bool checkVersion();
+	virtual bool versionCall();
 
 	virtual bool fileCall(Document &out);
 
@@ -218,7 +218,7 @@ public:
 
 	virtual string getFails(vector<string> messageBuffer);
 
-	virtual void APICalls();
+	virtual void runWebCalls();
 
 	virtual void OnTimer(int Count);
 
