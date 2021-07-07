@@ -1709,36 +1709,45 @@ bool CVFPCPlugin::OnCompileCommand(const char * sCommandLine) {
 //Compiles and outputs check details to user
 void CVFPCPlugin::checkFPDetail() {
 	if (validVersion) {
-		vector<vector<string>> validize = validizeSid(FlightPlanSelectASEL());
-		vector<string> messageBuffer{ validize[0] }; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Route, 4 = Nav Performance, 5 = Min/Max Flight Level, 6 = Even/Odd, 7 = Suffix, 8 = Aircraft Type, 9 = Date/Time, 10 = Syntax, 11 = Passed/Failed
-		vector<string> logBuffer{ validize[1] }; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Route, 4 = Nav Performance, 5 = Min/Max Flight Level, 6 = Even/Odd, 7 = Suffix, 8 = Aircraft Type, 9 = Date/Time, 10 = Syntax, 11 = Passed/Failed
-		sendMessage(messageBuffer.front(), "Checking...");
+		CFlightPlan FlightPlan = FlightPlanSelectASEL();
+		string fpType{ FlightPlan.GetFlightPlanData().GetPlanType() };
+		if (fpType == "V" || fpType == "S" || fpType == "D") {
+			string buf = "Flight Plan Checking Not Supported For VFR Flights.";
+			sendMessage(FlightPlan.GetCallsign(), buf);
+			debugMessage(FlightPlan.GetCallsign(), buf);
+		}
+		else {
+			vector<vector<string>> validize = validizeSid(FlightPlanSelectASEL());
+			vector<string> messageBuffer{ validize[0] }; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Route, 4 = Nav Performance, 5 = Min/Max Flight Level, 6 = Even/Odd, 7 = Suffix, 8 = Aircraft Type, 9 = Date/Time, 10 = Syntax, 11 = Passed/Failed
+			vector<string> logBuffer{ validize[1] }; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Route, 4 = Nav Performance, 5 = Min/Max Flight Level, 6 = Even/Odd, 7 = Suffix, 8 = Aircraft Type, 9 = Date/Time, 10 = Syntax, 11 = Passed/Failed
+			sendMessage(messageBuffer.front(), "Checking...");
 #
-		string buffer{ messageBuffer.at(1) + " | " };
-		string logbuf{ logBuffer.at(1) + " | " };
+			string buffer{ messageBuffer.at(1) + " | " };
+			string logbuf{ logBuffer.at(1) + " | " };
 
-		if (messageBuffer.at(1).find("Invalid") != 0) {
-			for (size_t i = 2; i < messageBuffer.size() - 1; i++) {
-				string temp = messageBuffer.at(i);
-				string logtemp = logBuffer.at(i);
+			if (messageBuffer.at(1).find("Invalid") != 0) {
+				for (size_t i = 2; i < messageBuffer.size() - 1; i++) {
+					string temp = messageBuffer.at(i);
+					string logtemp = logBuffer.at(i);
 
-				if (temp != "-") {
-					buffer += temp;
-					buffer += " | ";
-				}
+					if (temp != "-") {
+						buffer += temp;
+						buffer += " | ";
+					}
 
-				if (logtemp != "-") {
-					logbuf += logtemp;
-					logbuf += " | ";
+					if (logtemp != "-") {
+						logbuf += logtemp;
+						logbuf += " | ";
+					}
 				}
 			}
+
+			buffer += messageBuffer.back();
+			logbuf += logBuffer.back();
+
+			sendMessage(messageBuffer.front(), buffer);
+			debugMessage(logBuffer.front(), logbuf);
 		}
-
-		buffer += messageBuffer.back();
-		logbuf += logBuffer.back();
-
-		sendMessage(messageBuffer.front(), buffer);
-		debugMessage(logBuffer.front(), logbuf);
 	}
 }
 
