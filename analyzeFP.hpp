@@ -20,7 +20,7 @@
 #define MY_PLUGIN_VIEW_AVISO  "VATSIM (UK) Flight Plan Checker"
 #define MY_API_ADDRESS	"https://vfpc.tomjmills.co.uk/"
 
-#define PLUGIN_WELCOME_MESSAGE	"Welcome to the VATSIM (UK) Flight Plan Checker"
+#define PLUGIN_WELCOME_MESSAGE	"Welcome to the (UK) VATSIM Flight Plan Checker"
 
 using namespace std;
 using namespace boost;
@@ -36,9 +36,11 @@ public:
 
 	virtual void timeCall();
 
-	virtual void webCall(string endpoint, Document& out);
+	virtual bool webCall(string endpoint, Document& out);
 
 	virtual bool checkVersion();
+
+	virtual bool fileCall(Document &out);
 
 	virtual void getSids();
 
