@@ -645,7 +645,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					case 2:
 					{
 						//Nav Perf
-						if (conditions[i].HasMember("nav") && conditions[i]["nav"].IsString()) {
+						/* if (conditions[i].HasMember("nav") && conditions[i]["nav"].IsString()) {
 							string navigation_constraints(conditions[i]["nav"].GetString());
 							if (string::npos == navigation_constraints.find_first_of(flightPlan.GetFlightPlanData().GetCapibilities())) {
 								new_validity.push_back(false);
@@ -656,7 +656,9 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 						}
 						else {
 							new_validity.push_back(true);
-						}
+						} */
+
+						new_validity.push_back(true); //Check disabled until future release
 						break;
 					}
 					case 3:
