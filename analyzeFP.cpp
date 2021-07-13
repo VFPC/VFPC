@@ -109,26 +109,25 @@ bool CVFPCPlugin::timeCall() {
 		{
 			sendMessage("An error occurred whilst reading date/time data. The plugin will not automatically attempt to reload from the API. To restart data fetching, type \".vfpc load\".");
 			debugMessage("Error", str(boost::format("Config Parse: %s (Offset: %i)\n'") % config.GetParseError() % config.GetErrorOffset()));
+		}
+		else if (doc.HasMember("datetime") && doc["datetime"].IsString() && doc.HasMember("day_of_week") && doc["day_of_week"].IsInt()) {
+			string hour = ((string)doc["datetime"].GetString()).substr(11, 2);
+			string mins = ((string)doc["datetime"].GetString()).substr(14, 2);
 
-			doc.Parse<0>("{}");
+			timedata[0] = doc["day_of_week"].GetInt();
+			timedata[1] = stoi(hour);
+			timedata[2] = stoi(mins);
+
+			return true;
 		}
 	}
 	else
 	{
 		sendMessage("An error occurred whilst downloading date/time data. The plugin will not automatically attempt to reload from the API. Check your connection and restart data fetching by typing \".vfpc load\".");
 		debugMessage("Error", str(boost::format("Config Download: %s (Offset: %i)\n'") % config.GetParseError() % config.GetErrorOffset()));
-
-		doc.Parse<0>("{}");
 	}
 
-	if (doc.HasMember("datetime") && doc["datetime"].IsString() && doc.HasMember("day_of_week") && doc["day_of_week"].IsInt()) {
-		string hour = ((string)doc["datetime"].GetString()).substr(11, 2);
-		string mins = ((string)doc["datetime"].GetString()).substr(14, 2);
-
-		timedata[0] = doc["day_of_week"].GetInt();
-		timedata[1] = stoi(hour);
-		timedata[2] = stoi(mins);
-	}
+	return false;
 }
 
 //Makes CURL call to API server for data and stores output
@@ -276,6 +275,12 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	vector<string> route = split(flightPlan.GetFlightPlanData().GetRoute(), ' ');
 	for (size_t i = 0; i < route.size(); i++) {
 		boost::to_upper(route[i]);
+	}
+
+	vector<string> points{};
+	CFlightPlanExtractedRoute extracted = flightPlan.GetExtractedRoute();
+	for (int i = 0; i < extracted.GetPointsNumber(); i++) {
+		points.push_back(extracted.GetPointName(i));
 	}
 
 	// Remove Speed/Alt Data From Route
@@ -629,14 +634,40 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 						//Route
 						bool res = true;
 
-						string perms = "";
-
 						if (conditions[i].HasMember("route") && conditions[i]["route"].IsArray() && conditions[i]["route"].Size() && !routeContains(flightPlan.GetCallsign(), route, conditions[i]["route"])) {
 							res = false;
 						}
 
+						if (conditions[i].HasMember("points") && conditions[i]["points"].IsArray() && conditions[i]["points"].Size()) {
+							bool temp = false;
+
+							for (string each : points) {
+								if (arrayContains(conditions[i]["points"], each)) {
+									temp = true;
+								}
+							}
+
+							if (!temp) {
+								res = false;
+							}
+						}
+
 						if (conditions[i].HasMember("noroute") && res && conditions[i]["noroute"].IsArray() && conditions[i]["noroute"].Size() && routeContains(flightPlan.GetCallsign(), route, conditions[i]["noroute"])) {
 							res = false;
+						}
+
+						if (conditions[i].HasMember("nopoints") && conditions[i]["nopoints"].IsArray() && conditions[i]["nopoints"].Size()) {
+							bool temp = false;
+
+							for (string each : points) {
+								if (arrayContains(conditions[i]["nopoints"], each)) {
+									temp = true;
+								}
+							}
+
+							if (temp) {
+								res = false;
+							}
 						}
 
 						new_validity.push_back(res);
@@ -944,12 +975,12 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 				}
 
 				returnOut[0][3] = "Passed Route.";
-				returnOut[1][3] = "Passed " + RouteOutput(origin_int, pos, successes);
+				returnOut[1][3] = "Passed " + RouteOutput(origin_int, pos, successes, points);
 			}
 			case 1:
 			{
 				if (round == 1) {
-					returnOut[1][3] = returnOut[0][3] = "Failed " + RouteOutput(origin_int, pos, successes);
+					returnOut[1][3] = returnOut[0][3] = "Failed " + RouteOutput(origin_int, pos, successes, points);
 				}
 
 				returnOut[0][2] = "Passed Destination.";
@@ -1452,62 +1483,149 @@ string CVFPCPlugin::NavPerfOutput(size_t origin_int, size_t pos, vector<size_t> 
 }
 
 //Outputs valid initial routes (from Constraints array) as string
-string CVFPCPlugin::RouteOutput(size_t origin_int, size_t pos, vector<size_t> successes) {
+string CVFPCPlugin::RouteOutput(size_t origin_int, size_t pos, vector<size_t> successes, vector<string> extracted_route) {
 	const Value& conditions = config[origin_int]["sids"][pos]["constraints"];
 	vector<string> outroute{};
-	for (int each : successes) {
-		string out = "";
-		if (conditions[each].HasMember("route") && conditions[each]["route"].IsArray() && conditions[each]["route"].Size()) {
-			out += conditions[each]["route"][(SizeType)0].GetString();
+	bool all = false;
 
-			for (SizeType j = 1; j < conditions[each]["route"].Size(); j++) {
-				out += " or ";
-				out += conditions[each]["route"][j].GetString();
+	do {
+		for (int each : successes) {
+			bool contents[4]{ 0 };
+
+			if (conditions[each]["route"].IsArray() && conditions[each]["route"].Size()) {
+				contents[0] = true;
 			}
-		}
+			if (conditions[each]["points"].IsArray() && conditions[each]["points"].Size()) {
+				contents[1] = true;
 
-		if (conditions[each].HasMember("noroute") && conditions[each]["noroute"].IsArray() && conditions[each]["noroute"].Size()) {
-			if (out != "") {
-				out += " but ";
+				if (!all) {
+					bool found = false;
+
+					for (string point : extracted_route) {
+						if (arrayContains(conditions[each]["points"], point)) {
+							found = true;
+						}
+					}
+
+					if (!found) {
+						continue;
+					}
+				}
+			}
+			if (conditions[each]["noroute"].IsArray() && conditions[each]["noroute"].Size()) {
+				contents[2] = true;
+			}
+			if (conditions[each]["nopoints"].IsArray() && conditions[each]["nopoints"].Size()) {
+				contents[3] = true;
+
+				if (!all) {
+					bool found = false;
+
+					for (string point : extracted_route) {
+						if (arrayContains(conditions[each]["points"], point)) {
+							found = true;
+						}
+					}
+
+					if (found) {
+						continue;
+					}
+				}
 			}
 
-			out += "not ";
+			string out = "";
+			if (contents[0]) {
+				out += conditions[each]["route"][(SizeType)0].GetString();
 
-			out += conditions[each]["noroute"][(SizeType)0].GetString();
-
-			for (SizeType j = 1; j < conditions[each]["noroute"].Size(); j++) {
-				out += ", ";
-				out += conditions[each]["noroute"][j].GetString();
+				for (size_t j = 1; j < conditions[each]["route"].Size(); j++) {
+					out += " or ";
+					out += conditions[each]["route"][j].GetString();
+				}
 			}
+
+			if (contents[1]) {
+				if (contents[0]) {
+					out += " and ";
+				}
+
+				out += "via ";
+				out += conditions[each]["points"][(size_t)0].GetString();
+
+				for (size_t j = 1; j < conditions[each]["points"].Size(); j++) {
+					out += ", ";
+					out += conditions[each]["points"][j].GetString();
+				}
+			}
+
+			if (contents[2]) {
+				if (contents[0] || contents[1]) {
+					out += " but ";
+				}
+
+				out += "not ";
+				out += conditions[each]["noroute"][(size_t)0].GetString();
+
+				for (size_t j = 1; j < conditions[each]["noroute"].Size(); j++) {
+					out += ", ";
+					out += conditions[each]["noroute"][j].GetString();
+				}
+			}
+
+			if (contents[3]) {
+				if (contents[2]) {
+					out += " or ";
+				}
+				else {
+					if (contents[0] || contents[1]) {
+						out += " but ";
+					}
+					out += "not ";
+				}
+
+				out += "via ";
+				out += conditions[each]["nopoints"][(size_t)0].GetString();
+
+				for (size_t j = 1; j < conditions[each]["nopoints"].Size(); j++) {
+					out += ", ";
+					out += conditions[each]["nopoints"][j].GetString();
+				}
+			}
+
+			int Min, Max;
+			bool min = false;
+			bool max = false;
+
+			if (conditions[each].HasMember("min") && conditions[each]["min"].IsInt() && (Min = conditions[each]["min"].GetInt()) > 0) {
+				min = true;
+			}
+
+			if (conditions[each].HasMember("max") && conditions[each]["max"].IsInt() && (Max = conditions[each]["max"].GetInt()) > 0) {
+				max = true;
+			}
+
+			if (min && max) {
+				out += " (FL" + to_string(Min) + " - " + to_string(Max) + ")";
+			}
+			else if (min) {
+				out += " (FL" + to_string(Min) + "+)";
+			}
+			else if (max) {
+				out += " (FL" + to_string(Max) + "-)";
+			}
+			else {
+				out += " (All Levels)";
+			}
+
+			outroute.push_back(out);
 		}
 
-		int Min, Max;
-		bool min = false;
-		bool max = false;
-
-		if (conditions[each].HasMember("min") && conditions[each]["min"].IsInt() && (Min = conditions[each]["min"].GetInt()) > 0) {
-			min = true;
-		}
-
-		if (conditions[each].HasMember("max") && conditions[each]["max"].IsInt() && (Max = conditions[each]["max"].GetInt()) > 0) {
-			max = true;
-		}
-
-		if (min && max) {
-			out += " (FL" + to_string(Min) + " - " + to_string(Max) + ")";
-		}
-		else if (min) {
-			out += " (FL" + to_string(Min) + "+)";
-		}
-		else if (max) {
-			out += " (FL" + to_string(Max) + "-)";
+		if (!all && outroute.size() == 0) {
+			all = true;
 		}
 		else {
-			out += " (All Levels)";
+			all = false;
 		}
-
-		outroute.push_back(out);
-	}
+	} while (all);
 
 	string out = "";
 
