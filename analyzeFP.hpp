@@ -62,7 +62,7 @@ public:
 
 	virtual string RouteOutput(size_t origin_int, size_t pos, vector<size_t> successes, vector<string> extracted_route);
 
-	virtual string DestinationOutput(size_t origin_int, size_t pos, vector<size_t> successes);
+	virtual string DestinationOutput(size_t origin_int, string dest);
 
 	//virtual string EngineOutput(size_t origin_int, size_t pos, vector<int> successes);
 
