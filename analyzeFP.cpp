@@ -1660,9 +1660,8 @@ string CVFPCPlugin::DestinationOutput(size_t origin_int, string dest) {
 						push_a = true;
 					}
 				}
-
-				if (conditions[j]["nodests"].IsArray() && conditions[j]["nodests"].Size()) {
-					if (destArrayContains(conditions[j]["nodests"], dest) != "") {
+				else if (conditions[j]["nodests"].IsArray() && conditions[j]["nodests"].Size()) {
+					if (destArrayContains(conditions[j]["nodests"], dest) == "") {
 						push_b = true;
 					}
 				}
