@@ -1679,7 +1679,7 @@ string CVFPCPlugin::DestinationOutput(size_t origin_int, string dest) {
 	string out = "";
 
 	if (a.size()) {
-		out += "valid for: ";
+		out += "is valid for: ";
 
 		for (string each : a) {
 			out += each;
@@ -1708,7 +1708,7 @@ string CVFPCPlugin::DestinationOutput(size_t origin_int, string dest) {
 		out = "No valid SIDs found for " + dest + out;
 	}
 	else {
-		out = dest + " is " + out;
+		out = dest + " " + out;
 	}
 
 	return "Destination. " + out;
