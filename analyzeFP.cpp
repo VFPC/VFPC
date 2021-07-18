@@ -984,12 +984,12 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 				}
 
 				returnOut[0][2] = "Passed Destination.";
-				returnOut[1][2] = "Passed " + DestinationOutput(origin_int, pos, successes);
+				returnOut[1][2] = "Passed " + DestinationOutput(origin_int, destination);
 			}
 			case 0:
 			{
 				if (round == 0) {
-					returnOut[1][2] = returnOut[0][2] = "Failed " + DestinationOutput(origin_int, pos, successes);
+					returnOut[1][2] = returnOut[0][2] = "Failed " + DestinationOutput(origin_int, destination);
 				}
 				break;
 			}
@@ -1644,8 +1644,76 @@ string CVFPCPlugin::RouteOutput(size_t origin_int, size_t pos, vector<size_t> su
 }
 
 //Outputs valid destinations (from Constraints array) as string
-string CVFPCPlugin::DestinationOutput(size_t origin_int, size_t pos, vector<size_t> successes) {
-	const Value& conditions = config[origin_int]["sids"][pos]["constraints"];
+string CVFPCPlugin::DestinationOutput(size_t origin_int, string dest) {
+	vector<string> a{}; //Explicitly Permitted
+	vector<string> b{}; //Implicitly Permitted (Not Explicitly Prohibited)
+
+	for (size_t i = 0; i < config[origin_int]["sids"].Size(); i++) {
+		if (config[origin_int]["sids"][i].HasMember("point") && config[origin_int]["sids"][i]["point"].IsString()) {
+			bool push_a = false;
+			bool push_b = false;
+
+			const Value& conditions = config[origin_int]["sids"][i]["constraints"];
+			for (size_t j = 0; j < conditions.Size(); j++) {
+				if (conditions[j]["dests"].IsArray() && conditions[j]["dests"].Size()) {
+					if (destArrayContains(conditions[j]["dests"], dest) != "") {
+						push_a = true;
+					}
+				}
+				else if (conditions[j]["nodests"].IsArray() && conditions[j]["nodests"].Size()) {
+					if (destArrayContains(conditions[j]["nodests"], dest) == "") {
+						push_b = true;
+					}
+				}
+			}
+
+			if (push_a) {
+				a.push_back(config[origin_int]["sids"][i]["point"].GetString());
+			}
+			else if (push_b) {
+				b.push_back(config[origin_int]["sids"][i]["point"].GetString());
+			}
+		}
+	}
+
+	string out = "";
+
+	if (a.size()) {
+		out += "is valid for: ";
+
+		for (string each : a) {
+			out += each;
+			out += ", ";
+		}
+
+		out = out.substr(0, out.size() - 2) + ".";
+	}
+
+	if (b.size()) {
+		if (a.size()) {
+			out += " Additionally, " + dest + " ";
+		}
+
+		out += "may be valid for: ";
+
+		for (string each : b) {
+			out += each;
+			out += ", ";
+		}
+
+		out = out.substr(0, out.size() - 2) + ".";
+	}
+
+	if (out == "") {
+		out = "No valid SIDs found for " + dest + out;
+	}
+	else {
+		out = dest + " " + out;
+	}
+
+	return "Destination. " + out;
+
+	/*const Value& conditions = config[origin_int]["sids"][pos]["constraints"];
 	vector<vector<string>> res{ vector<string>{}, vector<string>{} };
 
 	for (int each : successes) {
@@ -1734,7 +1802,7 @@ string CVFPCPlugin::DestinationOutput(size_t origin_int, size_t pos, vector<size
 		out = out.substr(0, out.length() - 2);
 	}
 
-	return "Destination. Valid Destinations: " + out;
+	return "Destination. Valid Destinations: " + out;*/
 }
 
 //Handles departure list menu and menu items
