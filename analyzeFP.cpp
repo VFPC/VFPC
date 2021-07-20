@@ -283,57 +283,10 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		points.push_back(extracted.GetPointName(i));
 	}
 
-	// Remove Speed/Alt Data From Route
+	// Matches Speed/Alt Data In Route
 	regex lvl_chng("(N|M|K)[0-9]{3,4}((A|F)[0-9]{3}|(S|M)[0-9]{4})$");
 
-	// Remove "DCT" And Speed/Level Change Instances from Route
-	for (size_t i = 0; i < route.size(); i++) {
-		int count = 0;
-		size_t pos = 0;
-
-		for (size_t j = 0; j < route[i].size(); j++) {
-			if (route[i][j] == '/') {
-				count++;
-				pos = j;
-			}
-		}
-
-		switch (count) {
-			case 0:
-			{
-				break;
-			}
-			case 2:
-			{
-				size_t first_pos = route[i].find('/');
-				route[i] = route[i].substr(first_pos, string::npos);
-			}
-			case 1:
-			{
-				if (route[i].size() > pos + 1 && regex_match((route[i].substr(pos + 1, string::npos)), lvl_chng)) {
-					route[i] = route[i].substr(0, pos);
-					break;
-				}
-				else {
-					returnOut[0][returnOut[0].size() - 2] = "Invalid Speed/Level Change";
-					returnOut[0].back() = "Failed";
-
-					returnOut[1][returnOut[1].size() - 2] = "Invalid Route Item: " + route[i];
-					returnOut[1].back() = "Failed";
-					return returnOut;
-				}
-			}
-			default:
-			{
-				returnOut[0][returnOut.size() - 2] = "Invalid Syntax - Too Many \"/\" Characters in One or More Waypoints";
-				returnOut[0].back() = "Failed";
-
-				returnOut[1][returnOut.size() - 2] = "Invalid Route Item: " + route[i];
-				returnOut[1].back() = "Failed";
-				return returnOut;
-			}
-		}
-	}
+	// Remove "DCT" Instances from Route
 	for (size_t i = 0; i < route.size(); i++) {
 		if (route[i] == "DCT") {
 			route.erase(route.begin() + i);
@@ -395,10 +348,33 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 				stop = true;
 			}
 			//3 or 5 Letter Waypoint SID - In Full
-			else if (entry_size > wp_size && isdigit(route[0][wp_size])) {
-				//SID Has Letter Suffix
-				for (size_t i = wp_size + 1; i < entry_size; i++) {
-					if (!isalpha(route[0][i])) {
+			else if (entry_size >= wp_size + 2 && isdigit(route[0][wp_size]) && isalpha(route[0][wp_size + 1])) {
+				bool valid = true;
+				//EuroScope "SID/Runway" Assignment Syntax
+				if (entry_size > wp_size + 2) {
+					if (route[0][wp_size + 2] == '/' && entry_size >= wp_size + 5 && entry_size <= wp_size + 6) {
+						if (!isdigit(route[0][wp_size + 3])) {
+							valid = false;
+						}
+
+						size_t mod = 0;
+						if (entry_size == wp_size + 6) {
+							if (!isdigit(route[0][wp_size + 4])) {
+								valid = false;
+							}
+							mod++;
+						}
+
+						if (!isalpha(route[0][wp_size + 4 + mod])) {
+							valid = false;
+						}
+						
+					}
+					else {
+						valid = false;
+					}
+
+					if (!valid) {
 						stop = true;
 					}
 				}
@@ -432,6 +408,54 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		returnOut[1][1] = "Invalid SID - Route must start at " + first_wp + ".";
 		returnOut[1].back() = "Failed";
 		return returnOut;
+	}
+	// Remove Speed / Level Change Instances from Route
+	for (size_t i = 0; i < route.size(); i++) {
+		int count = 0;
+		size_t pos = 0;
+
+		for (size_t j = 0; j < route[i].size(); j++) {
+			if (route[i][j] == '/') {
+				count++;
+				pos = j;
+			}
+		}
+
+		switch (count) {
+		case 0:
+		{
+			break;
+		}
+		case 2:
+		{
+			size_t first_pos = route[i].find('/');
+			route[i] = route[i].substr(first_pos, string::npos);
+		}
+		case 1:
+		{
+			if (route[i].size() > pos + 1 && regex_match((route[i].substr(pos + 1, string::npos)), lvl_chng)) {
+				route[i] = route[i].substr(0, pos);
+				break;
+			}
+			else {
+				returnOut[0][returnOut[0].size() - 2] = "Invalid Speed/Level Change";
+				returnOut[0].back() = "Failed";
+
+				returnOut[1][returnOut[1].size() - 2] = "Invalid Route Item: " + route[i];
+				returnOut[1].back() = "Failed";
+				return returnOut;
+			}
+		}
+		default:
+		{
+			returnOut[0][returnOut.size() - 2] = "Invalid Syntax - Too Many \"/\" Characters in One or More Waypoints";
+			returnOut[0].back() = "Failed";
+
+			returnOut[1][returnOut.size() - 2] = "Invalid Route Item: " + route[i];
+			returnOut[1].back() = "Failed";
+			return returnOut;
+		}
+		}
 	}
 
 	// Any SIDs defined
