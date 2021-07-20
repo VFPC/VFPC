@@ -284,7 +284,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	}
 
 	// Remove Speed/Alt Data From Route
-	regex lvl_chng("(N|M|K)[0-9]{3,4}(A|F)[0-9]{3}$");
+	regex lvl_chng("(N|M|K)[0-9]{3,4}((A|F)[0-9]{3}|(S|M)[0-9]{4})$");
 
 	// Remove "DCT" And Speed/Level Change Instances from Route
 	for (size_t i = 0; i < route.size(); i++) {
