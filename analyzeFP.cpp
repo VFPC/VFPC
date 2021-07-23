@@ -108,7 +108,7 @@ bool CVFPCPlugin::timeCall() {
 		if (doc.Parse<0>(buf.c_str()).HasParseError())
 		{
 			sendMessage("An error occurred whilst reading date/time data. The plugin will not automatically attempt to reload from the API. To restart data fetching, type \".vfpc load\".");
-			debugMessage("Error", str(boost::format("Config Parse: %s (Offset: %i)\n'") % config.GetParseError() % config.GetErrorOffset()));
+			debugMessage("Error", str(boost::format("Config Parse: %s (Offset: %i)\n'") % doc.GetParseError() % doc.GetErrorOffset()));
 		}
 		else if (doc.HasMember("datetime") && doc["datetime"].IsString() && doc.HasMember("day_of_week") && doc["day_of_week"].IsInt()) {
 			string hour = ((string)doc["datetime"].GetString()).substr(11, 2);
@@ -123,8 +123,8 @@ bool CVFPCPlugin::timeCall() {
 	}
 	else
 	{
-		sendMessage("An error occurred whilst downloading date/time data. The plugin will not automatically attempt to reload from the API. Check your connection and restart data fetching by typing \".vfpc load\".");
-		debugMessage("Error", str(boost::format("Config Download: %s (Offset: %i)\n'") % config.GetParseError() % config.GetErrorOffset()));
+		sendMessage("An error occurred whilst downloading date/time data.");
+		debugMessage("Error", "Failed to download date/time data.");
 	}
 
 	return false;
@@ -140,7 +140,7 @@ bool CVFPCPlugin::APICall(string endpoint, Document& out) {
 		if (out.Parse<0>(buf.c_str()).HasParseError())
 		{
 			sendMessage("An error occurred whilst reading data. The plugin will not automatically attempt to reload from the API. To restart data fetching, type \".vfpc load\".");
-			debugMessage("Error", str(boost::format("Config Parse: %s (Offset: %i)\n'") % config.GetParseError() % config.GetErrorOffset()));
+			debugMessage("Error", str(boost::format("Config Parse: %s (Offset: %i)\n'") % out.GetParseError() % out.GetErrorOffset()));
 			return false;
 
 			out.Parse<0>("[]");
@@ -149,7 +149,7 @@ bool CVFPCPlugin::APICall(string endpoint, Document& out) {
 	else
 	{
 		sendMessage("An error occurred whilst downloading data. The plugin will not automatically attempt to reload from the API. Check your connection and restart data fetching by typing \".vfpc load\".");
-		debugMessage("Error", str(boost::format("Config Download: %s (Offset: %i)\n'") % config.GetParseError() % config.GetErrorOffset()));
+		debugMessage("Error", str(boost::format("Config Download: %s (Offset: %i)\n'") % out.GetParseError() % out.GetErrorOffset()));
 		return false;
 
 		out.Parse<0>("[]");
