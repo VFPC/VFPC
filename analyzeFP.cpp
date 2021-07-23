@@ -107,7 +107,7 @@ bool CVFPCPlugin::timeCall() {
 	{
 		if (doc.Parse<0>(buf.c_str()).HasParseError())
 		{
-			sendMessage("An error occurred whilst reading date/time data. The plugin will not automatically attempt to reload from the API. To restart data fetching, type \".vfpc load\".");
+			sendMessage("An error occurred whilst reading date/time data. The plugin will continue attempting to load current date/time data.");
 			debugMessage("Error", str(boost::format("Config Parse: %s (Offset: %i)\n'") % doc.GetParseError() % doc.GetErrorOffset()));
 		}
 		else if (doc.HasMember("datetime") && doc["datetime"].IsString() && doc.HasMember("day_of_week") && doc["day_of_week"].IsInt()) {
@@ -123,7 +123,7 @@ bool CVFPCPlugin::timeCall() {
 	}
 	else
 	{
-		sendMessage("An error occurred whilst downloading date/time data.");
+		sendMessage("An error occurred whilst downloading date/time data. The plugin will continue attempting to load current date/time data.");
 		debugMessage("Error", "Failed to download date/time data.");
 	}
 
@@ -140,7 +140,7 @@ bool CVFPCPlugin::APICall(string endpoint, Document& out) {
 		if (out.Parse<0>(buf.c_str()).HasParseError())
 		{
 			sendMessage("An error occurred whilst reading data. The plugin will not automatically attempt to reload from the API. To restart data fetching, type \".vfpc load\".");
-			debugMessage("Error", str(boost::format("Config Parse: %s (Offset: %i)\n'") % out.GetParseError() % out.GetErrorOffset()));
+			debugMessage("Error", "Failed to download data from API.");
 			return false;
 
 			out.Parse<0>("[]");
@@ -222,7 +222,7 @@ bool CVFPCPlugin::fileCall(Document &out) {
 void CVFPCPlugin::getSids() {
 	//Load data from API
 	if (autoLoad) {
-		autoLoad = APICall("mongoFull", config);
+		autoLoad = APICall("full", config);
 	}
 	//Load data from Sid.json file
 	else if (fileLoad) {
