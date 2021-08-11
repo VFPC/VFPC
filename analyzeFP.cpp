@@ -970,7 +970,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					}
 				}
 
-				returnOut[0][6] = "Passed Level Direction.";
+				returnOut[0][6] = "Passed Odd-Even Rule.";
 				returnOut[1][6] = "Passed " + DirectionOutput(origin_int, pos, successes);
 			}
 			case 4:
@@ -1381,7 +1381,7 @@ string CVFPCPlugin::DirectionOutput(size_t origin_int, size_t pos, vector<size_t
 		}
 	}
 
-	string out = "Level Direction. Required Direction: ";
+	string out = "Odd-Even Rule. Required: ";
 
 	if (lvls[0] && lvls[1]) {
 		out += "Any";
@@ -1893,7 +1893,7 @@ string CVFPCPlugin::getFails(vector<string> messageBuffer) {
 		fail.push_back("MAX");
 	}
 	if (messageBuffer.at(6).find("Failed") == 0) {
-		fail.push_back("DIR");
+		fail.push_back("OER");
 	}
 	if (messageBuffer.at(7).find("Invalid") == 0) {
 		fail.push_back("SUF");
