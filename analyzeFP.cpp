@@ -258,10 +258,10 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 	// Airport defined
 	if (airports.find(origin) == airports.end()) {
-		returnOut[0][1] = "Invalid SID - Airport Not Found";
+		returnOut[0][1] = "Airport Not Found";
 		returnOut[0].back() = "Failed";
 
-		returnOut[1][1] = "Invalid SID - " + origin + " not in database.";
+		returnOut[1][1] = origin + " not in database.";
 		returnOut[1].back() = "Failed";
 		return returnOut;
 	}
@@ -298,117 +298,6 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		route.erase(route.begin());
 	}
 
-	string sid = flightPlan.GetFlightPlanData().GetSidName(); boost::to_upper(sid);
-
-	// Remove any # characters from SID name
-	boost::erase_all(sid, "#");
-
-	// Flightplan has SID
-	if (!sid.length()) {
-		returnOut[0][1] = returnOut[1][1] = "Invalid SID - None Set";
-		returnOut[0].back() = returnOut[1].back() = "Failed";
-		return returnOut;
-	}
-
-	string first_wp;
-	string sid_suffix;
-	if (origin == "EGLL" && sid == "CHK") {
-		first_wp = "CPT";
-		sid_suffix = "CHK";
-	}
-	else {
-		first_wp = sid.substr(0, sid.find_first_of("0123456789"));
-		if (0 != first_wp.length())
-			boost::to_upper(first_wp);
-		
-		if (first_wp.length() != sid.length()) {
-			sid_suffix = sid.substr(sid.find_first_of("0123456789"), sid.length());
-			boost::to_upper(sid_suffix);
-		}
-	}
-
-	// Did not find a valid SID
-	if (0 == sid_suffix.length() && "VCT" != first_wp) {
-		returnOut[0][1] = returnOut[1][1] = "Invalid SID - None Set";
-		returnOut[0].back() = returnOut[1].back() = "Failed";
-		return returnOut;
-	}
-
-	// Check First Waypoint Correct. Remove SID References & First Waypoint From Route.
-	bool success = false;
-	bool stop = false;
-
-	while (!stop && route.size() > 0) {
-		size_t wp_size = first_wp.size();
-		size_t entry_size = route[0].size();
-		if (route[0].substr(0, wp_size) == first_wp) {
-			//First Waypoint
-			if (wp_size == entry_size) {
-				success = true;
-				stop = true;
-			}
-			//3 or 5 Letter Waypoint SID - In Full
-			else if (entry_size >= wp_size + 2 && isdigit(route[0][wp_size]) && isalpha(route[0][wp_size + 1])) {
-				bool valid = true;
-				//EuroScope "SID/Runway" Assignment Syntax
-				if (entry_size > wp_size + 2) {
-					if (route[0][wp_size + 2] == '/' && entry_size >= wp_size + 5 && entry_size <= wp_size + 6) {
-						if (!isdigit(route[0][wp_size + 3])) {
-							valid = false;
-						}
-
-						size_t mod = 0;
-						if (entry_size == wp_size + 6) {
-							if (!isdigit(route[0][wp_size + 4])) {
-								valid = false;
-							}
-							mod++;
-						}
-
-						if (!isalpha(route[0][wp_size + 4 + mod])) {
-							valid = false;
-						}
-						
-					}
-					else {
-						valid = false;
-					}
-
-					if (!valid) {
-						stop = true;
-					}
-				}
-			}
-			else {
-				stop = true;
-			}
-
-			route.erase(route.begin());
-		}
-		//5 Letter Waypoint SID - Abbreviated to 6 Chars
-		else if (wp_size == 5 && entry_size >= wp_size && isdigit(route[0][wp_size - 1])) {
-			//SID Has Letter Suffix
-			for (size_t i = wp_size; i < entry_size; i++) {
-				if (!isalpha(route[0][i])) {
-					stop = true;
-				}
-			}
-
-			route.erase(route.begin());
-		}
-		else {
-			stop = true;
-		}
-	}
-	
-	if (!success) {
-		returnOut[0][1] = "Invalid SID - Route Not From Final SID Fix";
-		returnOut[0].back() = "Failed";
-
-		returnOut[1][1] = "Invalid SID - Route must start at " + first_wp + ".";
-		returnOut[1].back() = "Failed";
-		return returnOut;
-	}
 	// Remove Speed / Level Change Instances from Route
 	for (size_t i = 0; i < route.size(); i++) {
 		int count = 0;
@@ -458,17 +347,124 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		}
 	}
 
+	string sid = flightPlan.GetFlightPlanData().GetSidName(); boost::to_upper(sid);
+	string first_wp = "";
+	string sid_suffix = "";
+
+	//Route with SID
+	if (sid.length()) {
+		// Remove any # characters from SID name
+		boost::erase_all(sid, "#");
+
+		if (origin == "EGLL" && sid == "CHK") {
+			first_wp = "CPT";
+			sid_suffix = "CHK";
+		}
+		else {
+			first_wp = sid.substr(0, sid.find_first_of("0123456789"));
+			if (0 != first_wp.length())
+				boost::to_upper(first_wp);
+
+			if (first_wp.length() != sid.length()) {
+				sid_suffix = sid.substr(sid.find_first_of("0123456789"), sid.length());
+				boost::to_upper(sid_suffix);
+			}
+		}
+
+		// Check First Waypoint Correct. Remove SID References & First Waypoint From Route.
+		bool success = false;
+		bool stop = false;
+
+		while (!stop && route.size() > 0) {
+			size_t wp_size = first_wp.size();
+			size_t entry_size = route[0].size();
+			if (route[0].substr(0, wp_size) == first_wp) {
+				//First Waypoint
+				if (wp_size == entry_size) {
+					success = true;
+					stop = true;
+				}
+				//3 or 5 Letter Waypoint SID - In Full
+				else if (entry_size >= wp_size + 2 && isdigit(route[0][wp_size]) && isalpha(route[0][wp_size + 1])) {
+					bool valid = true;
+					//EuroScope "SID/Runway" Assignment Syntax
+					if (entry_size > wp_size + 2) {
+						if (route[0][wp_size + 2] == '/' && entry_size >= wp_size + 5 && entry_size <= wp_size + 6) {
+							if (!isdigit(route[0][wp_size + 3])) {
+								valid = false;
+							}
+
+							size_t mod = 0;
+							if (entry_size == wp_size + 6) {
+								if (!isdigit(route[0][wp_size + 4])) {
+									valid = false;
+								}
+								mod++;
+							}
+
+							if (!isalpha(route[0][wp_size + 4 + mod])) {
+								valid = false;
+							}
+
+						}
+						else {
+							valid = false;
+						}
+
+						if (!valid) {
+							stop = true;
+						}
+					}
+				}
+				else {
+					stop = true;
+				}
+
+				route.erase(route.begin());
+			}
+			//5 Letter Waypoint SID - Abbreviated to 6 Chars
+			else if (wp_size == 5 && entry_size >= wp_size && isdigit(route[0][wp_size - 1])) {
+				//SID Has Letter Suffix
+				for (size_t i = wp_size; i < entry_size; i++) {
+					if (!isalpha(route[0][i])) {
+						stop = true;
+					}
+				}
+
+				route.erase(route.begin());
+			}
+			else {
+				stop = true;
+			}
+		}
+
+		//Route Discontinuity at End of SID
+		if (!success) {
+			returnOut[0][1] = "Route Not From Final SID Fix";
+			returnOut[0].back() = "Failed";
+
+			returnOut[1][1] = "Route must start at final SID fix (" + first_wp + ").";
+			returnOut[1].back() = "Failed";
+			return returnOut;
+		}
+	}
+	//Route without SID
+	else {
+		returnOut[0][1] = returnOut[1][1] = "No SID";
+	}
+
 	// Any SIDs defined
 	if (!config[origin_int].HasMember("sids") || !config[origin_int]["sids"].IsArray()) {
-		returnOut[0][1] = "Invalid SID - None Defined";
+		returnOut[0][1] = "No SIDs or Non-SID Routes Defined";
 		returnOut[0].back() = "Failed";
 
-		returnOut[1][1] = "Invalid SID - " + origin + " exists in database but has no SIDs defined.";
+		returnOut[1][1] = origin + " exists in database but has no SIDs (or non-SID routes) defined.";
 		returnOut[1].back() = "Failed";
 		return returnOut;
 	}
-	size_t pos = string::npos;
 
+	//Find routes for selected SID
+	size_t pos = string::npos;
 	for (size_t i = 0; i < config[origin_int]["sids"].Size(); i++) {
 		if (config[origin_int]["sids"][i].HasMember("point") && !first_wp.compare(config[origin_int]["sids"][i]["point"].GetString()) && config[origin_int]["sids"][i].HasMember("constraints") && config[origin_int]["sids"][i]["constraints"].IsArray()) {
 			pos = i;
@@ -476,7 +472,21 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	}
 
 	// Needed SID defined
-	if (pos != string::npos) {
+	if (pos == string::npos) {
+		if (first_wp == "") {
+			returnOut[0][1] = "SID Required";
+			returnOut[1][1] = "Non-SID departure routes not in database.";
+			returnOut[1].back() = returnOut[0].back() = "Failed";
+			return returnOut;
+		}
+		else {
+			returnOut[0][1] = "SID Not Found";
+			returnOut[1][1] = sid + " departure not in database.";
+			returnOut[1].back() = returnOut[0].back() = "Failed";
+			return returnOut;
+		}
+	} 
+	else {
 		const Value& sid_ele = config[origin_int]["sids"][pos];
 		const Value& conditions = sid_ele["constraints"];
 
@@ -1069,12 +1079,6 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			}
 		}
 
-		return returnOut;
-	}
-	else {
-		returnOut[0][1] = "Invalid SID - SID Not Found";
-		returnOut[1][1] = "Invalid SID - " + sid + " departure not in database.";
-		returnOut[1].back() = returnOut[0].back() = "Failed";
 		return returnOut;
 	}
 }
@@ -1796,11 +1800,16 @@ string CVFPCPlugin::DestinationOutput(size_t origin_int, string dest) {
 				}
 			}
 
+			string sidstr = config[origin_int]["sids"][i]["point"].GetString();
+			if (sidstr == "") {
+				sidstr = "No SID";
+			}
+
 			if (push_a) {
-				a.push_back(config[origin_int]["sids"][i]["point"].GetString());
+				a.push_back(sidstr);
 			}
 			else if (push_b) {
-				b.push_back(config[origin_int]["sids"][i]["point"].GetString());
+				b.push_back(sidstr);
 			}
 		}
 	}
