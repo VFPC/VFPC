@@ -48,9 +48,13 @@ public:
 
 	virtual vector<vector<string>> validizeSid(CFlightPlan flightPlan);
 
+	virtual string BansOutput(size_t origin_int, size_t pos, vector<size_t> successes);
+
+	virtual string WarningsOutput(size_t origin_int, size_t pos, vector<size_t> successes);
+
 	virtual string AlternativesOutput(size_t origin_int, size_t pos, vector<size_t> successes = {});
 
-	virtual string RestrictionsOutput(size_t origin_int, size_t pos, bool type, bool time, vector<size_t> successes = {});
+	virtual string RestrictionsOutput(size_t origin_int, size_t pos, bool type = true, bool time = true, vector<size_t> successes = {});
 
 	virtual string SuffixOutput(size_t origin_int, size_t pos, vector<size_t> successes = {});
 
@@ -216,7 +220,7 @@ public:
 
 	virtual void checkFPDetail();
 
-	virtual string getFails(vector<string> messageBuffer);
+	virtual string getFails(vector<string> messageBuffer, COLORREF* pRGB);
 
 	virtual void runWebCalls();
 
