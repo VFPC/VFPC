@@ -46,6 +46,8 @@ public:
 
 	virtual void getSids();
 
+	virtual bool checkRestrictions(CFlightPlan flightPlan, string sid_suffix, const Value& restrictions, bool* fails);
+
 	virtual vector<vector<string>> validizeSid(CFlightPlan flightPlan);
 
 	virtual string BansOutput(size_t origin_int, size_t pos, vector<size_t> successes);

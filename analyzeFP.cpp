@@ -248,6 +248,136 @@ void CVFPCPlugin::getSids() {
 	}
 }
 
+bool CVFPCPlugin::checkRestrictions(CFlightPlan flightPlan, string sid_suffix, const Value& restrictions, bool* fails) {
+	bool res = false;
+	if (restrictions.IsArray() && restrictions.Size()) {
+		for (size_t j = 0; j < restrictions.Size(); j++) {
+			bool temp = true;
+
+			if (restrictions[j]["types"].IsArray() && restrictions[j]["types"].Size()) {
+				fails[1] = true;
+				if (!arrayContains(restrictions[j]["types"], flightPlan.GetFlightPlanData().GetEngineType()) &&
+					!arrayContains(restrictions[j]["types"], flightPlan.GetFlightPlanData().GetAircraftType())) {
+					temp = false;
+				}
+			}
+
+			if (restrictions[j]["suffix"].IsArray() && restrictions[j]["suffix"].Size()) {
+				if (arrayContainsEnding(restrictions[j]["suffix"], sid_suffix)) {
+					fails[0] = false;
+				}
+				else {
+					temp = false;
+				}
+			}
+			else {
+				fails[0] = false;
+			}
+
+			if (restrictions[j].HasMember("start") && restrictions[j].HasMember("end")) {
+				bool date = false;
+				bool time = false;
+
+				int startdate;
+				int enddate;
+				int starttime[2] = { 0,0 };
+				int endtime[2] = { 0,0 };
+
+				if (restrictions[j]["start"].HasMember("date")
+					&& restrictions[j]["start"]["date"].IsInt()
+					&& restrictions[j]["end"].HasMember("date")
+					&& restrictions[j]["end"]["date"].IsInt()) {
+					date = true;
+
+					startdate = restrictions[j]["start"]["date"].GetInt();
+					enddate = restrictions[j]["end"]["date"].GetInt();
+				}
+
+				if (restrictions[j]["start"].HasMember("time")
+					&& restrictions[j]["start"]["time"].IsString()
+					&& restrictions[j]["end"].HasMember("time")
+					&& restrictions[j]["end"]["time"].IsString()) {
+					time = true;
+
+					string startstring = restrictions[j]["start"]["time"].GetString();
+					string endstring = restrictions[j]["end"]["time"].GetString();
+
+					starttime[0] = stoi(startstring.substr(0, 2));
+					starttime[1] = stoi(startstring.substr(2, 2));
+					endtime[0] = stoi(endstring.substr(0, 2));
+					endtime[1] = stoi(endstring.substr(2, 2));
+				}
+
+				bool valid = true;
+
+				if (date || time) {
+					fails[2] = true;
+					valid = false;
+
+					if (!date && time) {
+						if (starttime[0] > endtime[0] || (starttime[0] == endtime[0] && starttime[1] >= endtime[1])) {
+							if (timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1]) || timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] <= endtime[1])) {
+								valid = true;
+							}
+						}
+						else {
+							if ((timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1])) && (timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] <= endtime[1]))) {
+								valid = true;
+							}
+						}
+					}
+					else if (startdate == enddate) {
+						if (!time) {
+							valid = true;
+						}
+						else if ((timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1])) && (timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] <= endtime[1]))) {
+							valid = true;
+						}
+					}
+					else if (startdate < enddate) {
+						if (timedata[0] > startdate && timedata[0] < enddate) {
+							valid = true;
+						}
+						else if (timedata[0] == startdate) {
+							if (!time || timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1])) {
+								valid = true;
+							}
+						}
+						else if (timedata[0] == enddate) {
+							if (!time || timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] < endtime[1])) {
+								valid = true;
+							}
+						}
+					}
+					else if (startdate > enddate) {
+						if (timedata[0] < startdate || timedata[0] > enddate) {
+							valid = true;
+						}
+						else if (timedata[0] == startdate) {
+							if (!time || timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1])) {
+								valid = true;
+							}
+						}
+						else if (timedata[0] == enddate) {
+							if (!time || timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] < endtime[1])) {
+								valid = true;
+							}
+						}
+					}
+				}
+
+				if (!valid) {
+					temp = false;
+				}
+			}
+
+			if (temp) {
+				res = true;
+			}
+		}
+	}
+}
+
 //Checks flight plan
 vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	//out[0] = Normal Output, out[1] = Debug Output
@@ -503,140 +633,14 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		vector<bool> validity, new_validity;
 		vector<string> results;
 		bool sidFails[3]{ 0 };
-		bool restFails[5]{ 0 }; // 0 = Suffix, 1 = Aircraft/Engines, 2 = Date/Time Restrictions
+		bool restFails[3]{ 0 }; // 0 = Suffix, 1 = Aircraft/Engines, 2 = Date/Time Restrictions
 		bool warn = false;
 		int Min, Max;
 
 		//SID-Level Restrictions Array
-		bool sidwide = true;
+		
 		sidFails[0] = true;
-		if (sid_ele["restrictions"].IsArray() && sid_ele["restrictions"].Size()) {
-			sidwide = false;
-			for (size_t j = 0; j < sid_ele["restrictions"].Size(); j++) {
-				bool temp = true;
-
-				if (sid_ele["restrictions"][j]["types"].IsArray() && sid_ele["restrictions"][j]["types"].Size()) {
-					sidFails[1] = true;
-					if (!arrayContains(sid_ele["restrictions"][j]["types"], flightPlan.GetFlightPlanData().GetEngineType()) &&
-						!arrayContains(sid_ele["restrictions"][j]["types"], flightPlan.GetFlightPlanData().GetAircraftType())) {
-						temp = false;
-					}
-				}
-
-				if (sid_ele["restrictions"][j]["suffix"].IsArray() && sid_ele["restrictions"][j]["suffix"].Size()) {
-					if (arrayContainsEnding(sid_ele["restrictions"][j]["suffix"], sid_suffix)) {
-						sidFails[0] = false;
-					}
-					else {
-						temp = false;
-					}
-				}
-				else {
-					sidFails[0] = false;
-				}
-
-				if (sid_ele["restrictions"][j].HasMember("start") && sid_ele["restrictions"][j].HasMember("end")) {
-					bool date = false;
-					bool time = false;
-
-					int startdate;
-					int enddate;
-					int starttime[2] = { 0,0 };
-					int endtime[2] = { 0,0 };
-
-					if (sid_ele["restrictions"][j]["start"].HasMember("date")
-						&& sid_ele["restrictions"][j]["start"]["date"].IsInt()
-						&& sid_ele["restrictions"][j]["end"].HasMember("date")
-						&& sid_ele["restrictions"][j]["end"]["date"].IsInt()) {
-						date = true;
-
-						startdate = sid_ele["restrictions"][j]["start"]["date"].GetInt();
-						enddate = sid_ele["restrictions"][j]["end"]["date"].GetInt();
-					}
-
-					if (sid_ele["restrictions"][j]["start"].HasMember("time")
-						&& sid_ele["restrictions"][j]["start"]["time"].IsString()
-						&& sid_ele["restrictions"][j]["end"].HasMember("time")
-						&& sid_ele["restrictions"][j]["end"]["time"].IsString()) {
-						time = true;
-
-						string startstring = sid_ele["restrictions"][j]["start"]["time"].GetString();
-						string endstring = sid_ele["restrictions"][j]["end"]["time"].GetString();
-
-						starttime[0] = stoi(startstring.substr(0, 2));
-						starttime[1] = stoi(startstring.substr(2, 2));
-						endtime[0] = stoi(endstring.substr(0, 2));
-						endtime[1] = stoi(endstring.substr(2, 2));
-					}
-
-					bool valid = true;
-
-					if (date || time) {
-						sidFails[2] = true;
-						valid = false;
-
-						if (!date && time) {
-							if (starttime[0] > endtime[0] || (starttime[0] == endtime[0] && starttime[1] >= endtime[1])) {
-								if (timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1]) || timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] <= endtime[1])) {
-									valid = true;
-								}
-							}
-							else {
-								if ((timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1])) && (timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] <= endtime[1]))) {
-									valid = true;
-								}
-							}
-						}
-						else if (startdate == enddate) {
-							if (!time) {
-								valid = true;
-							}
-							else if ((timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1])) && (timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] <= endtime[1]))) {
-								valid = true;
-							}
-						}
-						else if (startdate < enddate) {
-							if (timedata[0] > startdate && timedata[0] < enddate) {
-								valid = true;
-							}
-							else if (timedata[0] == startdate) {
-								if (!time || timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1])) {
-									valid = true;
-								}
-							}
-							else if (timedata[0] == enddate) {
-								if (!time || timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] < endtime[1])) {
-									valid = true;
-								}
-							}
-						}
-						else if (startdate > enddate) {
-							if (timedata[0] < startdate || timedata[0] > enddate) {
-								valid = true;
-							}
-							else if (timedata[0] == startdate) {
-								if (!time || timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1])) {
-									valid = true;
-								}
-							}
-							else if (timedata[0] == enddate) {
-								if (!time || timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] < endtime[1])) {
-									valid = true;
-								}
-							}
-						}
-					}
-
-					if (!valid) {
-						temp = false;
-					}
-				}
-
-				if (temp) {
-					sidwide = true;
-				}
-			}
-		}
+		bool sidwide = checkRestrictions(flightPlan, sid_suffix, &sid_ele["restrictions"], sidFails);
 
 		//Initialise validity array to fully true#
 		for (SizeType i = 0; i < conditions.Size(); i++) {
@@ -803,133 +807,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 						restFails[0] = true;
 						//Only test if SID-wide failed or is overriden for this constraint.
 						if (!sidwide || (conditions[i].HasMember("override") && conditions[i]["override"].IsBool() && conditions[i]["override"].GetBool())) {
-							res = false;
-							if (conditions[i]["restrictions"].IsArray() && conditions[i]["restrictions"].Size()) {
-								for (size_t j = 0; j < conditions[i]["restrictions"].Size(); j++) {
-									bool temp = true;
-
-									if (conditions[i]["restrictions"][j]["types"].IsArray() && conditions[i]["restrictions"][j]["types"].Size()) {
-										restFails[1] = true;
-										if (!arrayContains(conditions[i]["restrictions"][j]["types"], flightPlan.GetFlightPlanData().GetEngineType()) &&
-											!arrayContains(conditions[i]["restrictions"][j]["types"], flightPlan.GetFlightPlanData().GetAircraftType())) {
-											temp = false;
-										}
-									}
-
-									if (conditions[i]["restrictions"][j]["suffix"].IsArray() && conditions[i]["restrictions"][j]["suffix"].Size()) {
-										if (arrayContainsEnding(conditions[i]["restrictions"][j]["suffix"], sid_suffix)) {
-											restFails[0] = false;
-										}
-										else {
-											temp = false;
-										}
-									}
-									else {
-										restFails[0] = false;
-									}
-
-									if (conditions[i]["restrictions"][j].HasMember("start") && conditions[i]["restrictions"][j].HasMember("end")) {
-										bool date = false;
-										bool time = false;
-
-										int startdate;
-										int enddate;
-										int starttime[2] = { 0,0 };
-										int endtime[2] = { 0,0 };
-
-										if (conditions[i]["restrictions"][j]["start"].HasMember("date")
-											&& conditions[i]["restrictions"][j]["start"]["date"].IsInt()
-											&& conditions[i]["restrictions"][j]["end"].HasMember("date")
-											&& conditions[i]["restrictions"][j]["end"]["date"].IsInt()) {
-											date = true;
-
-											startdate = conditions[i]["restrictions"][j]["start"]["date"].GetInt();
-											enddate = conditions[i]["restrictions"][j]["end"]["date"].GetInt();
-										}
-
-										if (conditions[i]["restrictions"][j]["start"].HasMember("time")
-											&& conditions[i]["restrictions"][j]["start"]["time"].IsString()
-											&& conditions[i]["restrictions"][j]["end"].HasMember("time")
-											&& conditions[i]["restrictions"][j]["end"]["time"].IsString()) {
-											time = true;
-
-											string startstring = conditions[i]["restrictions"][j]["start"]["time"].GetString();
-											string endstring = conditions[i]["restrictions"][j]["end"]["time"].GetString();
-
-											starttime[0] = stoi(startstring.substr(0, 2));
-											starttime[1] = stoi(startstring.substr(2, 2));
-											endtime[0] = stoi(endstring.substr(0, 2));
-											endtime[1] = stoi(endstring.substr(2, 2));
-										}
-
-										bool valid = true;
-
-										if (date || time) {
-											restFails[2] = true;
-											valid = false;
-
-											if (!date && time) {
-												if (starttime[0] > endtime[0] || (starttime[0] == endtime[0] && starttime[1] >= endtime[1])) {
-													if (timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1]) || timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] <= endtime[1])) {
-														valid = true;
-													}
-												}
-												else {
-													if ((timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1])) && (timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] <= endtime[1]))) {
-														valid = true;
-													}
-												}
-											}
-											else if (startdate == enddate) {
-												if (!time) {
-													valid = true;
-												}
-												else if ((timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1])) && (timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] <= endtime[1]))) {
-													valid = true;
-												}
-											}
-											else if (startdate < enddate) {
-												if (timedata[0] > startdate && timedata[0] < enddate) {
-													valid = true;
-												}
-												else if (timedata[0] == startdate) {
-													if (!time || timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1])) {
-														valid = true;
-													}
-												}
-												else if (timedata[0] == enddate) {
-													if (!time || timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] < endtime[1])) {
-														valid = true;
-													}
-												}
-											}
-											else if (startdate > enddate) {
-												if (timedata[0] < startdate || timedata[0] > enddate) {
-													valid = true;
-												}
-												else if (timedata[0] == startdate) {
-													if (!time || timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1])) {
-														valid = true;
-													}
-												}
-												else if (timedata[0] == enddate) {
-													if (!time || timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] < endtime[1])) {
-														valid = true;
-													}
-												}
-											}
-										}
-
-										if (!valid) {
-											temp = false;
-										}
-									}
-
-									if (temp) {
-										res = true;
-									}
-								}
-							}
+							res = checkRestrictions(flightPlan, sid_suffix, &conditions[i]["restrictions"], restFails);
 						}
 
 						new_validity.push_back(res);
