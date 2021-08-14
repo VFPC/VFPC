@@ -222,7 +222,15 @@ bool CVFPCPlugin::fileCall(Document &out) {
 void CVFPCPlugin::getSids() {
 	//Load data from API
 	if (autoLoad) {
-		autoLoad = APICall("full", config);
+		string endpoint = "airport?icao=";
+
+		for (int i = 0; i < activeAirports.size(); i++) {
+			endpoint += activeAirports[i] + ",";
+		}
+
+		endpoint = endpoint.substr(0, endpoint.size() - 1);
+
+		autoLoad = APICall("full", config); //autoLoad = APICall(endpoint, config);
 	}
 	//Load data from Sid.json file
 	else if (fileLoad) {
@@ -1865,6 +1873,11 @@ void CVFPCPlugin::OnFunctionCall(int FunctionId, const char * ItemString, POINT 
 
 //Gets flight plan, checks if (S/D)VFR, calls checking algorithms, and outputs pass/fail result to departure list item
 void CVFPCPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int ItemCode, int TagData, char sItemString[16], int* pColorCode, COLORREF* pRGB, double* pFontSize){
+	const char *origin = FlightPlan.GetFlightPlanData().GetOrigin();
+	if (find(activeAirports.begin(), activeAirports.end(), origin) == activeAirports.end()) {
+		activeAirports.push_back(origin);
+	}
+
 	if (validVersion && ItemCode == TAG_ITEM_FPCHECK && airports.find(FlightPlan.GetFlightPlanData().GetOrigin()) != airports.end()) {
 		string FlightPlanString = FlightPlan.GetFlightPlanData().GetRoute();
 		int RFL = FlightPlan.GetFlightPlanData().GetFinalAltitude();
@@ -2034,18 +2047,8 @@ void CVFPCPlugin::OnTimer(int Counter) {
 	if (validVersion) {
 		if (relCount == -1 && fut.valid() && fut.wait_for(1ms) == std::future_status::ready) {
 			fut.get();
+			activeAirports.clear();
 			relCount = 10;
-		}
-	
-		blink = !blink;
-
-		//2520 is Lowest Common Multiple of Numbers 1-9
-		if (failPos < 2520) {
-			failPos++;
-		}
-		//Number shouldn't get out of control
-		else {
-			failPos = 0;
 		}
 
 		if (relCount > 0) {

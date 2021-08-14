@@ -228,6 +228,7 @@ public:
 
 protected:
 	Document config;
+	vector<string> activeAirports;
 	map<string, rapidjson::SizeType> airports;
 };
 
