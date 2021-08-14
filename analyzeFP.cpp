@@ -2022,7 +2022,7 @@ string CVFPCPlugin::getFails(vector<string> messageBuffer, COLORREF* pRGB) {
 	else if (messageBuffer.at(9).find("Warnings") == 0) {
 		*pRGB = TAG_ORANGE;
 	}
-	else if (messageBuffer.at(9).find("Route Banned") == 0) {
+	else if (messageBuffer.at(10).find("Route Banned") == 0) {
 		return "BAN";
 	}
 	else if (messageBuffer.at(messageBuffer.size() - 2).find("Invalid") == 0) {
