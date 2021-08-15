@@ -247,11 +247,22 @@ void CVFPCPlugin::getSids() {
 	}
 }
 
-bool CVFPCPlugin::checkRestrictions(CFlightPlan flightPlan, string sid_suffix, const Value& restrictions, bool* fails) {
-	bool res = false;
+vector<bool> CVFPCPlugin::checkRestrictions(CFlightPlan flightPlan, string sid_suffix, const Value& restrictions, bool *sidfails, bool *constfails) {
+	vector<bool> res{ 0, 0 }; //0 = Constraint-Level Pass, 1 = SID-Level Pass
+	bool constExists = false;
 	if (restrictions.IsArray() && restrictions.Size()) {
 		for (size_t j = 0; j < restrictions.Size(); j++) {
 			bool temp = true;
+			bool sidlevel = false;
+			bool *fails;
+
+			if (restrictions[j].HasMember("sidlevel") && (sidlevel = restrictions[j]["sidlevel"].GetBool())) {
+				fails = sidfails;
+			}
+			else {
+				fails = constfails;
+				constExists = true;
+			}
 
 			if (restrictions[j]["types"].IsArray() && restrictions[j]["types"].Size()) {
 				fails[1] = true;
@@ -371,10 +382,16 @@ bool CVFPCPlugin::checkRestrictions(CFlightPlan flightPlan, string sid_suffix, c
 			}
 
 			if (temp) {
-				res = true;
+				res[sidlevel] = true;
 			}
 		}
 	}
+
+	if (!constExists) {
+		res[0] = true;
+	}
+
+	return res;
 }
 
 //Checks flight plan
@@ -637,9 +654,12 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		int Min, Max;
 
 		//SID-Level Restrictions Array
-		
 		sidFails[0] = true;
-		bool sidwide = checkRestrictions(flightPlan, sid_suffix, &sid_ele["restrictions"], sidFails);
+		vector<bool> temp = checkRestrictions(flightPlan, sid_suffix, sid_ele["restrictions"], sidFails, sidFails);
+		bool sidwide = false;
+		if (temp[0] || temp[1]) {
+			sidwide = true;
+		}
 
 		//Initialise validity array to fully true#
 		for (SizeType i = 0; i < conditions.Size(); i++) {
@@ -800,13 +820,13 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					case 5:
 					{
 						//Restrictions Array
-						bool res = true;
-						bool overridesid = false;
+						bool res = false;
 
-						restFails[0] = true;
-						//Only test if SID-wide failed or is overriden for this constraint.
-						if (!sidwide || (conditions[i].HasMember("override") && conditions[i]["override"].IsBool() && conditions[i]["override"].GetBool())) {
-							res = checkRestrictions(flightPlan, sid_suffix, &conditions[i]["restrictions"], restFails);
+						temp = checkRestrictions(flightPlan, sid_suffix, conditions[i]["restrictions"], sidFails, restFails);
+
+						res = temp[0];
+						if (temp[1]) {
+							sidwide = true;
 						}
 
 						new_validity.push_back(res);
@@ -857,7 +877,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 		returnOut[1][1] = returnOut[0][1] = "Valid SID - " + sid + ".";
 
-		if (sidwide || round == 7) {
+		if (sidwide) {
 			vector<size_t> successes{};
 
 			for (size_t i = 0; i < validity.size(); i++) {
