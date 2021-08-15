@@ -5,7 +5,7 @@
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
-bool blink, debugMode, validVersion, autoLoad, fileLoad;
+bool debugMode, validVersion, autoLoad, fileLoad;
 
 vector<int> timedata;
 
@@ -20,7 +20,6 @@ using namespace EuroScopePlugIn;
 //Run on Plugin Initialization
 CVFPCPlugin::CVFPCPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_PLUGIN_VERSION, MY_PLUGIN_DEVELOPER, MY_PLUGIN_COPYRIGHT)
 {
-	blink = false;
 	debugMode = false;
 	validVersion = true; //Reset in first timer call
 	autoLoad = true;
