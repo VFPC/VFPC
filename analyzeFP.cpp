@@ -223,7 +223,7 @@ void CVFPCPlugin::getSids() {
 	if (autoLoad) {
 		string endpoint = "airport?icao=";
 
-		for (int i = 0; i < activeAirports.size(); i++) {
+		for (size_t i = 0; i < activeAirports.size(); i++) {
 			endpoint += activeAirports[i] + ",";
 		}
 
