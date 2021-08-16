@@ -22,7 +22,7 @@ UK VFPC (UK VATSIM Flight Plan Checker) is a plugin for EuroScope that checks fi
 - `OK!`- All checks passed.
 
 ### Red
-- `SID` - Assigned SID is invalid for some reason. (Not Set, Not Found, Bad Suffix, Mismatch with Route, etc.)
+- `SID` - Assigned SID is invalid for some reason. (Not Found, Bad Suffix, Mismatch with Route, etc.)
 - `ENG` - Engine type is invalid for this SID/route.
 - `DST` - Filed destination is invalid for this SID.
 - `RTE` - Filed route is invalid for some reason.
