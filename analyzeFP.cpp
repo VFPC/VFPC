@@ -401,7 +401,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 	returnOut[0].push_back(flightPlan.GetCallsign());
 	returnOut[1].push_back(flightPlan.GetCallsign());
-	for (int i = 1; i < 13; i++) {
+	for (int i = 1; i < 12; i++) {
 		returnOut[0].push_back("-");
 		returnOut[1].push_back("-");
 	}
@@ -667,7 +667,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		}
 			
 		//Constraints Array
-		while (round < 7) {
+		while (round < 6) {
 			new_validity = {};
 
 			for (SizeType i = 0; i < conditions.Size(); i++) {
@@ -741,25 +741,6 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					}
 					case 2:
 					{
-						//Nav Perf
-						/* if (conditions[i].HasMember("nav") && conditions[i]["nav"].IsString()) {
-							string navigation_constraints(conditions[i]["nav"].GetString());
-							if (string::npos == navigation_constraints.find_first_of(flightPlan.GetFlightPlanData().GetCapibilities())) {
-								new_validity.push_back(false);
-							}
-							else {
-								new_validity.push_back(true);
-							}
-						}
-						else {
-							new_validity.push_back(true);
-						} */
-
-						new_validity.push_back(true); //Check disabled until future release
-						break;
-					}
-					case 3:
-					{
 						bool res = true;
 
 						//Min Level
@@ -775,7 +756,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 						new_validity.push_back(res);
 						break;
 					}
-					case 4:
+					case 3:
 					{
 						//Even/Odd Levels
 
@@ -817,7 +798,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 						new_validity.push_back(res);
 						break;
 					}
-					case 5:
+					case 4:
 					{
 						//Restrictions Array
 						bool res = false;
@@ -832,7 +813,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 						new_validity.push_back(res);
 						break;
 					}
-					case 6:
+					case 5:
 					{
 						//Alerts (Warn/Ban)
 						bool res = true;
@@ -887,67 +868,57 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			}
 
 			switch (round) {
-			case 7:
-			{
-				returnOut[1].back() = returnOut[0].back() = "Passed";
-				returnOut[1][10] = "No Route Ban.";
-			}
 			case 6:
 			{
-				returnOut[0][8] = "Passed SID Restrictions.";
-				returnOut[1][8] = "Passed " + RestrictionsOutput(origin_int, pos, true, true, successes);
-
-				if (warn) {
-					returnOut[1][9] = returnOut[0][9] = WarningsOutput(origin_int, pos, successes);
-				}
-				else {
-					returnOut[1][9] = "No Warnings.";
-				}
-
-				if (round == 6) {
-					returnOut[1][10] = returnOut[0][10] = BansOutput(origin_int, pos, successes);
-				}
+				returnOut[1].back() = returnOut[0].back() = "Passed";
+				returnOut[1][9] = "No Route Ban.";
 			}
 			case 5:
 			{
-				returnOut[0][7] = "Valid Suffix.";
-				returnOut[1][7] = "Valid " + SuffixOutput(origin_int, pos, successes);
+				returnOut[0][7] = "Passed SID Restrictions.";
+				returnOut[1][7] = "Passed " + RestrictionsOutput(origin_int, pos, true, true, successes);
 
-				if (round == 5) {
-					if (restFails[0]) {
-						returnOut[1][7] = returnOut[0][7] = "Invalid " + SuffixOutput(origin_int, pos, successes);
-					}
-					else {
-						returnOut[1][8] = returnOut[0][8] = "Failed " + RestrictionsOutput(origin_int, pos, restFails[1], restFails[2], successes) + " " + AlternativesOutput(origin_int, pos, successes);
-					}
+				if (warn) {
+					returnOut[1][8] = returnOut[0][8] = WarningsOutput(origin_int, pos, successes);
+				}
+				else {
+					returnOut[1][8] = "No Warnings.";
 				}
 
-				returnOut[0][6] = "Passed Level Direction.";
-				returnOut[1][6] = "Passed " + DirectionOutput(origin_int, pos, successes);
+				if (round == 5) {
+					returnOut[1][9] = returnOut[0][9] = BansOutput(origin_int, pos, successes);
+				}
 			}
 			case 4:
 			{
+				returnOut[0][6] = "Valid Suffix.";
+				returnOut[1][6] = "Valid " + SuffixOutput(origin_int, pos, successes);
+
 				if (round == 4) {
-					returnOut[1][6] = returnOut[0][6] = "Failed " + DirectionOutput(origin_int, pos, successes);
+					if (restFails[0]) {
+						returnOut[1][6] = returnOut[0][6] = "Invalid " + SuffixOutput(origin_int, pos, successes);
+					}
+					else {
+						returnOut[1][7] = returnOut[0][7] = "Failed " + RestrictionsOutput(origin_int, pos, restFails[1], restFails[2], successes) + " " + AlternativesOutput(origin_int, pos, successes);
+					}
 				}
 
-				returnOut[0][5] = "Passed Min/Max Level.";
-				returnOut[1][5] = "Passed " + MinMaxOutput(origin_int, pos, successes);
+				returnOut[0][5] = "Passed Level Direction.";
+				returnOut[1][5] = "Passed " + DirectionOutput(origin_int, pos, successes);
 			}
 			case 3:
 			{
 				if (round == 3) {
-					returnOut[1][5] = returnOut[0][5] = "Failed " + MinMaxOutput(origin_int, pos, successes);
+					returnOut[1][5] = returnOut[0][5] = "Failed " + DirectionOutput(origin_int, pos, successes);
 				}
 
-				returnOut[0][4] = "Passed Navigation Performance.";
-				returnOut[1][4] = "Passed " + NavPerfOutput(origin_int, pos, successes);
+				returnOut[0][4] = "Passed Min/Max Level.";
+				returnOut[1][4] = "Passed " + MinMaxOutput(origin_int, pos, successes);
 			}
-
 			case 2:
 			{
 				if (round == 2) {
-					returnOut[1][4] = returnOut[0][4] = "Failed " + NavPerfOutput(origin_int, pos, successes);
+					returnOut[1][4] = returnOut[0][4] = "Failed " + MinMaxOutput(origin_int, pos, successes);
 				}
 
 				returnOut[0][3] = "Passed Route.";
@@ -973,14 +944,14 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		}
 		else {
 			if (sidFails[0]) {
-				returnOut[1][7] = returnOut[0][7] = "Invalid " + SuffixOutput(origin_int, pos);
+				returnOut[1][6] = returnOut[0][7] = "Invalid " + SuffixOutput(origin_int, pos);
 			}
 			else {
-				returnOut[0][7] = "Valid Suffix.";
-				returnOut[1][7] = "Valid " + SuffixOutput(origin_int, pos);
+				returnOut[0][6] = "Valid Suffix.";
+				returnOut[1][6] = "Valid " + SuffixOutput(origin_int, pos);
 
 				//sidFails[1] or [2] must be false to get here
-				returnOut[1][8] = returnOut[0][8] = "Failed " + RestrictionsOutput(origin_int, pos, sidFails[1], sidFails[2]) + " " + AlternativesOutput(origin_int, pos);
+				returnOut[1][7] = returnOut[0][7] = "Failed " + RestrictionsOutput(origin_int, pos, sidFails[1], sidFails[2]) + " " + AlternativesOutput(origin_int, pos);
 			}
 		}
 
@@ -1490,36 +1461,6 @@ string CVFPCPlugin::MinMaxOutput(size_t origin_int, size_t pos, vector<size_t> s
 	return out;
 }
 
-//Outputs valid navigational performance (from Constraints array) as string
-string CVFPCPlugin::NavPerfOutput(size_t origin_int, size_t pos, vector<size_t> successes) {
-	const Value& conditions = config[origin_int]["sids"][pos]["constraints"];
-	vector<string> navperf{};
-	for (int each : successes) {
-		if (conditions[each].HasMember("nav") && conditions[each]["nav"].IsString()) {
-			navperf.push_back(string(conditions[each]["nav"].GetString()));
-		}
-	}
-
-	sort(navperf.begin(), navperf.end());
-	vector<string>::iterator itr = unique(navperf.begin(), navperf.end());
-	navperf.erase(itr, navperf.end());
-
-	string out = "";
-
-	for (string each : navperf) {
-		out += each + ", ";
-	}
-
-	if (out == "") {
-		out = "None Specified";
-	}
-	else {
-		out = out.substr(0, out.length() - 2);
-	}
-
-	return "Navigation Performance. Required Performance: " + out;
-}
-
 //Outputs valid initial routes (from Constraints array) as string
 string CVFPCPlugin::RouteOutput(size_t origin_int, size_t pos, vector<size_t> successes, vector<string> extracted_route) {
 	const Value& conditions = config[origin_int]["sids"][pos]["constraints"];
@@ -1902,24 +1843,21 @@ string CVFPCPlugin::getFails(vector<string> messageBuffer, COLORREF* pRGB) {
 		return "RTE";
 	}
 	else if (messageBuffer.at(4).find("Failed") == 0) {
-		return "NAV";
-	}
-	else if (messageBuffer.at(5).find("Failed") == 0) {
 		return "LVL";
 	}
-	else if (messageBuffer.at(6).find("Failed") == 0) {
+	else if (messageBuffer.at(5).find("Failed") == 0) {
 		return "DIR";
 	}
-	else if (messageBuffer.at(7).find("Invalid") == 0) {
+	else if (messageBuffer.at(6).find("Invalid") == 0) {
 		return "SUF";
 	}
-	else if (messageBuffer.at(8).find("Failed") == 0) {
+	else if (messageBuffer.at(7).find("Failed") == 0) {
 		return "RST";
 	}
-	else if (messageBuffer.at(9).find("Warnings") == 0) {
+	else if (messageBuffer.at(8).find("Warnings") == 0) {
 		*pRGB = TAG_ORANGE;
 	}
-	else if (messageBuffer.at(10).find("Route Banned") == 0) {
+	else if (messageBuffer.at(9).find("Route Banned") == 0) {
 		return "BAN";
 	}
 	else if (messageBuffer.at(messageBuffer.size() - 2).find("Invalid") == 0) {
