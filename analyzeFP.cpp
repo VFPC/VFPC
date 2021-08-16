@@ -264,14 +264,6 @@ vector<bool> CVFPCPlugin::checkRestrictions(CFlightPlan flightPlan, string sid_s
 				constExists = true;
 			}
 
-			if (restrictions[j]["types"].IsArray() && restrictions[j]["types"].Size()) {
-				fails[1] = true;
-				if (!arrayContains(restrictions[j]["types"], flightPlan.GetFlightPlanData().GetEngineType()) &&
-					!arrayContains(restrictions[j]["types"], flightPlan.GetFlightPlanData().GetAircraftType())) {
-					temp = false;
-				}
-			}
-
 			if (restrictions[j]["suffix"].IsArray() && restrictions[j]["suffix"].Size()) {
 				if (arrayContainsEnding(restrictions[j]["suffix"], sid_suffix)) {
 					fails[0] = false;
@@ -282,6 +274,14 @@ vector<bool> CVFPCPlugin::checkRestrictions(CFlightPlan flightPlan, string sid_s
 			}
 			else {
 				fails[0] = false;
+			}
+
+			if (restrictions[j]["types"].IsArray() && restrictions[j]["types"].Size()) {
+				fails[1] = true;
+				if (!arrayContains(restrictions[j]["types"], flightPlan.GetFlightPlanData().GetEngineType()) &&
+					!arrayContains(restrictions[j]["types"], flightPlan.GetFlightPlanData().GetAircraftType())) {
+					temp = false;
+				}
 			}
 
 			if (restrictions[j].HasMember("start") && restrictions[j].HasMember("end")) {
@@ -379,6 +379,11 @@ vector<bool> CVFPCPlugin::checkRestrictions(CFlightPlan flightPlan, string sid_s
 				if (!valid) {
 					temp = false;
 				}
+			}
+
+			if (restrictions[j].HasMember("banned") && restrictions[j]["banned"].GetBool()) {
+				fails[3] = true;
+				temp = false;
 			}
 
 			if (temp) {
@@ -648,8 +653,8 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 		vector<bool> validity, new_validity;
 		vector<string> results;
-		bool sidFails[3]{ 0 };
-		bool restFails[3]{ 0 }; // 0 = Suffix, 1 = Aircraft/Engines, 2 = Date/Time Restrictions
+		bool sidFails[4]{ 0 };
+		bool restFails[4]{ 0 }; // 0 = Suffix, 1 = Aircraft/Engines, 2 = Date/Time Restrictions
 		bool warn = false;
 		int Min, Max;
 
