@@ -46,19 +46,23 @@ public:
 
 	virtual void getSids();
 
+	virtual vector<bool> checkRestrictions(CFlightPlan flightPlan, string sid_suffix, const Value& restrictions, bool *sidfails, bool* fails);
+
 	virtual vector<vector<string>> validizeSid(CFlightPlan flightPlan);
+
+	virtual string BansOutput(size_t origin_int, size_t pos, vector<size_t> successes);
+
+	virtual string WarningsOutput(size_t origin_int, size_t pos, vector<size_t> successes);
 
 	virtual string AlternativesOutput(size_t origin_int, size_t pos, vector<size_t> successes = {});
 
-	virtual string RestrictionsOutput(size_t origin_int, size_t pos, bool type, bool time, vector<size_t> successes = {});
+	virtual string RestrictionsOutput(size_t origin_int, size_t pos, bool check_type = true, bool check_time = true, bool check_ban = true, vector<size_t> successes = {});
 
 	virtual string SuffixOutput(size_t origin_int, size_t pos, vector<size_t> successes = {});
 
 	virtual string DirectionOutput(size_t origin_int, size_t pos, vector<size_t> successes);
 
 	virtual string MinMaxOutput(size_t origin_int, size_t pos, vector<size_t> successes);
-
-	virtual string NavPerfOutput(size_t origin_int, size_t pos, vector< size_t> successes);
 
 	virtual string RouteOutput(size_t origin_int, size_t pos, vector<size_t> successes, vector<string> extracted_route);
 
@@ -218,7 +222,7 @@ public:
 
 	virtual void checkFPDetail();
 
-	virtual string getFails(vector<string> messageBuffer);
+	virtual string getFails(vector<string> messageBuffer, COLORREF* pRGB);
 
 	virtual void runWebCalls();
 
@@ -226,6 +230,7 @@ public:
 
 protected:
 	Document config;
+	vector<string> activeAirports;
 	map<string, rapidjson::SizeType> airports;
 };
 
