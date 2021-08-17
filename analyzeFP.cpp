@@ -1779,13 +1779,13 @@ bool CVFPCPlugin::Enabled(CFlightPlan flightPlan) {
 }
 
 //Gets flight plan, checks if (S/D)VFR, calls checking algorithms, and outputs pass/fail result to departure list item
-void CVFPCPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int ItemCode, int TagData, char sItemString[16], int* pColorCode, COLORREF* pRGB, double* pFontSize){
-	const char *origin = FlightPlan.GetFlightPlanData().GetOrigin();
-	if (find(activeAirports.begin(), activeAirports.end(), origin) == activeAirports.end()) {
-		activeAirports.push_back(origin);
-	}
-	
+void CVFPCPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int ItemCode, int TagData, char sItemString[16], int* pColorCode, COLORREF* pRGB, double* pFontSize){	
 	if (ItemCode == TAG_ITEM_CHECKFP) {
+		const char *origin = FlightPlan.GetFlightPlanData().GetOrigin();
+		if (find(activeAirports.begin(), activeAirports.end(), origin) == activeAirports.end()) {
+			activeAirports.push_back(origin);
+		}
+
 		if (validVersion && Enabled(FlightPlan) && airports.find(FlightPlan.GetFlightPlanData().GetOrigin()) != airports.end()) {
 			string FlightPlanString = FlightPlan.GetFlightPlanData().GetRoute();
 			int RFL = FlightPlan.GetFlightPlanData().GetFinalAltitude();
