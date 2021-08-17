@@ -1777,7 +1777,6 @@ void CVFPCPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget,
 
 			strcpy_s(sItemString, 16, getFails(validize[0], pRGB).c_str());
 		}
-
 	}
 }
 
