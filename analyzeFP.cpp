@@ -609,10 +609,6 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			return returnOut;
 		}
 	}
-	//Route without SID
-	else {
-		returnOut[0][1] = returnOut[1][1] = "No SID";
-	}
 
 	// Any SIDs defined
 	if (!config[origin_int].HasMember("sids") || !config[origin_int]["sids"].IsArray()) {
@@ -863,7 +859,12 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 		returnOut[1].back() = returnOut[0].back() = "Failed";
 
-		returnOut[1][1] = returnOut[0][1] = "Valid SID - " + sid + ".";
+		if (sid.length()) {
+			returnOut[1][1] = returnOut[0][1] = "SID - " + sid + ".";
+		}
+		else {
+			returnOut[1][1] = returnOut[0][1] = "Non-SID Route.";
+		}
 
 		if (sidwide) {
 			vector<size_t> successes{};
@@ -1877,7 +1878,7 @@ void CVFPCPlugin::checkFPDetail() {
 string CVFPCPlugin::getFails(vector<string> messageBuffer, COLORREF* pRGB) {
 	*pRGB = TAG_RED;
 
-	if (messageBuffer.at(1).find("Invalid") == 0) {
+	if (messageBuffer.at(1).find("SID - ") == 0 || messageBuffer.at(1).find("Non-SID Route.") == 0) {
 		return "SID";
 	}
 	else if (messageBuffer.at(2).find("Failed") == 0) {
@@ -1927,7 +1928,7 @@ void CVFPCPlugin::OnTimer(int Counter) {
 		if (relCount == -1 && fut.valid() && fut.wait_for(1ms) == std::future_status::ready) {
 			fut.get();
 			activeAirports.clear();
-			relCount = 5;
+			relCount = API_REFRESH_TIME;
 		}
 
 		if (relCount > 0) {
