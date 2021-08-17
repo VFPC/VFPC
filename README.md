@@ -7,8 +7,8 @@ UK VFPC (UK VATSIM Flight Plan Checker) is a plugin for EuroScope that checks fi
 ## Features:
 - `VFPC` tag item: Shows check-result and allows output of detailed checking data.
 - Tag function `Show Checks`: Outputs detailed checking data.
-- Checks validity of the filed initial route (to the extent specified by API - can be varied on a per-facility basis by local management).
-- ~~Checks that the aircraft has declared sufficient navigation capabilities for the requested route.~~ **Disabled until further notice.**
+- Tag function `Toggle Checks`: Enables/Disables checks for individual flight plans.
+- Checks validity of the filed initial route (to the extent specified by API - UK routes are as specified in the SRD).
 - Checks that the aircraft type is valid for the filed SID.
 - Checks that the filed initial route is valid to the given destination.
 - Checks that the filed altitude follows any odd/even restrictions.
@@ -23,12 +23,11 @@ UK VFPC (UK VATSIM Flight Plan Checker) is a plugin for EuroScope that checks fi
 - `OK!`- All checks passed.
 
 ### Red
-- `SID` - Assigned SID is invalid for some reason. (Not Set, Not Found, Bad Suffix, Mismatch with Route, etc.)
+- `SID` - Assigned SID is invalid for some reason. (Not Found, Bad Suffix, Mismatch with Route, etc.)
 - `ENG` - Engine type is invalid for this SID/route.
 - `DST` - Filed destination is invalid for this SID.
 - `RTE` - Filed route is invalid for some reason.
-- ~~`NAV` - Navigation performance is invalid for this SID/route.~~ **Disabled until further notice.**
-- Alternating `MIN` and `MAX` - Filed altitude is outside of the allocated altitude block for this route.
+- `LVL` - Filed altitude is outside of the allocated altitude block for this route.
 - `DIR` - Filed altitude is in violation of the Odd/Even altitude requirement for this route.
 - `SUF` - Assigned SID suffix is banned for this route.
 - `RST` - Assigned SID (and suffix) is invalid for this aircraft type and/or for the current day and time.

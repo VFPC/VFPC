@@ -7,7 +7,10 @@ const int TAG_FUNC_CHECKFP_MENU = 100;
 const int TAG_FUNC_CHECKFP_CHECK = 101;
 
 const COLORREF TAG_GREEN = RGB(0, 190, 0);
+const COLORREF TAG_ORANGE = RGB(241, 121, 0);
 const COLORREF TAG_RED = RGB(190, 0, 0);
+
+const size_t API_REFRESH_TIME = 5;
 
 inline static bool startsWith(const char *pre, const char *str)
 {
