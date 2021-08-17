@@ -74,6 +74,8 @@ public:
 
 	virtual void OnFunctionCall(int FunctionId, const char * ItemString, POINT Pt, RECT Area);
 
+	virtual bool Enabled(CFlightPlan flightPlan);
+
 	//Define OnGetTagItem function
 	virtual void OnGetTagItem(CFlightPlan FlightPlan,
 		CRadarTarget RadarTarget,

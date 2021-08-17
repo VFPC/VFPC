@@ -37,8 +37,8 @@ CVFPCPlugin::CVFPCPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_
 
 	// Register Tag Item "VFPC"
 	if (validVersion) {
-		RegisterTagItemType("VFPC", TAG_ITEM_FPCHECK);
-		RegisterTagItemFunction("Show Checks", TAG_FUNC_CHECKFP_MENU);
+		RegisterTagItemType("VFPC", TAG_ITEM_CHECKFP);
+		RegisterTagItemFunction("Options", TAG_FUNC_CHECKFP_MENU);
 	}
 }
 
@@ -1747,36 +1747,62 @@ string CVFPCPlugin::DestinationOutput(size_t origin_int, string dest) {
 //Handles departure list menu and menu items
 void CVFPCPlugin::OnFunctionCall(int FunctionId, const char * ItemString, POINT Pt, RECT Area) {
 	if (FunctionId == TAG_FUNC_CHECKFP_MENU) {
-		OpenPopupList(Area, "Check FP", 1);
-		AddPopupListElement("Show Checks", "", TAG_FUNC_CHECKFP_CHECK, false, 2, false);
+		OpenPopupList(Area, "Options", 1);
+		AddPopupListElement("Show Checks", "", TAG_FUNC_CHECKFP_CHECK);
+		AddPopupListElement("Toggle Checks", "", TAG_FUNC_CHECKFP_DISMISS);
 	}
-	if (FunctionId == TAG_FUNC_CHECKFP_CHECK) {
+	else if (FunctionId == TAG_FUNC_CHECKFP_CHECK) {
 		checkFPDetail();
+	}
+	else if (FunctionId == TAG_FUNC_CHECKFP_DISMISS) {
+		CFlightPlan flightPlan = FlightPlanSelectASEL();
+
+		if (Enabled(flightPlan)) {
+			flightPlan.GetControllerAssignedData().SetFlightStripAnnotation(0, "VFPC/OFF");
+		}
+		else {
+			flightPlan.GetControllerAssignedData().SetFlightStripAnnotation(0, "");
+		}
+	}
+}
+
+bool CVFPCPlugin::Enabled(CFlightPlan flightPlan) {
+	string cad = flightPlan.GetControllerAssignedData().GetFlightStripAnnotation(0);
+	if (!strcmp(cad.c_str(), "VFPC/OFF")) {
+		return false;
+	}
+	else {
+		return true;
 	}
 }
 
 //Gets flight plan, checks if (S/D)VFR, calls checking algorithms, and outputs pass/fail result to departure list item
-void CVFPCPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int ItemCode, int TagData, char sItemString[16], int* pColorCode, COLORREF* pRGB, double* pFontSize){
-	const char *origin = FlightPlan.GetFlightPlanData().GetOrigin();
-	if (find(activeAirports.begin(), activeAirports.end(), origin) == activeAirports.end()) {
-		activeAirports.push_back(origin);
-	}
+void CVFPCPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int ItemCode, int TagData, char sItemString[16], int* pColorCode, COLORREF* pRGB, double* pFontSize){	
+	if (ItemCode == TAG_ITEM_CHECKFP) {
+		const char *origin = FlightPlan.GetFlightPlanData().GetOrigin();
+		if (find(activeAirports.begin(), activeAirports.end(), origin) == activeAirports.end()) {
+			activeAirports.push_back(origin);
+		}
 
-	if (validVersion && ItemCode == TAG_ITEM_FPCHECK && airports.find(FlightPlan.GetFlightPlanData().GetOrigin()) != airports.end()) {
-		string FlightPlanString = FlightPlan.GetFlightPlanData().GetRoute();
-		int RFL = FlightPlan.GetFlightPlanData().GetFinalAltitude();
+		if (validVersion && Enabled(FlightPlan) && airports.find(FlightPlan.GetFlightPlanData().GetOrigin()) != airports.end()) {
+			string FlightPlanString = FlightPlan.GetFlightPlanData().GetRoute();
+			int RFL = FlightPlan.GetFlightPlanData().GetFinalAltitude();
 
-		*pColorCode = TAG_COLOR_RGB_DEFINED;
-		string fpType{ FlightPlan.GetFlightPlanData().GetPlanType() };
-		if (fpType == "V" || fpType == "S" || fpType == "D") {
-			*pRGB = TAG_GREEN;
-			strcpy_s(sItemString, 16, "VFR");
+			*pColorCode = TAG_COLOR_RGB_DEFINED;
+			string fpType{ FlightPlan.GetFlightPlanData().GetPlanType() };
+			if (fpType == "V" || fpType == "S" || fpType == "D") {
+				*pRGB = TAG_GREEN;
+				strcpy_s(sItemString, 16, "VFR");
+			}
+			else {
+				vector<vector<string>> validize = validizeSid(FlightPlan);
+				vector<string> messageBuffer{ validize[0] }; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Route, 4 = Nav Performance, 5 = Min/Max Flight Level, 6 = Even/Odd, 7 = Suffix, 8 = Aircraft Type, 9 = Date/Time, 10 = Syntax, 11 = Passed/Failed
+
+				strcpy_s(sItemString, 16, getFails(validize[0], pRGB).c_str());
+			}
 		}
 		else {
-			vector<vector<string>> validize = validizeSid(FlightPlan);
-			vector<string> messageBuffer{ validize[0] }; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Route, 4 = Nav Performance, 5 = Min/Max Flight Level, 6 = Even/Odd, 7 = Suffix, 8 = Aircraft Type, 9 = Date/Time, 10 = Syntax, 11 = Passed/Failed
-
-			strcpy_s(sItemString, 16, getFails(validize[0], pRGB).c_str());
+			strcpy_s(sItemString, 16, " ");
 		}
 	}
 }
@@ -1878,7 +1904,7 @@ void CVFPCPlugin::checkFPDetail() {
 string CVFPCPlugin::getFails(vector<string> messageBuffer, COLORREF* pRGB) {
 	*pRGB = TAG_RED;
 
-	if (messageBuffer.at(1).find("SID - ") == 0 || messageBuffer.at(1).find("Non-SID Route.") == 0) {
+	if (messageBuffer.at(1).find("SID - ") != 0 && messageBuffer.at(1).find("Non-SID Route.") != 0) {
 		return "SID";
 	}
 	else if (messageBuffer.at(2).find("Failed") == 0) {
