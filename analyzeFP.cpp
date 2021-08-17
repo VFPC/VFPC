@@ -139,7 +139,7 @@ bool CVFPCPlugin::APICall(string endpoint, Document& out) {
 		if (out.Parse<0>(buf.c_str()).HasParseError())
 		{
 			sendMessage("An error occurred whilst reading data. The plugin will not automatically attempt to reload from the API. To restart data fetching, type \".vfpc load\".");
-			debugMessage("Error", "Failed to download data from API.");
+			debugMessage("Error", str(boost::format("Config Download: %s (Offset: %i)\n'") % out.GetParseError() % out.GetErrorOffset()));
 			return false;
 
 			out.Parse<0>("[]");
@@ -148,7 +148,7 @@ bool CVFPCPlugin::APICall(string endpoint, Document& out) {
 	else
 	{
 		sendMessage("An error occurred whilst downloading data. The plugin will not automatically attempt to reload from the API. Check your connection and restart data fetching by typing \".vfpc load\".");
-		debugMessage("Error", str(boost::format("Config Download: %s (Offset: %i)\n'") % out.GetParseError() % out.GetErrorOffset()));
+		debugMessage("Error", "Failed to download data from API.");
 		return false;
 
 		out.Parse<0>("[]");
@@ -221,15 +221,17 @@ bool CVFPCPlugin::fileCall(Document &out) {
 void CVFPCPlugin::getSids() {
 	//Load data from API
 	if (autoLoad) {
-		string endpoint = "airport?icao=";
+		if (activeAirports.size() > 0) {
+			string endpoint = "airport?icao=";
 
-		for (size_t i = 0; i < activeAirports.size(); i++) {
-			endpoint += activeAirports[i] + ",";
+			for (size_t i = 0; i < activeAirports.size(); i++) {
+				endpoint += activeAirports[i] + "+";
+			}
+
+			endpoint = endpoint.substr(0, endpoint.size() - 1);
+
+			autoLoad = APICall(endpoint, config);
 		}
-
-		endpoint = endpoint.substr(0, endpoint.size() - 1);
-
-		autoLoad = APICall("full", config); //autoLoad = APICall(endpoint, config);
 	}
 	//Load data from Sid.json file
 	else if (fileLoad) {
@@ -881,7 +883,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			case 5:
 			{
 				returnOut[0][7] = "Passed SID Restrictions.";
-				returnOut[1][7] = "Passed " + RestrictionsOutput(origin_int, pos, true, true, successes);
+				returnOut[1][7] = "Passed " + RestrictionsOutput(origin_int, pos, true, true, true, successes);
 
 				if (warn) {
 					returnOut[1][8] = returnOut[0][8] = WarningsOutput(origin_int, pos, successes);
@@ -904,7 +906,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 						returnOut[1][6] = returnOut[0][6] = "Invalid " + SuffixOutput(origin_int, pos, successes);
 					}
 					else {
-						returnOut[1][7] = returnOut[0][7] = "Failed " + RestrictionsOutput(origin_int, pos, restFails[1], restFails[2], successes) + " " + AlternativesOutput(origin_int, pos, successes);
+						returnOut[1][7] = returnOut[0][7] = "Failed " + RestrictionsOutput(origin_int, pos, restFails[1], restFails[2], restFails[3], successes) + " " + AlternativesOutput(origin_int, pos, successes);
 					}
 				}
 
@@ -1926,7 +1928,7 @@ void CVFPCPlugin::OnTimer(int Counter) {
 		if (relCount == -1 && fut.valid() && fut.wait_for(1ms) == std::future_status::ready) {
 			fut.get();
 			activeAirports.clear();
-			relCount = 10;
+			relCount = 5;
 		}
 
 		if (relCount > 0) {
