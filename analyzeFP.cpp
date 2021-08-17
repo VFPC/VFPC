@@ -5,7 +5,7 @@
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
-bool blink, debugMode, validVersion, autoLoad, fileLoad;
+bool debugMode, validVersion, autoLoad, fileLoad;
 
 vector<int> timedata;
 
@@ -20,7 +20,6 @@ using namespace EuroScopePlugIn;
 //Run on Plugin Initialization
 CVFPCPlugin::CVFPCPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_PLUGIN_VERSION, MY_PLUGIN_DEVELOPER, MY_PLUGIN_COPYRIGHT)
 {
-	blink = false;
 	debugMode = false;
 	validVersion = true; //Reset in first timer call
 	autoLoad = true;
@@ -140,7 +139,7 @@ bool CVFPCPlugin::APICall(string endpoint, Document& out) {
 		if (out.Parse<0>(buf.c_str()).HasParseError())
 		{
 			sendMessage("An error occurred whilst reading data. The plugin will not automatically attempt to reload from the API. To restart data fetching, type \".vfpc load\".");
-			debugMessage("Error", "Failed to download data from API.");
+			debugMessage("Error", str(boost::format("Config Download: %s (Offset: %i)\n'") % out.GetParseError() % out.GetErrorOffset()));
 			return false;
 
 			out.Parse<0>("[]");
@@ -149,7 +148,7 @@ bool CVFPCPlugin::APICall(string endpoint, Document& out) {
 	else
 	{
 		sendMessage("An error occurred whilst downloading data. The plugin will not automatically attempt to reload from the API. Check your connection and restart data fetching by typing \".vfpc load\".");
-		debugMessage("Error", str(boost::format("Config Download: %s (Offset: %i)\n'") % out.GetParseError() % out.GetErrorOffset()));
+		debugMessage("Error", "Failed to download data from API.");
 		return false;
 
 		out.Parse<0>("[]");
@@ -222,7 +221,17 @@ bool CVFPCPlugin::fileCall(Document &out) {
 void CVFPCPlugin::getSids() {
 	//Load data from API
 	if (autoLoad) {
-		autoLoad = APICall("full", config);
+		if (activeAirports.size() > 0) {
+			string endpoint = "airport?icao=";
+
+			for (size_t i = 0; i < activeAirports.size(); i++) {
+				endpoint += activeAirports[i] + "+";
+			}
+
+			endpoint = endpoint.substr(0, endpoint.size() - 1);
+
+			autoLoad = APICall(endpoint, config);
+		}
 	}
 	//Load data from Sid.json file
 	else if (fileLoad) {
@@ -240,6 +249,158 @@ void CVFPCPlugin::getSids() {
 	}
 }
 
+vector<bool> CVFPCPlugin::checkRestrictions(CFlightPlan flightPlan, string sid_suffix, const Value& restrictions, bool *sidfails, bool *constfails) {
+	vector<bool> res{ 0, 0 }; //0 = Constraint-Level Pass, 1 = SID-Level Pass
+	bool constExists = false;
+	if (restrictions.IsArray() && restrictions.Size()) {
+		for (size_t j = 0; j < restrictions.Size(); j++) {
+			bool temp = true;
+			bool sidlevel = false;
+			bool *fails;
+
+			if (restrictions[j].HasMember("sidlevel") && (sidlevel = restrictions[j]["sidlevel"].GetBool())) {
+				fails = sidfails;
+			}
+			else {
+				fails = constfails;
+				constExists = true;
+			}
+
+			if (restrictions[j]["suffix"].IsArray() && restrictions[j]["suffix"].Size()) {
+				if (arrayContainsEnding(restrictions[j]["suffix"], sid_suffix)) {
+					fails[0] = false;
+				}
+				else {
+					temp = false;
+				}
+			}
+			else {
+				fails[0] = false;
+			}
+
+			if (restrictions[j]["types"].IsArray() && restrictions[j]["types"].Size()) {
+				fails[1] = true;
+				if (!arrayContains(restrictions[j]["types"], flightPlan.GetFlightPlanData().GetEngineType()) &&
+					!arrayContains(restrictions[j]["types"], flightPlan.GetFlightPlanData().GetAircraftType())) {
+					temp = false;
+				}
+			}
+
+			if (restrictions[j].HasMember("start") && restrictions[j].HasMember("end")) {
+				bool date = false;
+				bool time = false;
+
+				int startdate;
+				int enddate;
+				int starttime[2] = { 0,0 };
+				int endtime[2] = { 0,0 };
+
+				if (restrictions[j]["start"].HasMember("date")
+					&& restrictions[j]["start"]["date"].IsInt()
+					&& restrictions[j]["end"].HasMember("date")
+					&& restrictions[j]["end"]["date"].IsInt()) {
+					date = true;
+
+					startdate = restrictions[j]["start"]["date"].GetInt();
+					enddate = restrictions[j]["end"]["date"].GetInt();
+				}
+
+				if (restrictions[j]["start"].HasMember("time")
+					&& restrictions[j]["start"]["time"].IsString()
+					&& restrictions[j]["end"].HasMember("time")
+					&& restrictions[j]["end"]["time"].IsString()) {
+					time = true;
+
+					string startstring = restrictions[j]["start"]["time"].GetString();
+					string endstring = restrictions[j]["end"]["time"].GetString();
+
+					starttime[0] = stoi(startstring.substr(0, 2));
+					starttime[1] = stoi(startstring.substr(2, 2));
+					endtime[0] = stoi(endstring.substr(0, 2));
+					endtime[1] = stoi(endstring.substr(2, 2));
+				}
+
+				bool valid = true;
+
+				if (date || time) {
+					fails[2] = true;
+					valid = false;
+
+					if (!date && time) {
+						if (starttime[0] > endtime[0] || (starttime[0] == endtime[0] && starttime[1] >= endtime[1])) {
+							if (timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1]) || timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] <= endtime[1])) {
+								valid = true;
+							}
+						}
+						else {
+							if ((timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1])) && (timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] <= endtime[1]))) {
+								valid = true;
+							}
+						}
+					}
+					else if (startdate == enddate) {
+						if (!time) {
+							valid = true;
+						}
+						else if ((timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1])) && (timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] <= endtime[1]))) {
+							valid = true;
+						}
+					}
+					else if (startdate < enddate) {
+						if (timedata[0] > startdate && timedata[0] < enddate) {
+							valid = true;
+						}
+						else if (timedata[0] == startdate) {
+							if (!time || timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1])) {
+								valid = true;
+							}
+						}
+						else if (timedata[0] == enddate) {
+							if (!time || timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] < endtime[1])) {
+								valid = true;
+							}
+						}
+					}
+					else if (startdate > enddate) {
+						if (timedata[0] < startdate || timedata[0] > enddate) {
+							valid = true;
+						}
+						else if (timedata[0] == startdate) {
+							if (!time || timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1])) {
+								valid = true;
+							}
+						}
+						else if (timedata[0] == enddate) {
+							if (!time || timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] < endtime[1])) {
+								valid = true;
+							}
+						}
+					}
+				}
+
+				if (!valid) {
+					temp = false;
+				}
+			}
+
+			if (restrictions[j].HasMember("banned") && restrictions[j]["banned"].GetBool()) {
+				fails[3] = true;
+				temp = false;
+			}
+
+			if (temp) {
+				res[sidlevel] = true;
+			}
+		}
+	}
+
+	if (!constExists) {
+		res[0] = true;
+	}
+
+	return res;
+}
+
 //Checks flight plan
 vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	//out[0] = Normal Output, out[1] = Debug Output
@@ -247,7 +408,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 	returnOut[0].push_back(flightPlan.GetCallsign());
 	returnOut[1].push_back(flightPlan.GetCallsign());
-	for (int i = 1; i < 11; i++) {
+	for (int i = 1; i < 12; i++) {
 		returnOut[0].push_back("-");
 		returnOut[1].push_back("-");
 	}
@@ -258,10 +419,10 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 	// Airport defined
 	if (airports.find(origin) == airports.end()) {
-		returnOut[0][1] = "Invalid SID - Airport Not Found";
+		returnOut[0][1] = "Airport Not Found";
 		returnOut[0].back() = "Failed";
 
-		returnOut[1][1] = "Invalid SID - " + origin + " not in database.";
+		returnOut[1][1] = origin + " not in database.";
 		returnOut[1].back() = "Failed";
 		return returnOut;
 	}
@@ -298,117 +459,6 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		route.erase(route.begin());
 	}
 
-	string sid = flightPlan.GetFlightPlanData().GetSidName(); boost::to_upper(sid);
-
-	// Remove any # characters from SID name
-	boost::erase_all(sid, "#");
-
-	// Flightplan has SID
-	if (!sid.length()) {
-		returnOut[0][1] = returnOut[1][1] = "Invalid SID - None Set";
-		returnOut[0].back() = returnOut[1].back() = "Failed";
-		return returnOut;
-	}
-
-	string first_wp;
-	string sid_suffix;
-	if (origin == "EGLL" && sid == "CHK") {
-		first_wp = "CPT";
-		sid_suffix = "CHK";
-	}
-	else {
-		first_wp = sid.substr(0, sid.find_first_of("0123456789"));
-		if (0 != first_wp.length())
-			boost::to_upper(first_wp);
-		
-		if (first_wp.length() != sid.length()) {
-			sid_suffix = sid.substr(sid.find_first_of("0123456789"), sid.length());
-			boost::to_upper(sid_suffix);
-		}
-	}
-
-	// Did not find a valid SID
-	if (0 == sid_suffix.length() && "VCT" != first_wp) {
-		returnOut[0][1] = returnOut[1][1] = "Invalid SID - None Set";
-		returnOut[0].back() = returnOut[1].back() = "Failed";
-		return returnOut;
-	}
-
-	// Check First Waypoint Correct. Remove SID References & First Waypoint From Route.
-	bool success = false;
-	bool stop = false;
-
-	while (!stop && route.size() > 0) {
-		size_t wp_size = first_wp.size();
-		size_t entry_size = route[0].size();
-		if (route[0].substr(0, wp_size) == first_wp) {
-			//First Waypoint
-			if (wp_size == entry_size) {
-				success = true;
-				stop = true;
-			}
-			//3 or 5 Letter Waypoint SID - In Full
-			else if (entry_size >= wp_size + 2 && isdigit(route[0][wp_size]) && isalpha(route[0][wp_size + 1])) {
-				bool valid = true;
-				//EuroScope "SID/Runway" Assignment Syntax
-				if (entry_size > wp_size + 2) {
-					if (route[0][wp_size + 2] == '/' && entry_size >= wp_size + 5 && entry_size <= wp_size + 6) {
-						if (!isdigit(route[0][wp_size + 3])) {
-							valid = false;
-						}
-
-						size_t mod = 0;
-						if (entry_size == wp_size + 6) {
-							if (!isdigit(route[0][wp_size + 4])) {
-								valid = false;
-							}
-							mod++;
-						}
-
-						if (!isalpha(route[0][wp_size + 4 + mod])) {
-							valid = false;
-						}
-						
-					}
-					else {
-						valid = false;
-					}
-
-					if (!valid) {
-						stop = true;
-					}
-				}
-			}
-			else {
-				stop = true;
-			}
-
-			route.erase(route.begin());
-		}
-		//5 Letter Waypoint SID - Abbreviated to 6 Chars
-		else if (wp_size == 5 && entry_size >= wp_size && isdigit(route[0][wp_size - 1])) {
-			//SID Has Letter Suffix
-			for (size_t i = wp_size; i < entry_size; i++) {
-				if (!isalpha(route[0][i])) {
-					stop = true;
-				}
-			}
-
-			route.erase(route.begin());
-		}
-		else {
-			stop = true;
-		}
-	}
-	
-	if (!success) {
-		returnOut[0][1] = "Invalid SID - Route Not From Final SID Fix";
-		returnOut[0].back() = "Failed";
-
-		returnOut[1][1] = "Invalid SID - Route must start at " + first_wp + ".";
-		returnOut[1].back() = "Failed";
-		return returnOut;
-	}
 	// Remove Speed / Level Change Instances from Route
 	for (size_t i = 0; i < route.size(); i++) {
 		int count = 0;
@@ -458,17 +508,120 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		}
 	}
 
+	string sid = flightPlan.GetFlightPlanData().GetSidName(); boost::to_upper(sid);
+	string first_wp = "";
+	string sid_suffix = "";
+
+	//Route with SID
+	if (sid.length()) {
+		// Remove any # characters from SID name
+		boost::erase_all(sid, "#");
+
+		if (origin == "EGLL" && sid == "CHK") {
+			first_wp = "CPT";
+			sid_suffix = "CHK";
+		}
+		else {
+			first_wp = sid.substr(0, sid.find_first_of("0123456789"));
+			if (0 != first_wp.length())
+				boost::to_upper(first_wp);
+
+			if (first_wp.length() != sid.length()) {
+				sid_suffix = sid.substr(sid.find_first_of("0123456789"), sid.length());
+				boost::to_upper(sid_suffix);
+			}
+		}
+
+		// Check First Waypoint Correct. Remove SID References & First Waypoint From Route.
+		bool success = false;
+		bool stop = false;
+
+		while (!stop && route.size() > 0) {
+			size_t wp_size = first_wp.size();
+			size_t entry_size = route[0].size();
+			if (route[0].substr(0, wp_size) == first_wp) {
+				//First Waypoint
+				if (wp_size == entry_size) {
+					success = true;
+					stop = true;
+				}
+				//3 or 5 Letter Waypoint SID - In Full
+				else if (entry_size >= wp_size + 2 && isdigit(route[0][wp_size]) && isalpha(route[0][wp_size + 1])) {
+					bool valid = true;
+					//EuroScope "SID/Runway" Assignment Syntax
+					if (entry_size > wp_size + 2) {
+						if (route[0][wp_size + 2] == '/' && entry_size >= wp_size + 5 && entry_size <= wp_size + 6) {
+							if (!isdigit(route[0][wp_size + 3])) {
+								valid = false;
+							}
+
+							size_t mod = 0;
+							if (entry_size == wp_size + 6) {
+								if (!isdigit(route[0][wp_size + 4])) {
+									valid = false;
+								}
+								mod++;
+							}
+
+							if (!isalpha(route[0][wp_size + 4 + mod])) {
+								valid = false;
+							}
+
+						}
+						else {
+							valid = false;
+						}
+
+						if (!valid) {
+							stop = true;
+						}
+					}
+				}
+				else {
+					stop = true;
+				}
+
+				route.erase(route.begin());
+			}
+			//5 Letter Waypoint SID - Abbreviated to 6 Chars
+			else if (wp_size == 5 && entry_size >= wp_size && isdigit(route[0][wp_size - 1])) {
+				//SID Has Letter Suffix
+				for (size_t i = wp_size; i < entry_size; i++) {
+					if (!isalpha(route[0][i])) {
+						stop = true;
+					}
+				}
+
+				route.erase(route.begin());
+			}
+			else {
+				stop = true;
+			}
+		}
+
+		//Route Discontinuity at End of SID
+		if (!success) {
+			returnOut[0][1] = "Route Not From Final SID Fix";
+			returnOut[0].back() = "Failed";
+
+			returnOut[1][1] = "Route must start at final SID fix (" + first_wp + ").";
+			returnOut[1].back() = "Failed";
+			return returnOut;
+		}
+	}
+
 	// Any SIDs defined
 	if (!config[origin_int].HasMember("sids") || !config[origin_int]["sids"].IsArray()) {
-		returnOut[0][1] = "Invalid SID - None Defined";
+		returnOut[0][1] = "No SIDs or Non-SID Routes Defined";
 		returnOut[0].back() = "Failed";
 
-		returnOut[1][1] = "Invalid SID - " + origin + " exists in database but has no SIDs defined.";
+		returnOut[1][1] = origin + " exists in database but has no SIDs (or non-SID routes) defined.";
 		returnOut[1].back() = "Failed";
 		return returnOut;
 	}
-	size_t pos = string::npos;
 
+	//Find routes for selected SID
+	size_t pos = string::npos;
 	for (size_t i = 0; i < config[origin_int]["sids"].Size(); i++) {
 		if (config[origin_int]["sids"][i].HasMember("point") && !first_wp.compare(config[origin_int]["sids"][i]["point"].GetString()) && config[origin_int]["sids"][i].HasMember("constraints") && config[origin_int]["sids"][i]["constraints"].IsArray()) {
 			pos = i;
@@ -476,7 +629,21 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	}
 
 	// Needed SID defined
-	if (pos != string::npos) {
+	if (pos == string::npos) {
+		if (first_wp == "") {
+			returnOut[0][1] = "SID Required";
+			returnOut[1][1] = "Non-SID departure routes not in database.";
+			returnOut[1].back() = returnOut[0].back() = "Failed";
+			return returnOut;
+		}
+		else {
+			returnOut[0][1] = "SID Not Found";
+			returnOut[1][1] = sid + " departure not in database.";
+			returnOut[1].back() = returnOut[0].back() = "Failed";
+			return returnOut;
+		}
+	} 
+	else {
 		const Value& sid_ele = config[origin_int]["sids"][pos];
 		const Value& conditions = sid_ele["constraints"];
 
@@ -484,139 +651,17 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 		vector<bool> validity, new_validity;
 		vector<string> results;
-		bool sidFails[3]{ 0 };
-		bool restFails[3]{ 0 }; // 0 = Suffix, 1 = Aircraft/Engines, 2 = Date/Time Restrictions
+		bool sidFails[4]{ 0 };
+		bool restFails[4]{ 0 }; // 0 = Suffix, 1 = Aircraft/Engines, 2 = Date/Time Restrictions
+		bool warn = false;
 		int Min, Max;
 
 		//SID-Level Restrictions Array
-		bool sidwide = true;
 		sidFails[0] = true;
-		if (sid_ele["restrictions"].IsArray() && sid_ele["restrictions"].Size()) {
-			sidwide = false;
-			for (size_t j = 0; j < sid_ele["restrictions"].Size(); j++) {
-				bool temp = true;
-
-				if (sid_ele["restrictions"][j]["types"].IsArray() && sid_ele["restrictions"][j]["types"].Size()) {
-					sidFails[1] = true;
-					if (!arrayContains(sid_ele["restrictions"][j]["types"], flightPlan.GetFlightPlanData().GetEngineType()) &&
-						!arrayContains(sid_ele["restrictions"][j]["types"], flightPlan.GetFlightPlanData().GetAircraftType())) {
-						temp = false;
-					}
-				}
-
-				if (sid_ele["restrictions"][j]["suffix"].IsArray() && sid_ele["restrictions"][j]["suffix"].Size()) {
-					if (arrayContainsEnding(sid_ele["restrictions"][j]["suffix"], sid_suffix)) {
-						sidFails[0] = false;
-					}
-					else {
-						temp = false;
-					}
-				}
-				else {
-					sidFails[0] = false;
-				}
-
-				if (sid_ele["restrictions"][j].HasMember("start") && sid_ele["restrictions"][j].HasMember("end")) {
-					bool date = false;
-					bool time = false;
-
-					int startdate;
-					int enddate;
-					int starttime[2] = { 0,0 };
-					int endtime[2] = { 0,0 };
-
-					if (sid_ele["restrictions"][j]["start"].HasMember("date")
-						&& sid_ele["restrictions"][j]["start"]["date"].IsInt()
-						&& sid_ele["restrictions"][j]["end"].HasMember("date")
-						&& sid_ele["restrictions"][j]["end"]["date"].IsInt()) {
-						date = true;
-
-						startdate = sid_ele["restrictions"][j]["start"]["date"].GetInt();
-						enddate = sid_ele["restrictions"][j]["end"]["date"].GetInt();
-					}
-
-					if (sid_ele["restrictions"][j]["start"].HasMember("time")
-						&& sid_ele["restrictions"][j]["start"]["time"].IsString()
-						&& sid_ele["restrictions"][j]["end"].HasMember("time")
-						&& sid_ele["restrictions"][j]["end"]["time"].IsString()) {
-						time = true;
-
-						string startstring = sid_ele["restrictions"][j]["start"]["time"].GetString();
-						string endstring = sid_ele["restrictions"][j]["end"]["time"].GetString();
-
-						starttime[0] = stoi(startstring.substr(0, 2));
-						starttime[1] = stoi(startstring.substr(2, 2));
-						endtime[0] = stoi(endstring.substr(0, 2));
-						endtime[1] = stoi(endstring.substr(2, 2));
-					}
-
-					bool valid = true;
-
-					if (date || time) {
-						sidFails[2] = true;
-						valid = false;
-
-						if (!date && time) {
-							if (starttime[0] > endtime[0] || (starttime[0] == endtime[0] && starttime[1] >= endtime[1])) {
-								if (timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1]) || timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] <= endtime[1])) {
-									valid = true;
-								}
-							}
-							else {
-								if ((timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1])) && (timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] <= endtime[1]))) {
-									valid = true;
-								}
-							}
-						}
-						else if (startdate == enddate) {
-							if (!time) {
-								valid = true;
-							}
-							else if ((timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1])) && (timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] <= endtime[1]))) {
-								valid = true;
-							}
-						}
-						else if (startdate < enddate) {
-							if (timedata[0] > startdate && timedata[0] < enddate) {
-								valid = true;
-							}
-							else if (timedata[0] == startdate) {
-								if (!time || timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1])) {
-									valid = true;
-								}
-							}
-							else if (timedata[0] == enddate) {
-								if (!time || timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] < endtime[1])) {
-									valid = true;
-								}
-							}
-						}
-						else if (startdate > enddate) {
-							if (timedata[0] < startdate || timedata[0] > enddate) {
-								valid = true;
-							}
-							else if (timedata[0] == startdate) {
-								if (!time || timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1])) {
-									valid = true;
-								}
-							}
-							else if (timedata[0] == enddate) {
-								if (!time || timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] < endtime[1])) {
-									valid = true;
-								}
-							}
-						}
-					}
-
-					if (!valid) {
-						temp = false;
-					}
-				}
-
-				if (temp) {
-					sidwide = true;
-				}
-			}
+		vector<bool> temp = checkRestrictions(flightPlan, sid_suffix, sid_ele["restrictions"], sidFails, sidFails);
+		bool sidwide = false;
+		if (temp[0] || temp[1]) {
+			sidwide = true;
 		}
 
 		//Initialise validity array to fully true#
@@ -699,25 +744,6 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					}
 					case 2:
 					{
-						//Nav Perf
-						/* if (conditions[i].HasMember("nav") && conditions[i]["nav"].IsString()) {
-							string navigation_constraints(conditions[i]["nav"].GetString());
-							if (string::npos == navigation_constraints.find_first_of(flightPlan.GetFlightPlanData().GetCapibilities())) {
-								new_validity.push_back(false);
-							}
-							else {
-								new_validity.push_back(true);
-							}
-						}
-						else {
-							new_validity.push_back(true);
-						} */
-
-						new_validity.push_back(true); //Check disabled until future release
-						break;
-					}
-					case 3:
-					{
 						bool res = true;
 
 						//Min Level
@@ -733,12 +759,13 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 						new_validity.push_back(res);
 						break;
 					}
-					case 4:
+					case 3:
 					{
+						//Even/Odd Levels
+
 						//Assume any level valid if no "EVEN" or "ODD" declaration
 						bool res = true;
 
-						//Even/Odd Levels
 						if (conditions[i].HasMember("dir") && conditions[i]["dir"].IsString()) {
 							string direction = conditions[i]["dir"].GetString();
 							boost::to_upper(direction);
@@ -774,139 +801,34 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 						new_validity.push_back(res);
 						break;
 					}
+					case 4:
+					{
+						//Restrictions Array
+						bool res = false;
+
+						temp = checkRestrictions(flightPlan, sid_suffix, conditions[i]["restrictions"], sidFails, restFails);
+
+						res = temp[0];
+						if (temp[1]) {
+							sidwide = true;
+						}
+
+						new_validity.push_back(res);
+						break;
+					}
 					case 5:
 					{
+						//Alerts (Warn/Ban)
 						bool res = true;
-						bool overridesid = false;
 
-						restFails[0] = true;
-						// Restrictions Array - Only test if SID-wide failed or is overriden for this constraint.
-						if (!sidwide || (conditions[i].HasMember("override") && conditions[i]["override"].IsBool() && conditions[i]["override"].GetBool())) {
-							res = false;
-							if (conditions[i]["restrictions"].IsArray() && conditions[i]["restrictions"].Size()) {
-								for (size_t j = 0; j < conditions[i]["restrictions"].Size(); j++) {
-									bool temp = true;
+						if (conditions[i]["alerts"].IsArray() && conditions[i]["alerts"].Size()) {
+							for (size_t j = 0; j < conditions[i]["alerts"].Size(); i++) {
+								if (conditions[i]["alerts"][j].HasMember("ban") && conditions[i]["alerts"][j]["ban"].GetBool()) {
+									res = false;
+								}
 
-									if (conditions[i]["restrictions"][j]["types"].IsArray() && conditions[i]["restrictions"][j]["types"].Size()) {
-										restFails[1] = true;
-										if (!arrayContains(conditions[i]["restrictions"][j]["types"], flightPlan.GetFlightPlanData().GetEngineType()) &&
-											!arrayContains(conditions[i]["restrictions"][j]["types"], flightPlan.GetFlightPlanData().GetAircraftType())) {
-											temp = false;
-										}
-									}
-
-									if (conditions[i]["restrictions"][j]["suffix"].IsArray() && conditions[i]["restrictions"][j]["suffix"].Size()) {
-										if (arrayContainsEnding(conditions[i]["restrictions"][j]["suffix"], sid_suffix)) {
-											restFails[0] = false;
-										}
-										else {
-											temp = false;
-										}
-									}
-									else {
-										restFails[0] = false;
-									}
-
-									if (conditions[i]["restrictions"][j].HasMember("start") && conditions[i]["restrictions"][j].HasMember("end")) {
-										bool date = false;
-										bool time = false;
-
-										int startdate;
-										int enddate;
-										int starttime[2] = { 0,0 };
-										int endtime[2] = { 0,0 };
-
-										if (conditions[i]["restrictions"][j]["start"].HasMember("date")
-											&& conditions[i]["restrictions"][j]["start"]["date"].IsInt()
-											&& conditions[i]["restrictions"][j]["end"].HasMember("date")
-											&& conditions[i]["restrictions"][j]["end"]["date"].IsInt()) {
-											date = true;
-
-											startdate = conditions[i]["restrictions"][j]["start"]["date"].GetInt();
-											enddate = conditions[i]["restrictions"][j]["end"]["date"].GetInt();
-										}
-
-										if (conditions[i]["restrictions"][j]["start"].HasMember("time")
-											&& conditions[i]["restrictions"][j]["start"]["time"].IsString()
-											&& conditions[i]["restrictions"][j]["end"].HasMember("time")
-											&& conditions[i]["restrictions"][j]["end"]["time"].IsString()) {
-											time = true;
-
-											string startstring = conditions[i]["restrictions"][j]["start"]["time"].GetString();
-											string endstring = conditions[i]["restrictions"][j]["end"]["time"].GetString();
-
-											starttime[0] = stoi(startstring.substr(0, 2));
-											starttime[1] = stoi(startstring.substr(2, 2));
-											endtime[0] = stoi(endstring.substr(0, 2));
-											endtime[1] = stoi(endstring.substr(2, 2));
-										}
-
-										bool valid = true;
-
-										if (date || time) {
-											restFails[2] = true;
-											valid = false;
-
-											if (!date && time) {
-												if (starttime[0] > endtime[0] || (starttime[0] == endtime[0] && starttime[1] >= endtime[1])) {
-													if (timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1]) || timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] <= endtime[1])) {
-														valid = true;
-													}
-												}
-												else {
-													if ((timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1])) && (timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] <= endtime[1]))) {
-														valid = true;
-													}
-												}
-											}
-											else if (startdate == enddate) {
-												if (!time) {
-													valid = true;
-												}
-												else if ((timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1])) && (timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] <= endtime[1]))) {
-													valid = true;
-												}
-											}
-											else if (startdate < enddate) {
-												if (timedata[0] > startdate && timedata[0] < enddate) {
-													valid = true;
-												}
-												else if (timedata[0] == startdate) {
-													if (!time || timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1])) {
-														valid = true;
-													}
-												}
-												else if (timedata[0] == enddate) {
-													if (!time || timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] < endtime[1])) {
-														valid = true;
-													}
-												}
-											}
-											else if (startdate > enddate) {
-												if (timedata[0] < startdate || timedata[0] > enddate) {
-													valid = true;
-												}
-												else if (timedata[0] == startdate) {
-													if (!time || timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1])) {
-														valid = true;
-													}
-												}
-												else if (timedata[0] == enddate) {
-													if (!time || timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] < endtime[1])) {
-														valid = true;
-													}
-												}
-											}
-										}
-
-										if (!valid) {
-											temp = false;
-										}
-									}
-
-									if (temp) {
-										res = true;
-									}
+								if (conditions[i]["alerts"][j].HasMember("warn") && conditions[i]["alerts"][j]["warn"].GetBool()) {
+									warn = true;
 								}
 							}
 						}
@@ -937,9 +859,14 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 		returnOut[1].back() = returnOut[0].back() = "Failed";
 
-		returnOut[1][1] = returnOut[0][1] = "Valid SID - " + sid + ".";
+		if (sid.length()) {
+			returnOut[1][1] = returnOut[0][1] = "SID - " + sid + ".";
+		}
+		else {
+			returnOut[1][1] = returnOut[0][1] = "Non-SID Route.";
+		}
 
-		if (sidwide || round == 6) {
+		if (sidwide) {
 			vector<size_t> successes{};
 
 			for (size_t i = 0; i < validity.size(); i++) {
@@ -951,51 +878,55 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			switch (round) {
 			case 6:
 			{
-				returnOut[0][8] = "Passed SID Restrictions.";
-				returnOut[1][8] = "Passed "; //RestrictionsOutput(origin_int, pos, successes, restFails[1], restFails[2]);
-
 				returnOut[1].back() = returnOut[0].back() = "Passed";
+				returnOut[1][9] = "No Route Ban.";
 			}
 			case 5:
 			{
-				returnOut[0][7] = "Valid Suffix.";
-				returnOut[1][7] = "Valid " + SuffixOutput(origin_int, pos, successes);
+				returnOut[0][7] = "Passed SID Restrictions.";
+				returnOut[1][7] = "Passed " + RestrictionsOutput(origin_int, pos, true, true, true, successes);
 
-				if (round == 5) {
-					if (restFails[0]) {
-						returnOut[1][7] = returnOut[0][7] = "Invalid " + SuffixOutput(origin_int, pos, successes);
-					}
-					else {
-						returnOut[1][8] = returnOut[0][8] = "Failed " + RestrictionsOutput(origin_int, pos, restFails[1], restFails[2], successes) + " " + AlternativesOutput(origin_int, pos, successes);
-					}
+				if (warn) {
+					returnOut[1][8] = returnOut[0][8] = WarningsOutput(origin_int, pos, successes);
 				}
-
-				returnOut[0][6] = "Passed Odd-Even Rule.";
-				returnOut[1][6] = "Passed " + DirectionOutput(origin_int, pos, successes);
+				else {
+					returnOut[1][8] = "No Warnings.";
+				}
+        
+				if (round == 5) {
+					returnOut[1][9] = returnOut[0][9] = BansOutput(origin_int, pos, successes);
+				}
 			}
 			case 4:
 			{
+				returnOut[0][6] = "Valid Suffix.";
+				returnOut[1][6] = "Valid " + SuffixOutput(origin_int, pos, successes);
+
 				if (round == 4) {
-					returnOut[1][6] = returnOut[0][6] = "Failed " + DirectionOutput(origin_int, pos, successes);
+					if (restFails[0]) {
+						returnOut[1][6] = returnOut[0][6] = "Invalid " + SuffixOutput(origin_int, pos, successes);
+					}
+					else {
+						returnOut[1][7] = returnOut[0][7] = "Failed " + RestrictionsOutput(origin_int, pos, restFails[1], restFails[2], restFails[3], successes) + " " + AlternativesOutput(origin_int, pos, successes);
+					}
 				}
 
-				returnOut[0][5] = "Passed Min/Max Level.";
-				returnOut[1][5] = "Passed " + MinMaxOutput(origin_int, pos, successes);
+				returnOut[0][5] = "Passed Odd-Even Rule.";
+				returnOut[1][5] = "Passed " + DirectionOutput(origin_int, pos, successes);
 			}
 			case 3:
 			{
 				if (round == 3) {
-					returnOut[1][5] = returnOut[0][5] = "Failed " + MinMaxOutput(origin_int, pos, successes);
+					returnOut[1][5] = returnOut[0][5] = "Failed " + DirectionOutput(origin_int, pos, successes);
 				}
 
-				returnOut[0][4] = "Passed Navigation Performance.";
-				returnOut[1][4] = "Passed " + NavPerfOutput(origin_int, pos, successes);
+				returnOut[0][4] = "Passed Min/Max Level.";
+				returnOut[1][4] = "Passed " + MinMaxOutput(origin_int, pos, successes);
 			}
-
 			case 2:
 			{
 				if (round == 2) {
-					returnOut[1][4] = returnOut[0][4] = "Failed " + NavPerfOutput(origin_int, pos, successes);
+					returnOut[1][4] = returnOut[0][4] = "Failed " + MinMaxOutput(origin_int, pos, successes);
 				}
 
 				returnOut[0][3] = "Passed Route.";
@@ -1021,25 +952,87 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		}
 		else {
 			if (sidFails[0]) {
-				returnOut[1][7] = returnOut[0][7] = "Invalid " + SuffixOutput(origin_int, pos);
+				returnOut[1][6] = returnOut[0][7] = "Invalid " + SuffixOutput(origin_int, pos);
 			}
 			else {
-				returnOut[0][7] = "Valid Suffix.";
-				returnOut[1][7] = "Valid " + SuffixOutput(origin_int, pos);
+				returnOut[0][6] = "Valid Suffix.";
+				returnOut[1][6] = "Valid " + SuffixOutput(origin_int, pos);
 
 				//sidFails[1] or [2] must be false to get here
-				returnOut[1][8] = returnOut[0][8] = "Failed " + RestrictionsOutput(origin_int, pos, sidFails[1], sidFails[2]) + " " + AlternativesOutput(origin_int, pos);
+				returnOut[1][7] = returnOut[0][7] = "Failed " + RestrictionsOutput(origin_int, pos, sidFails[1], sidFails[2]) + " " + AlternativesOutput(origin_int, pos);
 			}
 		}
 
 		return returnOut;
 	}
-	else {
-		returnOut[0][1] = "Invalid SID - SID Not Found";
-		returnOut[1][1] = "Invalid SID - " + sid + " departure not in database.";
-		returnOut[1].back() = returnOut[0].back() = "Failed";
-		return returnOut;
+}
+
+//Outputs route bans as string
+string CVFPCPlugin::BansOutput(size_t origin_int, size_t pos, vector<size_t> successes) {
+	const Value& conditions = config[origin_int]["sids"][pos]["constraints"];
+	vector<string> bans{};
+	for (int each : successes) {
+		if (conditions[each]["alerts"].IsArray() && conditions[each]["alerts"].Size()) {
+			for (size_t i = 0; i < conditions[each]["alerts"].Size(); i++) {
+				if (conditions[each]["alerts"][i].HasMember("ban") && conditions[each]["alerts"][i]["ban"].GetBool() && conditions[each]["alerts"][i].HasMember("note")) {
+					bans.push_back(conditions[each]["alerts"][i]["note"].GetString());
+				}
+			}
+		}
 	}
+
+	sort(bans.begin(), bans.end());
+	vector<string>::iterator itr = unique(bans.begin(), bans.end());
+	bans.erase(itr, bans.end());
+
+	string out = "";
+
+	for (string each : bans) {
+		out += each + ", ";
+	}
+
+	if (out == "") {
+		out = "None";
+	}
+	else {
+		out = out.substr(0, out.length() - 2);
+	}
+
+	return "Route Banned: " + out + ".";
+}
+
+//Outputs route warnings as string
+string CVFPCPlugin::WarningsOutput(size_t origin_int, size_t pos, vector<size_t> successes) {
+	const Value& conditions = config[origin_int]["sids"][pos]["constraints"];
+	vector<string> warnings{};
+	for (int each : successes) {
+		if (conditions[each]["alerts"].IsArray() && conditions[each]["alerts"].Size()) {
+			for (size_t i = 0; i < conditions[each]["alerts"].Size(); i++) {
+				if (conditions[each]["alerts"][i].HasMember("warn") && conditions[each]["alerts"][i]["warn"].GetBool() && conditions[each]["alerts"][i].HasMember("note")) {
+					warnings.push_back(conditions[each]["alerts"][i]["note"].GetString());
+				}
+			}
+		}
+	}
+
+	sort(warnings.begin(), warnings.end());
+	vector<string>::iterator itr = unique(warnings.begin(), warnings.end());
+	warnings.erase(itr, warnings.end());
+
+	string out = "";
+
+	for (string each : warnings) {
+		out += each + ", ";
+	}
+
+	if (out == "") {
+		out = "None";
+	}
+	else {
+		out = out.substr(0, out.length() - 2);
+	}
+
+	return "Warnings: " + out + ".";
 }
 
 //Outputs recommended alternatives (from Restrictions array) as string
@@ -1084,14 +1077,14 @@ string CVFPCPlugin::AlternativesOutput(size_t origin_int, size_t pos, vector<siz
 }
 
 //Outputs aircraft type and date/time restrictions (from Restrictions array) as string
-string CVFPCPlugin::RestrictionsOutput(size_t origin_int, size_t pos, bool check_type, bool check_time, vector<size_t> successes) {
+string CVFPCPlugin::RestrictionsOutput(size_t origin_int, size_t pos, bool check_type, bool check_time, bool check_ban, vector<size_t> successes) {
 	vector<vector<string>> rests{};
 	const Value& sid_ele = config[origin_int]["sids"][pos];
 	const Value& conditions = sid_ele["constraints"];
 
 	if (sid_ele["restrictions"].IsArray() && sid_ele["restrictions"].Size()) {
 		for (size_t i = 0; i < sid_ele["restrictions"].Size(); i++) {
-			vector<string> this_rest { "", "" };
+			vector<string> this_rest { "", "", "" };
 
 			if (sid_ele["restrictions"][i]["types"].IsArray() && sid_ele["restrictions"][i]["types"].Size()) {
 				for (size_t j = 0; j < sid_ele["restrictions"][i]["types"].Size(); j++) {
@@ -1179,6 +1172,10 @@ string CVFPCPlugin::RestrictionsOutput(size_t origin_int, size_t pos, bool check
 				}
 			}
 
+			if (sid_ele["restrictions"][i].HasMember("banned") && sid_ele["restrictions"][i]["banned"].GetBool()) {
+				this_rest[2] = "Banned";
+			}
+
 			if (!all_of(this_rest[0].begin(), this_rest[0].end(), isspace) || !all_of(this_rest[1].begin(), this_rest[1].end(), isspace)) {
 				rests.push_back(this_rest);
 			}
@@ -1188,7 +1185,7 @@ string CVFPCPlugin::RestrictionsOutput(size_t origin_int, size_t pos, bool check
 	for (size_t each : successes) {
 		if (conditions[each]["restrictions"].IsArray() && conditions[each]["restrictions"].Size()) {
 			for (size_t i = 0; i < conditions[each]["restrictions"].Size(); i++) {
-				vector<string> this_rest { "", "" };
+				vector<string> this_rest { "", "", "" };
 
 				if (conditions[each]["restrictions"][i]["types"].IsArray() && conditions[each]["restrictions"][i]["types"].Size()) {
 					for (size_t j = 0; j < conditions[each]["restrictions"][i]["types"].Size(); j++) {
@@ -1276,7 +1273,11 @@ string CVFPCPlugin::RestrictionsOutput(size_t origin_int, size_t pos, bool check
 					}
 				}
 
-				if (!all_of(this_rest[0].begin(), this_rest[0].end(), isspace) || !all_of(this_rest[1].begin(), this_rest[1].end(), isspace)) {
+				if (conditions[each]["restrictions"][i].HasMember("banned") && conditions[each]["restrictions"][i]["banned"].GetBool()) {
+					this_rest[2] = "Banned";
+				}
+
+				if (!all_of(this_rest[0].begin(), this_rest[0].end(), isspace) || !all_of(this_rest[1].begin(), this_rest[1].end(), isspace) || !all_of(this_rest[2].begin(), this_rest[2].end(), isspace)) {
 					rests.push_back(this_rest);
 				}
 			}
@@ -1285,14 +1286,32 @@ string CVFPCPlugin::RestrictionsOutput(size_t origin_int, size_t pos, bool check
 
 	string out = "";
 	for (size_t i = 0; i < rests.size(); i++) {
+		if (check_ban) {
+			out += "Banned";
+		}
 		if (check_type && check_time) {
-			out += rests[i][0] + " Aircraft Between " + rests[i][1] + " / ";
+			if (out.size() > 0) {
+				out += " for ";
+			}
+
+			out += rests[i][0] + " Between " + rests[i][1] + " / ";
 		}
 		else if (check_type) {
+			if (out.size() > 0) {
+				out += " for ";
+			}
+
 			out += rests[i][0] + ", ";
 		}
 		else if (check_time) {
-			out += "Between " + rests[i][1] + " / ";
+			if (out.size() > 0) {
+				out += " b";
+			}
+			else {
+				out += "B";
+			}
+
+			out += "etween " + rests[i][1] + " / ";
 		}
 	}
 
@@ -1320,7 +1339,13 @@ string CVFPCPlugin::SuffixOutput(size_t origin_int, size_t pos, vector<size_t> s
 			if (sid_eles["restrictions"][i]["suffix"].IsArray() && sid_eles["restrictions"][i]["suffix"].Size()) {
 				for (size_t j = 0; j < sid_eles["restrictions"][i]["suffix"].Size(); j++) {
 					if (sid_eles["restrictions"][i]["suffix"][j].IsString()) {
-						suffices.push_back(sid_eles["restrictions"][i]["suffix"][j].GetString());
+						string out = "";
+						if (sid_eles["restrictions"][i].HasMember("banned") && sid_eles["restrictions"][i]["banned"].GetBool()) {
+							out += "Not ";
+						}
+
+						out += sid_eles["restrictions"][i]["suffix"][j].GetString();
+						suffices.push_back(out);
 					}
 				}
 			}
@@ -1333,7 +1358,13 @@ string CVFPCPlugin::SuffixOutput(size_t origin_int, size_t pos, vector<size_t> s
 				if (conditions[each]["restrictions"][i]["suffix"].IsArray() && conditions[each]["restrictions"][i]["suffix"].Size()) {
 					for (size_t j = 0; j < conditions[each]["restrictions"][i]["suffix"].Size(); j++) {
 						if (conditions[each]["restrictions"][i]["suffix"][j].IsString()) {
-							suffices.push_back(conditions[each]["restrictions"][i]["suffix"][j].GetString());
+							string out = "";
+							if (conditions[each]["restrictions"][i].HasMember("banned") && conditions[each]["restrictions"][i]["banned"].GetBool()) {
+								out += "Not ";
+							}
+
+							out += conditions[each]["restrictions"][i]["suffix"][j].GetString();
+							suffices.push_back(out);
 						}
 					}
 				}
@@ -1474,36 +1505,6 @@ string CVFPCPlugin::MinMaxOutput(size_t origin_int, size_t pos, vector<size_t> s
 	out = out.substr(0, out.size() - 2) + ".";
 
 	return out;
-}
-
-//Outputs valid navigational performance (from Constraints array) as string
-string CVFPCPlugin::NavPerfOutput(size_t origin_int, size_t pos, vector<size_t> successes) {
-	const Value& conditions = config[origin_int]["sids"][pos]["constraints"];
-	vector<string> navperf{};
-	for (int each : successes) {
-		if (conditions[each].HasMember("nav") && conditions[each]["nav"].IsString()) {
-			navperf.push_back(string(conditions[each]["nav"].GetString()));
-		}
-	}
-
-	sort(navperf.begin(), navperf.end());
-	vector<string>::iterator itr = unique(navperf.begin(), navperf.end());
-	navperf.erase(itr, navperf.end());
-
-	string out = "";
-
-	for (string each : navperf) {
-		out += each + ", ";
-	}
-
-	if (out == "") {
-		out = "None Specified";
-	}
-	else {
-		out = out.substr(0, out.length() - 2);
-	}
-
-	return "Navigation Performance. Required Performance: " + out;
 }
 
 //Outputs valid initial routes (from Constraints array) as string
@@ -1691,11 +1692,16 @@ string CVFPCPlugin::DestinationOutput(size_t origin_int, string dest) {
 				}
 			}
 
+			string sidstr = config[origin_int]["sids"][i]["point"].GetString();
+			if (sidstr == "") {
+				sidstr = "No SID";
+			}
+
 			if (push_a) {
-				a.push_back(config[origin_int]["sids"][i]["point"].GetString());
+				a.push_back(sidstr);
 			}
 			else if (push_b) {
-				b.push_back(config[origin_int]["sids"][i]["point"].GetString());
+				b.push_back(sidstr);
 			}
 		}
 	}
@@ -1751,6 +1757,11 @@ void CVFPCPlugin::OnFunctionCall(int FunctionId, const char * ItemString, POINT 
 
 //Gets flight plan, checks if (S/D)VFR, calls checking algorithms, and outputs pass/fail result to departure list item
 void CVFPCPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int ItemCode, int TagData, char sItemString[16], int* pColorCode, COLORREF* pRGB, double* pFontSize){
+	const char *origin = FlightPlan.GetFlightPlanData().GetOrigin();
+	if (find(activeAirports.begin(), activeAirports.end(), origin) == activeAirports.end()) {
+		activeAirports.push_back(origin);
+	}
+
 	if (validVersion && ItemCode == TAG_ITEM_FPCHECK && airports.find(FlightPlan.GetFlightPlanData().GetOrigin()) != airports.end()) {
 		string FlightPlanString = FlightPlan.GetFlightPlanData().GetRoute();
 		int RFL = FlightPlan.GetFlightPlanData().GetFinalAltitude();
@@ -1765,17 +1776,8 @@ void CVFPCPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget,
 			vector<vector<string>> validize = validizeSid(FlightPlan);
 			vector<string> messageBuffer{ validize[0] }; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Route, 4 = Nav Performance, 5 = Min/Max Flight Level, 6 = Even/Odd, 7 = Suffix, 8 = Aircraft Type, 9 = Date/Time, 10 = Syntax, 11 = Passed/Failed
 
-			if (messageBuffer.back() == "Passed") {
-				*pRGB = TAG_GREEN;
-				strcpy_s(sItemString, 16, "OK!");
-			}
-			else {
-				*pRGB = TAG_RED;
-				string code = getFails(validize[0]);
-				strcpy_s(sItemString, 16, code.c_str());
-			}
+			strcpy_s(sItemString, 16, getFails(validize[0], pRGB).c_str());
 		}
-
 	}
 }
 
@@ -1873,39 +1875,44 @@ void CVFPCPlugin::checkFPDetail() {
 }
 
 //Compiles list of failed elements in flight plan, in preparation for adding to departure list
-string CVFPCPlugin::getFails(vector<string> messageBuffer) {
-	vector<string> fail;
+string CVFPCPlugin::getFails(vector<string> messageBuffer, COLORREF* pRGB) {
+	*pRGB = TAG_RED;
 
-	if (messageBuffer.at(1).find("Invalid") == 0) {
-		fail.push_back("SID");
+	if (messageBuffer.at(1).find("SID - ") == 0 || messageBuffer.at(1).find("Non-SID Route.") == 0) {
+		return "SID";
 	}
-	if (messageBuffer.at(2).find("Failed") == 0) {
-		fail.push_back("DST");
+	else if (messageBuffer.at(2).find("Failed") == 0) {
+		return "DST";
 	}
-	if (messageBuffer.at(3).find("Failed") == 0) {
-		fail.push_back("RTE");
+	else if (messageBuffer.at(3).find("Failed") == 0) {
+		return "RTE";
 	}
-	if (messageBuffer.at(4).find("Failed") == 0) {
-		fail.push_back("NAV");
+	else if (messageBuffer.at(4).find("Failed") == 0) {
+		return "LVL";
 	}
-	if (messageBuffer.at(5).find("Failed") == 0) {
-		fail.push_back("MIN");
-		fail.push_back("MAX");
+	else if (messageBuffer.at(5).find("Failed") == 0) {
+		return "OER";
 	}
-	if (messageBuffer.at(6).find("Failed") == 0) {
-		fail.push_back("OER");
+	else if (messageBuffer.at(6).find("Invalid") == 0) {
+		return "SUF";
 	}
-	if (messageBuffer.at(7).find("Invalid") == 0) {
-		fail.push_back("SUF");
+	else if (messageBuffer.at(7).find("Failed") == 0) {
+		return "RST";
 	}
-	if (messageBuffer.at(8).find("Failed") == 0) {
-		fail.push_back("RST");
+	else if (messageBuffer.at(8).find("Warnings") == 0) {
+		*pRGB = TAG_ORANGE;
 	}
-	if (messageBuffer.at(messageBuffer.size() - 2).find("Invalid") == 0) {
-		fail.push_back("CHK");
+	else if (messageBuffer.at(9).find("Route Banned") == 0) {
+		return "BAN";
+	}
+	else if (messageBuffer.at(messageBuffer.size() - 2).find("Invalid") == 0) {
+		return "CHK";
+	}
+	else {
+		*pRGB = TAG_GREEN;
 	}
 
-	return fail[failPos % fail.size()];
+	return "OK!";
 }
 
 //Runs all web/file calls at once
@@ -1920,18 +1927,8 @@ void CVFPCPlugin::OnTimer(int Counter) {
 	if (validVersion) {
 		if (relCount == -1 && fut.valid() && fut.wait_for(1ms) == std::future_status::ready) {
 			fut.get();
-			relCount = 10;
-		}
-	
-		blink = !blink;
-
-		//2520 is Lowest Common Multiple of Numbers 1-9
-		if (failPos < 2520) {
-			failPos++;
-		}
-		//Number shouldn't get out of control
-		else {
-			failPos = 0;
+			activeAirports.clear();
+			relCount = API_REFRESH_TIME;
 		}
 
 		if (relCount > 0) {
