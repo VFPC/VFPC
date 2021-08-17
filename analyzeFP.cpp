@@ -1904,7 +1904,7 @@ void CVFPCPlugin::checkFPDetail() {
 string CVFPCPlugin::getFails(vector<string> messageBuffer, COLORREF* pRGB) {
 	*pRGB = TAG_RED;
 
-	if (messageBuffer.at(1).find("SID - ") == 0 || messageBuffer.at(1).find("Non-SID Route.") == 0) {
+	if (messageBuffer.at(1).find("SID - ") != 0 && messageBuffer.at(1).find("Non-SID Route.") != 0) {
 		return "SID";
 	}
 	else if (messageBuffer.at(2).find("Failed") == 0) {
