@@ -1763,8 +1763,6 @@ void CVFPCPlugin::OnFunctionCall(int FunctionId, const char * ItemString, POINT 
 		else {
 			flightPlan.GetControllerAssignedData().SetFlightStripAnnotation(0, "");
 		}
-
-		flightPlan.GetFlightPlanData().SetRemarks(remarks.c_str());
 	}
 }
 
