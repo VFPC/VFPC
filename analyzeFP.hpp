@@ -56,7 +56,7 @@ public:
 
 	virtual string AlternativesOutput(size_t origin_int, size_t pos, vector<size_t> successes = {});
 
-	virtual string RestrictionsOutput(size_t origin_int, size_t pos, bool type = true, bool time = true, vector<size_t> successes = {});
+	virtual string RestrictionsOutput(size_t origin_int, size_t pos, bool check_type = true, bool check_time = true, bool check_ban = true, vector<size_t> successes = {});
 
 	virtual string SuffixOutput(size_t origin_int, size_t pos, vector<size_t> successes = {});
 

@@ -1074,14 +1074,14 @@ string CVFPCPlugin::AlternativesOutput(size_t origin_int, size_t pos, vector<siz
 }
 
 //Outputs aircraft type and date/time restrictions (from Restrictions array) as string
-string CVFPCPlugin::RestrictionsOutput(size_t origin_int, size_t pos, bool check_type, bool check_time, vector<size_t> successes) {
+string CVFPCPlugin::RestrictionsOutput(size_t origin_int, size_t pos, bool check_type, bool check_time, bool check_ban, vector<size_t> successes) {
 	vector<vector<string>> rests{};
 	const Value& sid_ele = config[origin_int]["sids"][pos];
 	const Value& conditions = sid_ele["constraints"];
 
 	if (sid_ele["restrictions"].IsArray() && sid_ele["restrictions"].Size()) {
 		for (size_t i = 0; i < sid_ele["restrictions"].Size(); i++) {
-			vector<string> this_rest { "", "" };
+			vector<string> this_rest { "", "", "" };
 
 			if (sid_ele["restrictions"][i]["types"].IsArray() && sid_ele["restrictions"][i]["types"].Size()) {
 				for (size_t j = 0; j < sid_ele["restrictions"][i]["types"].Size(); j++) {
@@ -1169,6 +1169,10 @@ string CVFPCPlugin::RestrictionsOutput(size_t origin_int, size_t pos, bool check
 				}
 			}
 
+			if (sid_ele["restrictions"][i].HasMember("banned") && sid_ele["restrictions"][i]["banned"].GetBool()) {
+				this_rest[2] = "Banned";
+			}
+
 			if (!all_of(this_rest[0].begin(), this_rest[0].end(), isspace) || !all_of(this_rest[1].begin(), this_rest[1].end(), isspace)) {
 				rests.push_back(this_rest);
 			}
@@ -1178,7 +1182,7 @@ string CVFPCPlugin::RestrictionsOutput(size_t origin_int, size_t pos, bool check
 	for (size_t each : successes) {
 		if (conditions[each]["restrictions"].IsArray() && conditions[each]["restrictions"].Size()) {
 			for (size_t i = 0; i < conditions[each]["restrictions"].Size(); i++) {
-				vector<string> this_rest { "", "" };
+				vector<string> this_rest { "", "", "" };
 
 				if (conditions[each]["restrictions"][i]["types"].IsArray() && conditions[each]["restrictions"][i]["types"].Size()) {
 					for (size_t j = 0; j < conditions[each]["restrictions"][i]["types"].Size(); j++) {
@@ -1266,7 +1270,11 @@ string CVFPCPlugin::RestrictionsOutput(size_t origin_int, size_t pos, bool check
 					}
 				}
 
-				if (!all_of(this_rest[0].begin(), this_rest[0].end(), isspace) || !all_of(this_rest[1].begin(), this_rest[1].end(), isspace)) {
+				if (conditions[each]["restrictions"][i].HasMember("banned") && conditions[each]["restrictions"][i]["banned"].GetBool()) {
+					this_rest[2] = "Banned";
+				}
+
+				if (!all_of(this_rest[0].begin(), this_rest[0].end(), isspace) || !all_of(this_rest[1].begin(), this_rest[1].end(), isspace) || !all_of(this_rest[2].begin(), this_rest[2].end(), isspace)) {
 					rests.push_back(this_rest);
 				}
 			}
@@ -1275,14 +1283,32 @@ string CVFPCPlugin::RestrictionsOutput(size_t origin_int, size_t pos, bool check
 
 	string out = "";
 	for (size_t i = 0; i < rests.size(); i++) {
+		if (check_ban) {
+			out += "Banned";
+		}
 		if (check_type && check_time) {
-			out += rests[i][0] + " Aircraft Between " + rests[i][1] + " / ";
+			if (out.size() > 0) {
+				out += " for ";
+			}
+
+			out += rests[i][0] + " Between " + rests[i][1] + " / ";
 		}
 		else if (check_type) {
+			if (out.size() > 0) {
+				out += " for ";
+			}
+
 			out += rests[i][0] + ", ";
 		}
 		else if (check_time) {
-			out += "Between " + rests[i][1] + " / ";
+			if (out.size() > 0) {
+				out += " b";
+			}
+			else {
+				out += "B";
+			}
+
+			out += "etween " + rests[i][1] + " / ";
 		}
 	}
 
@@ -1310,7 +1336,13 @@ string CVFPCPlugin::SuffixOutput(size_t origin_int, size_t pos, vector<size_t> s
 			if (sid_eles["restrictions"][i]["suffix"].IsArray() && sid_eles["restrictions"][i]["suffix"].Size()) {
 				for (size_t j = 0; j < sid_eles["restrictions"][i]["suffix"].Size(); j++) {
 					if (sid_eles["restrictions"][i]["suffix"][j].IsString()) {
-						suffices.push_back(sid_eles["restrictions"][i]["suffix"][j].GetString());
+						string out = "";
+						if (sid_eles["restrictions"][i].HasMember("banned") && sid_eles["restrictions"][i]["banned"].GetBool()) {
+							out += "Not ";
+						}
+
+						out += sid_eles["restrictions"][i]["suffix"][j].GetString();
+						suffices.push_back(out);
 					}
 				}
 			}
@@ -1323,7 +1355,13 @@ string CVFPCPlugin::SuffixOutput(size_t origin_int, size_t pos, vector<size_t> s
 				if (conditions[each]["restrictions"][i]["suffix"].IsArray() && conditions[each]["restrictions"][i]["suffix"].Size()) {
 					for (size_t j = 0; j < conditions[each]["restrictions"][i]["suffix"].Size(); j++) {
 						if (conditions[each]["restrictions"][i]["suffix"][j].IsString()) {
-							suffices.push_back(conditions[each]["restrictions"][i]["suffix"][j].GetString());
+							string out = "";
+							if (conditions[each]["restrictions"][i].HasMember("banned") && conditions[each]["restrictions"][i]["banned"].GetBool()) {
+								out += "Not ";
+							}
+
+							out += conditions[each]["restrictions"][i]["suffix"][j].GetString();
+							suffices.push_back(out);
 						}
 					}
 				}
