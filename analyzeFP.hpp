@@ -56,9 +56,15 @@ public:
 
 	virtual string AlternativesOutput(const Value& sid_ele, vector<size_t> successes = {});
 
+	virtual vector<string> AlternativesSingle(const Value& sid_ele);
+
 	virtual string RestrictionsOutput(const Value& sid_ele, bool check_type = true, bool check_time = true, bool check_ban = true, vector<size_t> successes = {});
 
+	virtual vector<vector<string>> RestrictionsSingle(const Value& restrictions, bool check_type = true, bool check_time = true, bool check_ban = true);
+	
 	virtual string SuffixOutput(const Value& sid_ele, vector<size_t> successes = {});
+
+	virtual vector<string> SuffixSingle(const Value& restrictions);
 
 	virtual string DirectionOutput(const Value& constraints, vector<size_t> successes);
 

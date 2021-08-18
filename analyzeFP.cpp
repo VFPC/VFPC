@@ -958,8 +958,8 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 				returnOut[0][6] = "Valid Suffix.";
 				returnOut[1][6] = "Valid " + SuffixOutput(sid_ele);
 
-				//sidFails[1] or [2] must be false to get here
-				returnOut[1][7] = returnOut[0][7] = "Failed " + RestrictionsOutput(sid_ele, sidFails[1], sidFails[2]) + " " + AlternativesOutput(sid_ele);
+				//sidFails[1], [2], or [3] must be false to get here
+				returnOut[1][7] = returnOut[0][7] = "Failed " + RestrictionsOutput(sid_ele, sidFails[1], sidFails[2], sidFails[3]) + " " + AlternativesOutput(sid_ele);
 			}
 		}
 
@@ -1033,44 +1033,53 @@ string CVFPCPlugin::WarningsOutput(const Value& constraints, vector<size_t> succ
 	return "Warnings: " + out + ".";
 }
 
-//Outputs recommended alternatives (from Restrictions array) as string
+//Outputs recommended alternatives (from Restrictions arrays for a SID) as string
 string CVFPCPlugin::AlternativesOutput(const Value& sid_ele, vector<size_t> successes) {
-	string out = "";
+	vector<string> alts{};
 	const Value& constraints = sid_ele["constraints"];
 
-	if (sid_ele["restrictions"].IsArray() && sid_ele["restrictions"].Size()) {
-		for (size_t i = 0; i < sid_ele["restrictions"].Size(); i++) {
-			if (sid_ele["restrictions"][i]["alt"].IsArray() && sid_ele["restrictions"][i]["alt"].Size()) {
-				for (size_t j = 0; j < sid_ele["restrictions"][i]["alt"].Size(); j++) {
-					if (sid_ele["restrictions"][i]["alt"][j].IsString()) {
-						out += sid_ele["restrictions"][i]["alt"][j].GetString();
-						out += ", ";
-					}
-				}
-			}
-		}
-	}
+	vector<string> temp = AlternativesSingle(sid_ele["restrictions"]);
+	alts.insert(alts.end(), temp.begin(), temp.end());
 
 	for (size_t each : successes) {
-		if (constraints[each]["restrictions"].IsArray() && constraints[each]["restrictions"].Size()) {
-			for (size_t i = 0; i < constraints[each]["restrictions"].Size(); i++) {
-				if (constraints[each]["restrictions"][i]["alt"].IsArray() && constraints[each]["restrictions"][i]["alt"].Size()) {
-					for (size_t j = 0; j < constraints[each]["restrictions"][i]["alt"].Size(); j++) {
-						if (constraints[each]["restrictions"][i]["alt"][j].IsString()) {
-							out += constraints[each]["restrictions"][i]["alt"][j].GetString();
-							out += ", ";
-						}
+		temp = AlternativesSingle(constraints[each]["restrictions"]);
+		alts.insert(alts.end(), temp.begin(), temp.end());
+	}
+
+	string out = "Recommended Alternatives: ";
+
+	sort(alts.begin(), alts.end());
+	vector<string>::iterator itr = unique(alts.begin(), alts.end());
+	alts.erase(itr, alts.end());
+
+	if (!alts.size()) {
+		out = "None";
+	}
+	else {
+		for (string each : alts) {
+			out += each + ", ";
+		}
+	}
+
+	return out.substr(0, out.size() - 2) + ".";
+}
+
+//Outputs recommended alternatives (from a single Restrictions array) as string
+vector<string> CVFPCPlugin::AlternativesSingle(const Value& restrictions) {
+	vector<string> alts{};
+	if (restrictions.IsArray() && restrictions.Size()) {
+		for (size_t i = 0; i < restrictions.Size(); i++) {
+			if (restrictions[i]["alt"].IsArray() && restrictions[i]["alt"].Size()) {
+				for (size_t j = 0; j < restrictions[i]["alt"].Size(); j++) {
+					if (restrictions[i]["alt"][j].IsString()) {
+						alts.push_back(restrictions[i]["alt"][j].GetString());
 					}
 				}
 			}
 		}
 	}
 
-	if (out == "") {
-		out = "None";
-	}
-
-	return "Recommended Alternatives: " + out.substr(0, out.size() - 2) + ".";
+	return alts;
 }
 
 //Outputs aircraft type and date/time restrictions (from Restrictions array) as string
@@ -1078,206 +1087,12 @@ string CVFPCPlugin::RestrictionsOutput(const Value& sid_ele, bool check_type, bo
 	vector<vector<string>> rests{};
 	const Value& constraints = sid_ele["constraints"];
 
-	if (sid_ele["restrictions"].IsArray() && sid_ele["restrictions"].Size()) {
-		for (size_t i = 0; i < sid_ele["restrictions"].Size(); i++) {
-			vector<string> this_rest { "", "", "" };
-
-			if (sid_ele["restrictions"][i]["types"].IsArray() && sid_ele["restrictions"][i]["types"].Size()) {
-				for (size_t j = 0; j < sid_ele["restrictions"][i]["types"].Size(); j++) {
-					if (sid_ele["restrictions"][i]["types"][j].IsString()) {
-						string item = sid_ele["restrictions"][i]["types"][j].GetString();
-
-						if (item.size() == 1) {
-							if (item == "P") {
-								this_rest[0] += "All Pistons";
-							}
-							else if (item == "T") {
-								this_rest[0] += "All Turboprops";
-							}
-							else if (item == "J") {
-								this_rest[0] += "All Jets";
-							}
-							else if (item == "E") {
-								this_rest[0] += "All Electric Aircraft";
-							}
-						}
-						else {
-							this_rest[0] += item;
-						}
-
-						this_rest[0] += ", ";
-					}
-				}
-
-				if (this_rest[0] != "") {
-					this_rest[0] = this_rest[0].substr(0, this_rest[0].size() - 2);
-				}
-			}
-
-			if (sid_ele["restrictions"][i].HasMember("start") && sid_ele["restrictions"][i].HasMember("end")) {
-				bool date = false;
-				bool time = false;
-				int startdate;
-				int enddate;
-				string starttime;
-				string endtime;
-
-				if (sid_ele["restrictions"][i]["start"].HasMember("date")
-					&& sid_ele["restrictions"][i]["start"]["date"].IsInt()
-					&& sid_ele["restrictions"][i]["end"].HasMember("date")
-					&& sid_ele["restrictions"][i]["end"]["date"].IsInt()) {
-					date = true;
-
-					startdate = sid_ele["restrictions"][i]["start"]["date"].GetInt();
-					enddate = sid_ele["restrictions"][i]["end"]["date"].GetInt();
-				}
-
-				if (sid_ele["restrictions"][i]["start"].HasMember("time")
-					&& sid_ele["restrictions"][i]["start"]["time"].IsString()
-					&& sid_ele["restrictions"][i]["end"].HasMember("time")
-					&& sid_ele["restrictions"][i]["end"]["time"].IsString()) {
-					time = true;
-
-					string startstring = sid_ele["restrictions"][i]["start"]["time"].GetString();
-					string endstring = sid_ele["restrictions"][i]["end"]["time"].GetString();
-
-					starttime = startstring.substr(0, 2) + ":" + startstring.substr(2, 2);
-					endtime = endstring.substr(0, 2) + ":" + endstring.substr(2, 2);
-				}
-
-				string start = "";
-				string end = "";
-
-				if (date) {
-					start += dayIntToString(startdate);
-					end += dayIntToString(enddate);
-				}
-
-				if (time) {
-					if (date) {
-						start += " ";
-						end += " ";
-					}
-
-					start += starttime;
-					end += endtime;
-				}
-
-				if (start != "" && end != "") {
-					this_rest[1] = start + " and " + end;
-				}
-			}
-
-			if (sid_ele["restrictions"][i].HasMember("banned") && sid_ele["restrictions"][i]["banned"].GetBool()) {
-				this_rest[2] = "Banned";
-			}
-
-			if (!all_of(this_rest[0].begin(), this_rest[0].end(), isspace) || !all_of(this_rest[1].begin(), this_rest[1].end(), isspace)) {
-				rests.push_back(this_rest);
-			}
-		}
-	}
+	vector<vector<string>> temp = RestrictionsSingle(sid_ele["restrictions"]);
+	rests.insert(rests.end(), temp.begin(), temp.end());
 
 	for (size_t each : successes) {
-		if (constraints[each]["restrictions"].IsArray() && constraints[each]["restrictions"].Size()) {
-			for (size_t i = 0; i < constraints[each]["restrictions"].Size(); i++) {
-				vector<string> this_rest { "", "", "" };
-
-				if (constraints[each]["restrictions"][i]["types"].IsArray() && constraints[each]["restrictions"][i]["types"].Size()) {
-					for (size_t j = 0; j < constraints[each]["restrictions"][i]["types"].Size(); j++) {
-						if (constraints[each]["restrictions"][i]["types"][j].IsString()) {
-							string item = constraints[each]["restrictions"][i]["types"][j].GetString();
-
-							if (item.size() == 1) {
-								if (item == "P") {
-									this_rest[0] += "All Pistons";
-								}
-								else if (item == "T") {
-									this_rest[0] += "All Turboprops";
-								}
-								else if (item == "J") {
-									this_rest[0] += "All Jets";
-								}
-								else if (item == "E") {
-									this_rest[0] += "All Electric Aircraft";
-								}
-							}
-							else {
-								this_rest[0] += item;
-							}
-
-							this_rest[0] += ", ";
-						}
-					}
-
-					if (this_rest[0] != "") {
-						this_rest[0] = this_rest[0].substr(0, this_rest[0].size() - 2);
-					}
-				}
-
-				if (constraints[each]["restrictions"][i].HasMember("start") && constraints[each]["restrictions"][i].HasMember("end")) {
-					bool date = false;
-					bool time = false;
-					int startdate;
-					int enddate;
-					string starttime;
-					string endtime;
-
-					if (constraints[each]["restrictions"][i]["start"].HasMember("date")
-						&& constraints[each]["restrictions"][i]["start"]["date"].IsInt()
-						&& constraints[each]["restrictions"][i]["end"].HasMember("date")
-						&& constraints[each]["restrictions"][i]["end"]["date"].IsInt()) {
-						date = true;
-
-						startdate = constraints[each]["restrictions"][i]["start"]["date"].GetInt();
-						enddate = constraints[each]["restrictions"][i]["end"]["date"].GetInt();
-					}
-
-					if (constraints[each]["restrictions"][i]["start"].HasMember("time")
-						&& constraints[each]["restrictions"][i]["start"]["time"].IsString()
-						&& constraints[each]["restrictions"][i]["end"].HasMember("time")
-						&& constraints[each]["restrictions"][i]["end"]["time"].IsString()) {
-						time = true;
-
-						string startstring = constraints[each]["restrictions"][i]["start"]["time"].GetString();
-						string endstring = constraints[each]["restrictions"][i]["end"]["time"].GetString();
-
-						starttime = startstring.substr(0, 2) + ":" + startstring.substr(2, 2);
-						endtime = endstring.substr(0, 2) + ":" + endstring.substr(2, 2);
-					}
-
-					string start = "";
-					string end = "";
-
-					if (date) {
-						start += dayIntToString(startdate);
-						end += dayIntToString(enddate);
-					}
-
-					if (time) {
-						if (date) {
-							start += " ";
-							end += " ";
-						}
-
-						start += starttime;
-						end += endtime;
-					}
-
-					if (start != "" && end != "") {
-						this_rest[1] = start + " and " + end;
-					}
-				}
-
-				if (constraints[each]["restrictions"][i].HasMember("banned") && constraints[each]["restrictions"][i]["banned"].GetBool()) {
-					this_rest[2] = "Banned";
-				}
-
-				if (!all_of(this_rest[0].begin(), this_rest[0].end(), isspace) || !all_of(this_rest[1].begin(), this_rest[1].end(), isspace) || !all_of(this_rest[2].begin(), this_rest[2].end(), isspace)) {
-					rests.push_back(this_rest);
-				}
-			}
-		}
+		temp = RestrictionsSingle(constraints[each]["restrictions"]);
+		rests.insert(rests.end(), temp.begin(), temp.end());
 	}
 
 	string out = "";
@@ -1324,47 +1139,123 @@ string CVFPCPlugin::RestrictionsOutput(const Value& sid_ele, bool check_type, bo
 	return "SID Restrictions: " + out + ".";
 }
 
+vector<vector<string>> CVFPCPlugin::RestrictionsSingle(const Value& restrictions, bool check_type, bool check_time, bool check_ban) {
+	vector<vector<string>> rests{};
+
+	if (restrictions.IsArray() && restrictions.Size()) {
+		for (size_t i = 0; i < restrictions.Size(); i++) {
+			vector<string> this_rest{ "", "", "" };
+
+			if (restrictions[i]["types"].IsArray() && restrictions[i]["types"].Size()) {
+				for (size_t j = 0; j < restrictions[i]["types"].Size(); j++) {
+					if (restrictions[i]["types"][j].IsString()) {
+						string item = restrictions[i]["types"][j].GetString();
+
+						if (item.size() == 1) {
+							if (item == "P") {
+								this_rest[0] += "All Pistons";
+							}
+							else if (item == "T") {
+								this_rest[0] += "All Turboprops";
+							}
+							else if (item == "J") {
+								this_rest[0] += "All Jets";
+							}
+							else if (item == "E") {
+								this_rest[0] += "All Electric Aircraft";
+							}
+						}
+						else {
+							this_rest[0] += item;
+						}
+
+						this_rest[0] += ", ";
+					}
+				}
+
+				if (this_rest[0] != "") {
+					this_rest[0] = this_rest[0].substr(0, this_rest[0].size() - 2);
+				}
+			}
+
+			if (restrictions[i].HasMember("start") && restrictions[i].HasMember("end")) {
+				bool date = false;
+				bool time = false;
+				int startdate;
+				int enddate;
+				string starttime;
+				string endtime;
+
+				if (restrictions[i]["start"].HasMember("date")
+					&& restrictions[i]["start"]["date"].IsInt()
+					&& restrictions[i]["end"].HasMember("date")
+					&& restrictions[i]["end"]["date"].IsInt()) {
+					date = true;
+
+					startdate = restrictions[i]["start"]["date"].GetInt();
+					enddate = restrictions[i]["end"]["date"].GetInt();
+				}
+
+				if (restrictions[i]["start"].HasMember("time")
+					&& restrictions[i]["start"]["time"].IsString()
+					&& restrictions[i]["end"].HasMember("time")
+					&& restrictions[i]["end"]["time"].IsString()) {
+					time = true;
+
+					string startstring = restrictions[i]["start"]["time"].GetString();
+					string endstring = restrictions[i]["end"]["time"].GetString();
+
+					starttime = startstring.substr(0, 2) + ":" + startstring.substr(2, 2);
+					endtime = endstring.substr(0, 2) + ":" + endstring.substr(2, 2);
+				}
+
+				string start = "";
+				string end = "";
+
+				if (date) {
+					start += dayIntToString(startdate);
+					end += dayIntToString(enddate);
+				}
+
+				if (time) {
+					if (date) {
+						start += " ";
+						end += " ";
+					}
+
+					start += starttime;
+					end += endtime;
+				}
+
+				if (start != "" && end != "") {
+					this_rest[1] = start + " and " + end;
+				}
+			}
+
+			if (restrictions[i].HasMember("banned") && restrictions[i]["banned"].GetBool()) {
+				this_rest[2] = "Banned";
+			}
+
+			if (!all_of(this_rest[0].begin(), this_rest[0].end(), isspace) || !all_of(this_rest[1].begin(), this_rest[1].end(), isspace) || !all_of(this_rest[2].begin(), this_rest[2].end(), isspace)) {
+				rests.push_back(this_rest);
+			}
+		}
+	}
+
+	return rests;
+}
+
 //Outputs valid suffices (from Restrictions array) as string
 string CVFPCPlugin::SuffixOutput(const Value& sid_eles, vector<size_t> successes) {
 	vector<string> suffices{};
 	const Value& constraints = sid_eles["constraints"];
 
-	if (sid_eles["restrictions"].IsArray() && sid_eles["restrictions"].Size()) {
-		for (size_t i = 0; i < sid_eles["restrictions"].Size(); i++) {
-			if (sid_eles["restrictions"][i]["suffix"].IsArray() && sid_eles["restrictions"][i]["suffix"].Size()) {
-				for (size_t j = 0; j < sid_eles["restrictions"][i]["suffix"].Size(); j++) {
-					if (sid_eles["restrictions"][i]["suffix"][j].IsString()) {
-						string out = "";
-						if (sid_eles["restrictions"][i].HasMember("banned") && sid_eles["restrictions"][i]["banned"].GetBool()) {
-							out += "Not ";
-						}
-
-						out += sid_eles["restrictions"][i]["suffix"][j].GetString();
-						suffices.push_back(out);
-					}
-				}
-			}
-		}
-	}
+	vector<string> temp = SuffixSingle(sid_eles["restrictions"]);
+	suffices.insert(suffices.end(), temp.begin(), temp.end());
 
 	for (size_t each : successes) {
-		if (constraints[each]["restrictions"].IsArray() && constraints[each]["restrictions"].Size()) {
-			for (size_t i = 0; i < constraints[each]["restrictions"].Size(); i++) {
-				if (constraints[each]["restrictions"][i]["suffix"].IsArray() && constraints[each]["restrictions"][i]["suffix"].Size()) {
-					for (size_t j = 0; j < constraints[each]["restrictions"][i]["suffix"].Size(); j++) {
-						if (constraints[each]["restrictions"][i]["suffix"][j].IsString()) {
-							string out = "";
-							if (constraints[each]["restrictions"][i].HasMember("banned") && constraints[each]["restrictions"][i]["banned"].GetBool()) {
-								out += "Not ";
-							}
-
-							out += constraints[each]["restrictions"][i]["suffix"][j].GetString();
-							suffices.push_back(out);
-						}
-					}
-				}
-			}
-		}
+		temp = SuffixSingle(constraints[each]["restrictions"]);
+		suffices.insert(suffices.end(), temp.begin(), temp.end());
 	}
 
 	string out = "Suffix. Valid Suffices: ";
@@ -1373,7 +1264,7 @@ string CVFPCPlugin::SuffixOutput(const Value& sid_eles, vector<size_t> successes
 	vector<string>::iterator itr = unique(suffices.begin(), suffices.end());
 	suffices.erase(itr, suffices.end());
 	
-	if (suffices.size() == 0) {
+	if (!suffices.size()) {
 		out += "Any.";
 	}
 	else {
@@ -1385,6 +1276,30 @@ string CVFPCPlugin::SuffixOutput(const Value& sid_eles, vector<size_t> successes
 	}
 
 	return out;
+}
+
+vector<string> CVFPCPlugin::SuffixSingle(const Value& restrictions) {
+	vector<string> suffices{};
+
+	if (restrictions.IsArray() && restrictions.Size()) {
+		for (size_t i = 0; i < restrictions.Size(); i++) {
+			if (restrictions[i]["suffix"].IsArray() && restrictions[i]["suffix"].Size()) {
+				for (size_t j = 0; j < restrictions[i]["suffix"].Size(); j++) {
+					if (restrictions[i]["suffix"][j].IsString()) {
+						string out = "";
+						if (restrictions[i].HasMember("banned") && restrictions[i]["banned"].GetBool()) {
+							out += "Not ";
+						}
+
+						out += restrictions[i]["suffix"][j].GetString();
+						suffices.push_back(out);
+					}
+				}
+			}
+		}
+	}
+
+	return suffices;
 }
 
 //Outputs valid cruise level direction (from Constraints array) as string
