@@ -884,58 +884,58 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			case 5:
 			{
 				returnOut[0][7] = "Passed SID Restrictions.";
-				returnOut[1][7] = "Passed " + RestrictionsOutput(origin_int, pos, true, true, true, successes);
+				returnOut[1][7] = "Passed " + RestrictionsOutput(sid_ele, true, true, true, successes);
 
 				if (warn) {
-					returnOut[1][8] = returnOut[0][8] = WarningsOutput(origin_int, pos, successes);
+					returnOut[1][8] = returnOut[0][8] = WarningsOutput(conditions, successes);
 				}
 				else {
 					returnOut[1][8] = "No Warnings.";
 				}
         
 				if (round == 5) {
-					returnOut[1][9] = returnOut[0][9] = BansOutput(origin_int, pos, successes);
+					returnOut[1][9] = returnOut[0][9] = BansOutput(conditions, successes);
 				}
 			}
 			case 4:
 			{
 				returnOut[0][6] = "Valid Suffix.";
-				returnOut[1][6] = "Valid " + SuffixOutput(origin_int, pos, successes);
+				returnOut[1][6] = "Valid " + SuffixOutput(sid_ele, successes);
 
 				if (round == 4) {
 					if (restFails[0]) {
-						returnOut[1][6] = returnOut[0][6] = "Invalid " + SuffixOutput(origin_int, pos, successes);
+						returnOut[1][6] = returnOut[0][6] = "Invalid " + SuffixOutput(sid_ele, successes);
 					}
 					else {
-						returnOut[1][7] = returnOut[0][7] = "Failed " + RestrictionsOutput(origin_int, pos, restFails[1], restFails[2], restFails[3], successes) + " " + AlternativesOutput(origin_int, pos, successes);
+						returnOut[1][7] = returnOut[0][7] = "Failed " + RestrictionsOutput(sid_ele, restFails[1], restFails[2], restFails[3], successes) + " " + AlternativesOutput(sid_ele, successes);
 					}
 				}
 
 				returnOut[0][5] = "Passed Odd-Even Rule.";
-				returnOut[1][5] = "Passed " + DirectionOutput(origin_int, pos, successes);
+				returnOut[1][5] = "Passed " + DirectionOutput(conditions, successes);
 			}
 			case 3:
 			{
 				if (round == 3) {
-					returnOut[1][5] = returnOut[0][5] = "Failed " + DirectionOutput(origin_int, pos, successes);
+					returnOut[1][5] = returnOut[0][5] = "Failed " + DirectionOutput(conditions, successes);
 				}
 
 				returnOut[0][4] = "Passed Min/Max Level.";
-				returnOut[1][4] = "Passed " + MinMaxOutput(origin_int, pos, successes);
+				returnOut[1][4] = "Passed " + MinMaxOutput(conditions, successes);
 			}
 			case 2:
 			{
 				if (round == 2) {
-					returnOut[1][4] = returnOut[0][4] = "Failed " + MinMaxOutput(origin_int, pos, successes);
+					returnOut[1][4] = returnOut[0][4] = "Failed " + MinMaxOutput(conditions, successes);
 				}
 
 				returnOut[0][3] = "Passed Route.";
-				returnOut[1][3] = "Passed " + RouteOutput(origin_int, pos, successes, points);
+				returnOut[1][3] = "Passed " + RouteOutput(conditions, successes, points);
 			}
 			case 1:
 			{
 				if (round == 1) {
-					returnOut[1][3] = returnOut[0][3] = "Failed " + RouteOutput(origin_int, pos, successes, points);
+					returnOut[1][3] = returnOut[0][3] = "Failed " + RouteOutput(conditions, successes, points);
 				}
 
 				returnOut[0][2] = "Passed Destination.";
@@ -952,14 +952,14 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		}
 		else {
 			if (sidFails[0]) {
-				returnOut[1][6] = returnOut[0][7] = "Invalid " + SuffixOutput(origin_int, pos);
+				returnOut[1][6] = returnOut[0][7] = "Invalid " + SuffixOutput(sid_ele);
 			}
 			else {
 				returnOut[0][6] = "Valid Suffix.";
-				returnOut[1][6] = "Valid " + SuffixOutput(origin_int, pos);
+				returnOut[1][6] = "Valid " + SuffixOutput(sid_ele);
 
-				//sidFails[1] or [2] must be false to get here
-				returnOut[1][7] = returnOut[0][7] = "Failed " + RestrictionsOutput(origin_int, pos, sidFails[1], sidFails[2]) + " " + AlternativesOutput(origin_int, pos);
+				//sidFails[1], [2], or [3] must be false to get here
+				returnOut[1][7] = returnOut[0][7] = "Failed " + RestrictionsOutput(sid_ele, sidFails[1], sidFails[2], sidFails[3]) + " " + AlternativesOutput(sid_ele);
 			}
 		}
 
@@ -968,14 +968,13 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 }
 
 //Outputs route bans as string
-string CVFPCPlugin::BansOutput(size_t origin_int, size_t pos, vector<size_t> successes) {
-	const Value& conditions = config[origin_int]["sids"][pos]["constraints"];
+string CVFPCPlugin::BansOutput(const Value& constraints, vector<size_t> successes) {
 	vector<string> bans{};
 	for (int each : successes) {
-		if (conditions[each]["alerts"].IsArray() && conditions[each]["alerts"].Size()) {
-			for (size_t i = 0; i < conditions[each]["alerts"].Size(); i++) {
-				if (conditions[each]["alerts"][i].HasMember("ban") && conditions[each]["alerts"][i]["ban"].GetBool() && conditions[each]["alerts"][i].HasMember("note")) {
-					bans.push_back(conditions[each]["alerts"][i]["note"].GetString());
+		if (constraints[each]["alerts"].IsArray() && constraints[each]["alerts"].Size()) {
+			for (size_t i = 0; i < constraints[each]["alerts"].Size(); i++) {
+				if (constraints[each]["alerts"][i].HasMember("ban") && constraints[each]["alerts"][i]["ban"].GetBool() && constraints[each]["alerts"][i].HasMember("note")) {
+					bans.push_back(constraints[each]["alerts"][i]["note"].GetString());
 				}
 			}
 		}
@@ -1002,14 +1001,13 @@ string CVFPCPlugin::BansOutput(size_t origin_int, size_t pos, vector<size_t> suc
 }
 
 //Outputs route warnings as string
-string CVFPCPlugin::WarningsOutput(size_t origin_int, size_t pos, vector<size_t> successes) {
-	const Value& conditions = config[origin_int]["sids"][pos]["constraints"];
+string CVFPCPlugin::WarningsOutput(const Value& constraints, vector<size_t> successes) {
 	vector<string> warnings{};
 	for (int each : successes) {
-		if (conditions[each]["alerts"].IsArray() && conditions[each]["alerts"].Size()) {
-			for (size_t i = 0; i < conditions[each]["alerts"].Size(); i++) {
-				if (conditions[each]["alerts"][i].HasMember("warn") && conditions[each]["alerts"][i]["warn"].GetBool() && conditions[each]["alerts"][i].HasMember("note")) {
-					warnings.push_back(conditions[each]["alerts"][i]["note"].GetString());
+		if (constraints[each]["alerts"].IsArray() && constraints[each]["alerts"].Size()) {
+			for (size_t i = 0; i < constraints[each]["alerts"].Size(); i++) {
+				if (constraints[each]["alerts"][i].HasMember("warn") && constraints[each]["alerts"][i]["warn"].GetBool() && constraints[each]["alerts"][i].HasMember("note")) {
+					warnings.push_back(constraints[each]["alerts"][i]["note"].GetString());
 				}
 			}
 		}
@@ -1035,253 +1033,66 @@ string CVFPCPlugin::WarningsOutput(size_t origin_int, size_t pos, vector<size_t>
 	return "Warnings: " + out + ".";
 }
 
-//Outputs recommended alternatives (from Restrictions array) as string
-string CVFPCPlugin::AlternativesOutput(size_t origin_int, size_t pos, vector<size_t> successes) {
-	string out = "";
-	const Value& sid_ele = config[origin_int]["sids"][pos];
-	const Value& conditions = sid_ele["constraints"];
+//Outputs recommended alternatives (from Restrictions arrays for a SID) as string
+string CVFPCPlugin::AlternativesOutput(const Value& sid_ele, vector<size_t> successes) {
+	vector<string> alts{};
+	const Value& constraints = sid_ele["constraints"];
 
-	if (sid_ele["restrictions"].IsArray() && sid_ele["restrictions"].Size()) {
-		for (size_t i = 0; i < sid_ele["restrictions"].Size(); i++) {
-			if (sid_ele["restrictions"][i]["alt"].IsArray() && sid_ele["restrictions"][i]["alt"].Size()) {
-				for (size_t j = 0; j < sid_ele["restrictions"][i]["alt"].Size(); j++) {
-					if (sid_ele["restrictions"][i]["alt"][j].IsString()) {
-						out += sid_ele["restrictions"][i]["alt"][j].GetString();
-						out += ", ";
-					}
-				}
-			}
-		}
-	}
+	vector<string> temp = AlternativesSingle(sid_ele["restrictions"]);
+	alts.insert(alts.end(), temp.begin(), temp.end());
 
 	for (size_t each : successes) {
-		if (conditions[each]["restrictions"].IsArray() && conditions[each]["restrictions"].Size()) {
-			for (size_t i = 0; i < conditions[each]["restrictions"].Size(); i++) {
-				if (conditions[each]["restrictions"][i]["alt"].IsArray() && conditions[each]["restrictions"][i]["alt"].Size()) {
-					for (size_t j = 0; j < conditions[each]["restrictions"][i]["alt"].Size(); j++) {
-						if (conditions[each]["restrictions"][i]["alt"][j].IsString()) {
-							out += conditions[each]["restrictions"][i]["alt"][j].GetString();
-							out += ", ";
-						}
+		temp = AlternativesSingle(constraints[each]["restrictions"]);
+		alts.insert(alts.end(), temp.begin(), temp.end());
+	}
+
+	string out = "Recommended Alternatives: ";
+
+	sort(alts.begin(), alts.end());
+	vector<string>::iterator itr = unique(alts.begin(), alts.end());
+	alts.erase(itr, alts.end());
+
+	if (!alts.size()) {
+		out = "None";
+	}
+	else {
+		for (string each : alts) {
+			out += each + ", ";
+		}
+	}
+
+	return out.substr(0, out.size() - 2) + ".";
+}
+
+//Outputs recommended alternatives (from a single Restrictions array) as string
+vector<string> CVFPCPlugin::AlternativesSingle(const Value& restrictions) {
+	vector<string> alts{};
+	if (restrictions.IsArray() && restrictions.Size()) {
+		for (size_t i = 0; i < restrictions.Size(); i++) {
+			if (restrictions[i]["alt"].IsArray() && restrictions[i]["alt"].Size()) {
+				for (size_t j = 0; j < restrictions[i]["alt"].Size(); j++) {
+					if (restrictions[i]["alt"][j].IsString()) {
+						alts.push_back(restrictions[i]["alt"][j].GetString());
 					}
 				}
 			}
 		}
 	}
 
-	if (out == "") {
-		out = "None";
-	}
-
-	return "Recommended Alternatives: " + out.substr(0, out.size() - 2) + ".";
+	return alts;
 }
 
 //Outputs aircraft type and date/time restrictions (from Restrictions array) as string
-string CVFPCPlugin::RestrictionsOutput(size_t origin_int, size_t pos, bool check_type, bool check_time, bool check_ban, vector<size_t> successes) {
+string CVFPCPlugin::RestrictionsOutput(const Value& sid_ele, bool check_type, bool check_time, bool check_ban, vector<size_t> successes) {
 	vector<vector<string>> rests{};
-	const Value& sid_ele = config[origin_int]["sids"][pos];
-	const Value& conditions = sid_ele["constraints"];
+	const Value& constraints = sid_ele["constraints"];
 
-	if (sid_ele["restrictions"].IsArray() && sid_ele["restrictions"].Size()) {
-		for (size_t i = 0; i < sid_ele["restrictions"].Size(); i++) {
-			vector<string> this_rest { "", "", "" };
-
-			if (sid_ele["restrictions"][i]["types"].IsArray() && sid_ele["restrictions"][i]["types"].Size()) {
-				for (size_t j = 0; j < sid_ele["restrictions"][i]["types"].Size(); j++) {
-					if (sid_ele["restrictions"][i]["types"][j].IsString()) {
-						string item = sid_ele["restrictions"][i]["types"][j].GetString();
-
-						if (item.size() == 1) {
-							if (item == "P") {
-								this_rest[0] += "All Pistons";
-							}
-							else if (item == "T") {
-								this_rest[0] += "All Turboprops";
-							}
-							else if (item == "J") {
-								this_rest[0] += "All Jets";
-							}
-							else if (item == "E") {
-								this_rest[0] += "All Electric Aircraft";
-							}
-						}
-						else {
-							this_rest[0] += item;
-						}
-
-						this_rest[0] += ", ";
-					}
-				}
-
-				if (this_rest[0] != "") {
-					this_rest[0] = this_rest[0].substr(0, this_rest[0].size() - 2);
-				}
-			}
-
-			if (sid_ele["restrictions"][i].HasMember("start") && sid_ele["restrictions"][i].HasMember("end")) {
-				bool date = false;
-				bool time = false;
-				int startdate;
-				int enddate;
-				string starttime;
-				string endtime;
-
-				if (sid_ele["restrictions"][i]["start"].HasMember("date")
-					&& sid_ele["restrictions"][i]["start"]["date"].IsInt()
-					&& sid_ele["restrictions"][i]["end"].HasMember("date")
-					&& sid_ele["restrictions"][i]["end"]["date"].IsInt()) {
-					date = true;
-
-					startdate = sid_ele["restrictions"][i]["start"]["date"].GetInt();
-					enddate = sid_ele["restrictions"][i]["end"]["date"].GetInt();
-				}
-
-				if (sid_ele["restrictions"][i]["start"].HasMember("time")
-					&& sid_ele["restrictions"][i]["start"]["time"].IsString()
-					&& sid_ele["restrictions"][i]["end"].HasMember("time")
-					&& sid_ele["restrictions"][i]["end"]["time"].IsString()) {
-					time = true;
-
-					string startstring = sid_ele["restrictions"][i]["start"]["time"].GetString();
-					string endstring = sid_ele["restrictions"][i]["end"]["time"].GetString();
-
-					starttime = startstring.substr(0, 2) + ":" + startstring.substr(2, 2);
-					endtime = endstring.substr(0, 2) + ":" + endstring.substr(2, 2);
-				}
-
-				string start = "";
-				string end = "";
-
-				if (date) {
-					start += dayIntToString(startdate);
-					end += dayIntToString(enddate);
-				}
-
-				if (time) {
-					if (date) {
-						start += " ";
-						end += " ";
-					}
-
-					start += starttime;
-					end += endtime;
-				}
-
-				if (start != "" && end != "") {
-					this_rest[1] = start + " and " + end;
-				}
-			}
-
-			if (sid_ele["restrictions"][i].HasMember("banned") && sid_ele["restrictions"][i]["banned"].GetBool()) {
-				this_rest[2] = "Banned";
-			}
-
-			if (!all_of(this_rest[0].begin(), this_rest[0].end(), isspace) || !all_of(this_rest[1].begin(), this_rest[1].end(), isspace)) {
-				rests.push_back(this_rest);
-			}
-		}
-	}
+	vector<vector<string>> temp = RestrictionsSingle(sid_ele["restrictions"]);
+	rests.insert(rests.end(), temp.begin(), temp.end());
 
 	for (size_t each : successes) {
-		if (conditions[each]["restrictions"].IsArray() && conditions[each]["restrictions"].Size()) {
-			for (size_t i = 0; i < conditions[each]["restrictions"].Size(); i++) {
-				vector<string> this_rest { "", "", "" };
-
-				if (conditions[each]["restrictions"][i]["types"].IsArray() && conditions[each]["restrictions"][i]["types"].Size()) {
-					for (size_t j = 0; j < conditions[each]["restrictions"][i]["types"].Size(); j++) {
-						if (conditions[each]["restrictions"][i]["types"][j].IsString()) {
-							string item = conditions[each]["restrictions"][i]["types"][j].GetString();
-
-							if (item.size() == 1) {
-								if (item == "P") {
-									this_rest[0] += "All Pistons";
-								}
-								else if (item == "T") {
-									this_rest[0] += "All Turboprops";
-								}
-								else if (item == "J") {
-									this_rest[0] += "All Jets";
-								}
-								else if (item == "E") {
-									this_rest[0] += "All Electric Aircraft";
-								}
-							}
-							else {
-								this_rest[0] += item;
-							}
-
-							this_rest[0] += ", ";
-						}
-					}
-
-					if (this_rest[0] != "") {
-						this_rest[0] = this_rest[0].substr(0, this_rest[0].size() - 2);
-					}
-				}
-
-				if (conditions[each]["restrictions"][i].HasMember("start") && conditions[each]["restrictions"][i].HasMember("end")) {
-					bool date = false;
-					bool time = false;
-					int startdate;
-					int enddate;
-					string starttime;
-					string endtime;
-
-					if (conditions[each]["restrictions"][i]["start"].HasMember("date")
-						&& conditions[each]["restrictions"][i]["start"]["date"].IsInt()
-						&& conditions[each]["restrictions"][i]["end"].HasMember("date")
-						&& conditions[each]["restrictions"][i]["end"]["date"].IsInt()) {
-						date = true;
-
-						startdate = conditions[each]["restrictions"][i]["start"]["date"].GetInt();
-						enddate = conditions[each]["restrictions"][i]["end"]["date"].GetInt();
-					}
-
-					if (conditions[each]["restrictions"][i]["start"].HasMember("time")
-						&& conditions[each]["restrictions"][i]["start"]["time"].IsString()
-						&& conditions[each]["restrictions"][i]["end"].HasMember("time")
-						&& conditions[each]["restrictions"][i]["end"]["time"].IsString()) {
-						time = true;
-
-						string startstring = conditions[each]["restrictions"][i]["start"]["time"].GetString();
-						string endstring = conditions[each]["restrictions"][i]["end"]["time"].GetString();
-
-						starttime = startstring.substr(0, 2) + ":" + startstring.substr(2, 2);
-						endtime = endstring.substr(0, 2) + ":" + endstring.substr(2, 2);
-					}
-
-					string start = "";
-					string end = "";
-
-					if (date) {
-						start += dayIntToString(startdate);
-						end += dayIntToString(enddate);
-					}
-
-					if (time) {
-						if (date) {
-							start += " ";
-							end += " ";
-						}
-
-						start += starttime;
-						end += endtime;
-					}
-
-					if (start != "" && end != "") {
-						this_rest[1] = start + " and " + end;
-					}
-				}
-
-				if (conditions[each]["restrictions"][i].HasMember("banned") && conditions[each]["restrictions"][i]["banned"].GetBool()) {
-					this_rest[2] = "Banned";
-				}
-
-				if (!all_of(this_rest[0].begin(), this_rest[0].end(), isspace) || !all_of(this_rest[1].begin(), this_rest[1].end(), isspace) || !all_of(this_rest[2].begin(), this_rest[2].end(), isspace)) {
-					rests.push_back(this_rest);
-				}
-			}
-		}
+		temp = RestrictionsSingle(constraints[each]["restrictions"]);
+		rests.insert(rests.end(), temp.begin(), temp.end());
 	}
 
 	string out = "";
@@ -1328,48 +1139,123 @@ string CVFPCPlugin::RestrictionsOutput(size_t origin_int, size_t pos, bool check
 	return "SID Restrictions: " + out + ".";
 }
 
-//Outputs valid suffices (from Restrictions array) as string
-string CVFPCPlugin::SuffixOutput(size_t origin_int, size_t pos, vector<size_t> successes) {
-	vector<string> suffices{};
-	const Value& sid_eles = config[origin_int]["sids"][pos];
-	const Value& conditions = sid_eles["constraints"];
+vector<vector<string>> CVFPCPlugin::RestrictionsSingle(const Value& restrictions, bool check_type, bool check_time, bool check_ban) {
+	vector<vector<string>> rests{};
 
-	if (sid_eles["restrictions"].IsArray() && sid_eles["restrictions"].Size()) {
-		for (size_t i = 0; i < sid_eles["restrictions"].Size(); i++) {
-			if (sid_eles["restrictions"][i]["suffix"].IsArray() && sid_eles["restrictions"][i]["suffix"].Size()) {
-				for (size_t j = 0; j < sid_eles["restrictions"][i]["suffix"].Size(); j++) {
-					if (sid_eles["restrictions"][i]["suffix"][j].IsString()) {
-						string out = "";
-						if (sid_eles["restrictions"][i].HasMember("banned") && sid_eles["restrictions"][i]["banned"].GetBool()) {
-							out += "Not ";
+	if (restrictions.IsArray() && restrictions.Size()) {
+		for (size_t i = 0; i < restrictions.Size(); i++) {
+			vector<string> this_rest{ "", "", "" };
+
+			if (restrictions[i]["types"].IsArray() && restrictions[i]["types"].Size()) {
+				for (size_t j = 0; j < restrictions[i]["types"].Size(); j++) {
+					if (restrictions[i]["types"][j].IsString()) {
+						string item = restrictions[i]["types"][j].GetString();
+
+						if (item.size() == 1) {
+							if (item == "P") {
+								this_rest[0] += "All Pistons";
+							}
+							else if (item == "T") {
+								this_rest[0] += "All Turboprops";
+							}
+							else if (item == "J") {
+								this_rest[0] += "All Jets";
+							}
+							else if (item == "E") {
+								this_rest[0] += "All Electric Aircraft";
+							}
+						}
+						else {
+							this_rest[0] += item;
 						}
 
-						out += sid_eles["restrictions"][i]["suffix"][j].GetString();
-						suffices.push_back(out);
+						this_rest[0] += ", ";
 					}
 				}
+
+				if (this_rest[0] != "") {
+					this_rest[0] = this_rest[0].substr(0, this_rest[0].size() - 2);
+				}
+			}
+
+			if (restrictions[i].HasMember("start") && restrictions[i].HasMember("end")) {
+				bool date = false;
+				bool time = false;
+				int startdate;
+				int enddate;
+				string starttime;
+				string endtime;
+
+				if (restrictions[i]["start"].HasMember("date")
+					&& restrictions[i]["start"]["date"].IsInt()
+					&& restrictions[i]["end"].HasMember("date")
+					&& restrictions[i]["end"]["date"].IsInt()) {
+					date = true;
+
+					startdate = restrictions[i]["start"]["date"].GetInt();
+					enddate = restrictions[i]["end"]["date"].GetInt();
+				}
+
+				if (restrictions[i]["start"].HasMember("time")
+					&& restrictions[i]["start"]["time"].IsString()
+					&& restrictions[i]["end"].HasMember("time")
+					&& restrictions[i]["end"]["time"].IsString()) {
+					time = true;
+
+					string startstring = restrictions[i]["start"]["time"].GetString();
+					string endstring = restrictions[i]["end"]["time"].GetString();
+
+					starttime = startstring.substr(0, 2) + ":" + startstring.substr(2, 2);
+					endtime = endstring.substr(0, 2) + ":" + endstring.substr(2, 2);
+				}
+
+				string start = "";
+				string end = "";
+
+				if (date) {
+					start += dayIntToString(startdate);
+					end += dayIntToString(enddate);
+				}
+
+				if (time) {
+					if (date) {
+						start += " ";
+						end += " ";
+					}
+
+					start += starttime;
+					end += endtime;
+				}
+
+				if (start != "" && end != "") {
+					this_rest[1] = start + " and " + end;
+				}
+			}
+
+			if (restrictions[i].HasMember("banned") && restrictions[i]["banned"].GetBool()) {
+				this_rest[2] = "Banned";
+			}
+
+			if (!all_of(this_rest[0].begin(), this_rest[0].end(), isspace) || !all_of(this_rest[1].begin(), this_rest[1].end(), isspace) || !all_of(this_rest[2].begin(), this_rest[2].end(), isspace)) {
+				rests.push_back(this_rest);
 			}
 		}
 	}
 
-	for (size_t each : successes) {
-		if (conditions[each]["restrictions"].IsArray() && conditions[each]["restrictions"].Size()) {
-			for (size_t i = 0; i < conditions[each]["restrictions"].Size(); i++) {
-				if (conditions[each]["restrictions"][i]["suffix"].IsArray() && conditions[each]["restrictions"][i]["suffix"].Size()) {
-					for (size_t j = 0; j < conditions[each]["restrictions"][i]["suffix"].Size(); j++) {
-						if (conditions[each]["restrictions"][i]["suffix"][j].IsString()) {
-							string out = "";
-							if (conditions[each]["restrictions"][i].HasMember("banned") && conditions[each]["restrictions"][i]["banned"].GetBool()) {
-								out += "Not ";
-							}
+	return rests;
+}
 
-							out += conditions[each]["restrictions"][i]["suffix"][j].GetString();
-							suffices.push_back(out);
-						}
-					}
-				}
-			}
-		}
+//Outputs valid suffices (from Restrictions array) as string
+string CVFPCPlugin::SuffixOutput(const Value& sid_eles, vector<size_t> successes) {
+	vector<string> suffices{};
+	const Value& constraints = sid_eles["constraints"];
+
+	vector<string> temp = SuffixSingle(sid_eles["restrictions"]);
+	suffices.insert(suffices.end(), temp.begin(), temp.end());
+
+	for (size_t each : successes) {
+		temp = SuffixSingle(constraints[each]["restrictions"]);
+		suffices.insert(suffices.end(), temp.begin(), temp.end());
 	}
 
 	string out = "Suffix. Valid Suffices: ";
@@ -1378,7 +1264,7 @@ string CVFPCPlugin::SuffixOutput(size_t origin_int, size_t pos, vector<size_t> s
 	vector<string>::iterator itr = unique(suffices.begin(), suffices.end());
 	suffices.erase(itr, suffices.end());
 	
-	if (suffices.size() == 0) {
+	if (!suffices.size()) {
 		out += "Any.";
 	}
 	else {
@@ -1392,13 +1278,36 @@ string CVFPCPlugin::SuffixOutput(size_t origin_int, size_t pos, vector<size_t> s
 	return out;
 }
 
+vector<string> CVFPCPlugin::SuffixSingle(const Value& restrictions) {
+	vector<string> suffices{};
+
+	if (restrictions.IsArray() && restrictions.Size()) {
+		for (size_t i = 0; i < restrictions.Size(); i++) {
+			if (restrictions[i]["suffix"].IsArray() && restrictions[i]["suffix"].Size()) {
+				for (size_t j = 0; j < restrictions[i]["suffix"].Size(); j++) {
+					if (restrictions[i]["suffix"][j].IsString()) {
+						string out = "";
+						if (restrictions[i].HasMember("banned") && restrictions[i]["banned"].GetBool()) {
+							out += "Not ";
+						}
+
+						out += restrictions[i]["suffix"][j].GetString();
+						suffices.push_back(out);
+					}
+				}
+			}
+		}
+	}
+
+	return suffices;
+}
+
 //Outputs valid cruise level direction (from Constraints array) as string
-string CVFPCPlugin::DirectionOutput(size_t origin_int, size_t pos, vector<size_t> successes) {
-	const Value& conditions = config[origin_int]["sids"][pos]["constraints"];
+string CVFPCPlugin::DirectionOutput(const Value& constraints, vector<size_t> successes) {
 	bool lvls[2] { false, false };
 	for (int each : successes) {
-		if (conditions[each].HasMember("dir") && conditions[each]["dir"].IsString()) {
-			string val = conditions[each]["dir"].GetString();
+		if (constraints[each].HasMember("dir") && constraints[each]["dir"].IsString()) {
+			string val = constraints[each]["dir"].GetString();
 			if (val == "EVEN") {
 				lvls[0] = true;
 			}
@@ -1431,18 +1340,17 @@ string CVFPCPlugin::DirectionOutput(size_t origin_int, size_t pos, vector<size_t
 }
 
 //Outputs valid cruise level blocks (from Constraints array) as string
-string CVFPCPlugin::MinMaxOutput(size_t origin_int, size_t pos, vector<size_t> successes) {
-	const Value& conditions = config[origin_int]["sids"][pos]["constraints"];
+string CVFPCPlugin::MinMaxOutput(const Value& constraints, vector<size_t> successes) {
 	vector<vector<int>> raw_lvls{};
 	for (int each : successes) {
 		vector<int> lvls = { MININT, MAXINT };
 
-		if (conditions[each].HasMember("min") && conditions[each]["min"].IsInt()) {
-			lvls[0] = conditions[each]["min"].GetInt();
+		if (constraints[each].HasMember("min") && constraints[each]["min"].IsInt()) {
+			lvls[0] = constraints[each]["min"].GetInt();
 		}
 
-		if (conditions[each].HasMember("max") && conditions[each]["max"].IsInt()) {
-			lvls[1] = conditions[each]["max"].GetInt();
+		if (constraints[each].HasMember("max") && constraints[each]["max"].IsInt()) {
+			lvls[1] = constraints[each]["max"].GetInt();
 		}
 
 		raw_lvls.push_back(lvls);
@@ -1508,8 +1416,7 @@ string CVFPCPlugin::MinMaxOutput(size_t origin_int, size_t pos, vector<size_t> s
 }
 
 //Outputs valid initial routes (from Constraints array) as string
-string CVFPCPlugin::RouteOutput(size_t origin_int, size_t pos, vector<size_t> successes, vector<string> extracted_route) {
-	const Value& conditions = config[origin_int]["sids"][pos]["constraints"];
+string CVFPCPlugin::RouteOutput(const Value& constraints, vector<size_t> successes, vector<string> extracted_route) {
 	vector<string> outroute{};
 	bool all = false;
 
@@ -1517,17 +1424,17 @@ string CVFPCPlugin::RouteOutput(size_t origin_int, size_t pos, vector<size_t> su
 		for (int each : successes) {
 			bool contents[4]{ 0 };
 
-			if (conditions[each]["route"].IsArray() && conditions[each]["route"].Size()) {
+			if (constraints[each]["route"].IsArray() && constraints[each]["route"].Size()) {
 				contents[0] = true;
 			}
-			if (conditions[each]["points"].IsArray() && conditions[each]["points"].Size()) {
+			if (constraints[each]["points"].IsArray() && constraints[each]["points"].Size()) {
 				contents[1] = true;
 
 				if (!all) {
 					bool found = false;
 
 					for (string point : extracted_route) {
-						if (arrayContains(conditions[each]["points"], point)) {
+						if (arrayContains(constraints[each]["points"], point)) {
 							found = true;
 						}
 					}
@@ -1537,17 +1444,17 @@ string CVFPCPlugin::RouteOutput(size_t origin_int, size_t pos, vector<size_t> su
 					}
 				}
 			}
-			if (conditions[each]["noroute"].IsArray() && conditions[each]["noroute"].Size()) {
+			if (constraints[each]["noroute"].IsArray() && constraints[each]["noroute"].Size()) {
 				contents[2] = true;
 			}
-			if (conditions[each]["nopoints"].IsArray() && conditions[each]["nopoints"].Size()) {
+			if (constraints[each]["nopoints"].IsArray() && constraints[each]["nopoints"].Size()) {
 				contents[3] = true;
 
 				if (!all) {
 					bool found = false;
 
 					for (string point : extracted_route) {
-						if (arrayContains(conditions[each]["points"], point)) {
+						if (arrayContains(constraints[each]["points"], point)) {
 							found = true;
 						}
 					}
@@ -1560,11 +1467,11 @@ string CVFPCPlugin::RouteOutput(size_t origin_int, size_t pos, vector<size_t> su
 
 			string out = "";
 			if (contents[0]) {
-				out += conditions[each]["route"][(SizeType)0].GetString();
+				out += constraints[each]["route"][(SizeType)0].GetString();
 
-				for (size_t j = 1; j < conditions[each]["route"].Size(); j++) {
+				for (size_t j = 1; j < constraints[each]["route"].Size(); j++) {
 					out += " or ";
-					out += conditions[each]["route"][j].GetString();
+					out += constraints[each]["route"][j].GetString();
 				}
 			}
 
@@ -1574,11 +1481,11 @@ string CVFPCPlugin::RouteOutput(size_t origin_int, size_t pos, vector<size_t> su
 				}
 
 				out += "via ";
-				out += conditions[each]["points"][(size_t)0].GetString();
+				out += constraints[each]["points"][(size_t)0].GetString();
 
-				for (size_t j = 1; j < conditions[each]["points"].Size(); j++) {
+				for (size_t j = 1; j < constraints[each]["points"].Size(); j++) {
 					out += ", ";
-					out += conditions[each]["points"][j].GetString();
+					out += constraints[each]["points"][j].GetString();
 				}
 			}
 
@@ -1588,11 +1495,11 @@ string CVFPCPlugin::RouteOutput(size_t origin_int, size_t pos, vector<size_t> su
 				}
 
 				out += "not ";
-				out += conditions[each]["noroute"][(size_t)0].GetString();
+				out += constraints[each]["noroute"][(size_t)0].GetString();
 
-				for (size_t j = 1; j < conditions[each]["noroute"].Size(); j++) {
+				for (size_t j = 1; j < constraints[each]["noroute"].Size(); j++) {
 					out += ", ";
-					out += conditions[each]["noroute"][j].GetString();
+					out += constraints[each]["noroute"][j].GetString();
 				}
 			}
 
@@ -1608,11 +1515,11 @@ string CVFPCPlugin::RouteOutput(size_t origin_int, size_t pos, vector<size_t> su
 				}
 
 				out += "via ";
-				out += conditions[each]["nopoints"][(size_t)0].GetString();
+				out += constraints[each]["nopoints"][(size_t)0].GetString();
 
-				for (size_t j = 1; j < conditions[each]["nopoints"].Size(); j++) {
+				for (size_t j = 1; j < constraints[each]["nopoints"].Size(); j++) {
 					out += ", ";
-					out += conditions[each]["nopoints"][j].GetString();
+					out += constraints[each]["nopoints"][j].GetString();
 				}
 			}
 
@@ -1620,11 +1527,11 @@ string CVFPCPlugin::RouteOutput(size_t origin_int, size_t pos, vector<size_t> su
 			bool min = false;
 			bool max = false;
 
-			if (conditions[each].HasMember("min") && conditions[each]["min"].IsInt() && (Min = conditions[each]["min"].GetInt()) > 0) {
+			if (constraints[each].HasMember("min") && constraints[each]["min"].IsInt() && (Min = constraints[each]["min"].GetInt()) > 0) {
 				min = true;
 			}
 
-			if (conditions[each].HasMember("max") && conditions[each]["max"].IsInt() && (Max = conditions[each]["max"].GetInt()) > 0) {
+			if (constraints[each].HasMember("max") && constraints[each]["max"].IsInt() && (Max = constraints[each]["max"].GetInt()) > 0) {
 				max = true;
 			}
 
@@ -1904,7 +1811,10 @@ void CVFPCPlugin::checkFPDetail() {
 string CVFPCPlugin::getFails(vector<string> messageBuffer, COLORREF* pRGB) {
 	*pRGB = TAG_RED;
 
-	if (messageBuffer.at(1).find("SID - ") != 0 && messageBuffer.at(1).find("Non-SID Route.") != 0) {
+	if (messageBuffer.at(messageBuffer.size() - 2).find("Invalid") == 0) {
+		return "CHK";
+	}
+	else if (messageBuffer.at(1).find("SID - ") != 0 && messageBuffer.at(1).find("Non-SID Route.") != 0) {
 		return "SID";
 	}
 	else if (messageBuffer.at(2).find("Failed") == 0) {
@@ -1930,9 +1840,6 @@ string CVFPCPlugin::getFails(vector<string> messageBuffer, COLORREF* pRGB) {
 	}
 	else if (messageBuffer.at(9).find("Route Banned") == 0) {
 		return "BAN";
-	}
-	else if (messageBuffer.at(messageBuffer.size() - 2).find("Invalid") == 0) {
-		return "CHK";
 	}
 	else {
 		*pRGB = TAG_GREEN;
