@@ -50,21 +50,21 @@ public:
 
 	virtual vector<vector<string>> validizeSid(CFlightPlan flightPlan);
 
-	virtual string BansOutput(size_t origin_int, size_t pos, vector<size_t> successes);
+	virtual string BansOutput(const Value& constraints, vector<size_t> successes);
 
-	virtual string WarningsOutput(size_t origin_int, size_t pos, vector<size_t> successes);
+	virtual string WarningsOutput(const Value& constraints, vector<size_t> successes);
 
-	virtual string AlternativesOutput(size_t origin_int, size_t pos, vector<size_t> successes = {});
+	virtual string AlternativesOutput(const Value& sid_ele, vector<size_t> successes = {});
 
-	virtual string RestrictionsOutput(size_t origin_int, size_t pos, bool check_type = true, bool check_time = true, bool check_ban = true, vector<size_t> successes = {});
+	virtual string RestrictionsOutput(const Value& sid_ele, bool check_type = true, bool check_time = true, bool check_ban = true, vector<size_t> successes = {});
 
-	virtual string SuffixOutput(size_t origin_int, size_t pos, vector<size_t> successes = {});
+	virtual string SuffixOutput(const Value& sid_ele, vector<size_t> successes = {});
 
-	virtual string DirectionOutput(size_t origin_int, size_t pos, vector<size_t> successes);
+	virtual string DirectionOutput(const Value& constraints, vector<size_t> successes);
 
-	virtual string MinMaxOutput(size_t origin_int, size_t pos, vector<size_t> successes);
+	virtual string MinMaxOutput(const Value& constraints, vector<size_t> successes);
 
-	virtual string RouteOutput(size_t origin_int, size_t pos, vector<size_t> successes, vector<string> extracted_route);
+	virtual string RouteOutput(const Value& constraints, vector<size_t> successes, vector<string> extracted_route);
 
 	virtual string DestinationOutput(size_t origin_int, string dest);
 
