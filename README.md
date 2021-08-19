@@ -4,7 +4,10 @@ UK VFPC (UK VATSIM Flight Plan Checker) is a plugin for EuroScope that checks fi
 
 **N.B.** - This plugin does negate or replace the need for Delivery controllers to thoroughly check each Flight Plan before issuing a clearance; nor will it provide a perfect solution to more serious issues (e.g. SID filed routes in completely the wrong direction).
 
-## Features:
+## Community
+You can join the community Discord Server at: https://discord.gg/xucfd2K523
+
+## Features
 - `VFPC` tag item: Shows check-result and allows output of detailed checking data.
 - Tag function `Show Checks`: Outputs detailed checking data.
 - Tag function `Toggle Checks`: Enables/Disables checks for individual flight plans.
