@@ -1426,8 +1426,8 @@ string CVFPCPlugin::RouteOutput(const Value& constraints, vector<size_t> success
 
 	for (size_t i = 0; i < 2; i++) {
 		vector<size_t> newpos{};
-		switch (i) {
 		for (size_t j : pos) {
+			switch (i) {
 			case 0: {
 				bool res = false;
 
