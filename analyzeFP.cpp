@@ -1461,6 +1461,7 @@ string CVFPCPlugin::RouteOutput(const Value& constraints, vector<size_t> success
 				if (res) {
 					newpos.push_back(j);
 				}
+				break;
 			}
 			case 2: {
 				if (constraints[j]["points"].IsArray() && constraints[j]["points"].Size()) {
@@ -1473,6 +1474,7 @@ string CVFPCPlugin::RouteOutput(const Value& constraints, vector<size_t> success
 				else {
 					newpos.push_back(j);
 				}
+				break;
 			}
 			case 3: {
 				bool res = true;
@@ -1488,6 +1490,7 @@ string CVFPCPlugin::RouteOutput(const Value& constraints, vector<size_t> success
 				if (res) {
 					newpos.push_back(j);
 				}
+				break;
 			}
 			case 4: {
 				bool res = true;
@@ -1503,6 +1506,7 @@ string CVFPCPlugin::RouteOutput(const Value& constraints, vector<size_t> success
 				if (res) {
 					newpos.push_back(j);
 				}
+				break;
 			}
 			}
 		}
@@ -1519,7 +1523,7 @@ string CVFPCPlugin::RouteOutput(const Value& constraints, vector<size_t> success
 		string positem = "";
 		if (constraints[each]["route"].IsArray()) {
 			for (size_t i = 0; i < constraints[each]["route"].Size(); i++) {
-				positem += constraints[each]["route"].GetString();
+				positem += constraints[each]["route"][i].GetString();
 				positem += ", ";
 			}
 		}
@@ -1532,7 +1536,7 @@ string CVFPCPlugin::RouteOutput(const Value& constraints, vector<size_t> success
 			positem += "via ";
 
 			for (size_t i = 0; i < constraints[each]["points"].Size(); i++) {
-				positem += constraints[each]["points"].GetString();
+				positem += constraints[each]["points"][i].GetString();
 				positem += ", ";
 			}
 		}
@@ -1542,7 +1546,7 @@ string CVFPCPlugin::RouteOutput(const Value& constraints, vector<size_t> success
 
 			if (constraints[each]["noroute"].IsArray()) {
 				for (size_t i = 0; i < constraints[each]["noroute"].Size(); i++) {
-					negitem += constraints[each]["noroute"].GetString();
+					negitem += constraints[each]["noroute"][i].GetString();
 					negitem += ", ";
 				}
 			}
@@ -1555,7 +1559,7 @@ string CVFPCPlugin::RouteOutput(const Value& constraints, vector<size_t> success
 				negitem += "via ";
 
 				for (size_t i = 0; i < constraints[each]["nopoints"].Size(); i++) {
-					negitem += constraints[each]["nopoints"].GetString();
+					negitem += constraints[each]["nopoints"][i].GetString();
 					negitem += ", ";
 				}
 			}
@@ -1570,7 +1574,31 @@ string CVFPCPlugin::RouteOutput(const Value& constraints, vector<size_t> success
 			}
 		}
 
-		out.push_back(positem + negitem);
+		string lvlitem = "";
+		int lvls[2]{ MININT, MAXINT };
+		if (constraints[each]["min"].IsInt()) {
+			lvls[0] = constraints[each]["min"].GetInt();
+		}
+		if (constraints[each]["max"].IsInt()) {
+			lvls[1] = constraints[each]["max"].GetInt();
+		}
+
+		if (lvls[0] == MININT && lvls[1] == MAXINT) {
+			lvlitem = "Any Level";
+		}
+		else if (lvls[0] == MININT) {
+			lvlitem = to_string(lvls[1]) + "-";
+		}
+		else if (lvls[1] == MAXINT) {
+			lvlitem = to_string(lvls[0]) + "+";
+
+		}
+		else {
+			lvlitem = to_string(lvls[0]) + "-" + to_string(lvls[1]);
+		}
+
+
+		out.push_back(positem + negitem + "(" + lvlitem + ")");
 	}
 
 	string outstring = "";
