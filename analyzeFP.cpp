@@ -930,12 +930,12 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 				}
 
 				returnOut[0][3] = "Passed Route.";
-				returnOut[1][3] = "Passed " + RouteOutput(conditions, successes, points);
+				returnOut[1][3] = "Passed " + RouteOutput(conditions, successes, points, destination, RFL);
 			}
 			case 1:
 			{
 				if (round == 1) {
-					returnOut[1][3] = returnOut[0][3] = "Failed " + RouteOutput(conditions, successes, points);
+					returnOut[1][3] = returnOut[0][3] = "Failed " + RouteOutput(conditions, successes, points, destination, RFL);
 				}
 
 				returnOut[0][2] = "Passed Destination.";
