@@ -930,12 +930,12 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 				}
 
 				returnOut[0][3] = "Passed Route.";
-				returnOut[1][3] = "Passed " + RouteOutput(conditions, successes, points);
+				returnOut[1][3] = "Passed " + RouteOutput(conditions, successes, points, destination, RFL);
 			}
 			case 1:
 			{
 				if (round == 1) {
-					returnOut[1][3] = returnOut[0][3] = "Failed " + RouteOutput(conditions, successes, points);
+					returnOut[1][3] = returnOut[0][3] = "Failed " + RouteOutput(conditions, successes, points, destination, RFL);
 				}
 
 				returnOut[0][2] = "Passed Destination.";
@@ -1416,163 +1416,224 @@ string CVFPCPlugin::MinMaxOutput(const Value& constraints, vector<size_t> succes
 }
 
 //Outputs valid initial routes (from Constraints array) as string
-string CVFPCPlugin::RouteOutput(const Value& constraints, vector<size_t> successes, vector<string> extracted_route) {
-	vector<string> outroute{};
-	bool all = false;
+string CVFPCPlugin::RouteOutput(const Value& constraints, vector<size_t> successes, vector<string> extracted_route, string dest, int rfl) {
+	vector<size_t> pos{};
+	int checks[5]{ 0 };
 
-	do {
-		for (int each : successes) {
-			bool contents[4]{ 0 };
+	for (size_t i = 0; i < constraints.Size(); i++) {
+		pos.push_back(i);
+	}
 
-			if (constraints[each]["route"].IsArray() && constraints[each]["route"].Size()) {
-				contents[0] = true;
-			}
-			if (constraints[each]["points"].IsArray() && constraints[each]["points"].Size()) {
-				contents[1] = true;
+	for (size_t i = 0; i < 5; i++) {
+		vector<size_t> newpos{};
+		for (size_t j : pos) {
+			switch (i) {
+			case 0: {
+				bool res = false;
 
-				if (!all) {
-					bool found = false;
-
-					for (string point : extracted_route) {
-						if (arrayContains(constraints[each]["points"], point)) {
-							found = true;
+				if (constraints[j]["dests"].IsArray() && constraints[j]["dests"].Size()) {
+					for (size_t k = 0; k < constraints[j]["dests"].Size(); k++) {
+						if (constraints[j]["dests"][k].IsString()) {
+							if (startsWith(constraints[j]["dests"][k].GetString(), dest.c_str())) {
+								newpos.push_back(j);
+							}
 						}
 					}
-
-					if (!found) {
-						continue;
-					}
-				}
-			}
-			if (constraints[each]["noroute"].IsArray() && constraints[each]["noroute"].Size()) {
-				contents[2] = true;
-			}
-			if (constraints[each]["nopoints"].IsArray() && constraints[each]["nopoints"].Size()) {
-				contents[3] = true;
-
-				if (!all) {
-					bool found = false;
-
-					for (string point : extracted_route) {
-						if (arrayContains(constraints[each]["points"], point)) {
-							found = true;
-						}
-					}
-
-					if (found) {
-						continue;
-					}
-				}
-			}
-
-			string out = "";
-			if (contents[0]) {
-				out += constraints[each]["route"][(SizeType)0].GetString();
-
-				for (size_t j = 1; j < constraints[each]["route"].Size(); j++) {
-					out += " or ";
-					out += constraints[each]["route"][j].GetString();
-				}
-			}
-
-			if (contents[1]) {
-				if (contents[0]) {
-					out += " and ";
-				}
-
-				out += "via ";
-				out += constraints[each]["points"][(size_t)0].GetString();
-
-				for (size_t j = 1; j < constraints[each]["points"].Size(); j++) {
-					out += ", ";
-					out += constraints[each]["points"][j].GetString();
-				}
-			}
-
-			if (contents[2]) {
-				if (contents[0] || contents[1]) {
-					out += " but ";
-				}
-
-				out += "not ";
-				out += constraints[each]["noroute"][(size_t)0].GetString();
-
-				for (size_t j = 1; j < constraints[each]["noroute"].Size(); j++) {
-					out += ", ";
-					out += constraints[each]["noroute"][j].GetString();
-				}
-			}
-
-			if (contents[3]) {
-				if (contents[2]) {
-					out += " or ";
 				}
 				else {
-					if (contents[0] || contents[1]) {
-						out += " but ";
+					newpos.push_back(j);
+				}
+				break;
+			}
+			case 1: {
+				bool res = true;
+
+				if (constraints[j]["nodests"].IsArray() && constraints[j]["nodests"].Size()) {
+					for (size_t k = 0; k < constraints[j]["nodests"].Size(); k++) {
+						if (constraints[j]["nodests"][k].IsString()) {
+							if (startsWith(constraints[j]["nodests"][k].GetString(), dest.c_str())) {
+								res = false;
+							}
+						}
 					}
-					out += "not ";
 				}
 
-				out += "via ";
-				out += constraints[each]["nopoints"][(size_t)0].GetString();
-
-				for (size_t j = 1; j < constraints[each]["nopoints"].Size(); j++) {
-					out += ", ";
-					out += constraints[each]["nopoints"][j].GetString();
+				if (res) {
+					newpos.push_back(j);
 				}
+				break;
 			}
+			case 2: {
+				if (constraints[j]["points"].IsArray() && constraints[j]["points"].Size()) {
+					for (size_t k = 0; k < extracted_route.size(); k++) {
+						if (arrayContains(constraints[j]["points"], extracted_route[k])) {
+							newpos.push_back(j);
+						}
+					}
+				}
+				else {
+					newpos.push_back(j);
+				}
+				break;
+			}
+			case 3: {
+				bool res = true;
 
-			int Min, Max;
-			bool min = false;
-			bool max = false;
+				if (constraints[j]["nopoints"].IsArray() && constraints[j]["nopoints"].Size()) {
+					for (size_t k = 0; k < extracted_route.size(); k++) {
+						if (arrayContains(constraints[j]["nopoints"], extracted_route[k])) {
+							res = false;
+						}
+					}
+				}
 
-			if (constraints[each].HasMember("min") && constraints[each]["min"].IsInt() && (Min = constraints[each]["min"].GetInt()) > 0) {
-				min = true;
+				if (res) {
+					newpos.push_back(j);
+				}
+				break;
 			}
+			case 4: {
+				bool res = true;
 
-			if (constraints[each].HasMember("max") && constraints[each]["max"].IsInt() && (Max = constraints[each]["max"].GetInt()) > 0) {
-				max = true;
-			}
+				if (constraints[j].HasMember("min") && (!constraints[j]["min"].IsInt() || constraints[j]["min"].GetInt() > rfl)) {
+					res = false;
+				}
 
-			if (min && max) {
-				out += " (FL" + to_string(Min) + " - " + to_string(Max) + ")";
-			}
-			else if (min) {
-				out += " (FL" + to_string(Min) + "+)";
-			}
-			else if (max) {
-				out += " (FL" + to_string(Max) + "-)";
-			}
-			else {
-				out += " (All Levels)";
-			}
+				if (constraints[j].HasMember("max") && (!constraints[j]["max"].IsInt() || constraints[j]["max"].GetInt() < rfl)) {
+					res = false;
+				}
 
-			outroute.push_back(out);
+				if (res) {
+					newpos.push_back(j);
+				}
+				break;
+			}
+			}
 		}
 
-		if (!all && outroute.size() == 0) {
-			all = true;
+		if (newpos.size() > 0) {
+			pos = newpos;
+			checks[i] = true;
+		}
+	}
+
+	vector<string> out{};
+
+	for (size_t each : pos) {
+		string positem = "";
+		if (constraints[each]["route"].IsArray()) {
+			for (size_t i = 0; i < constraints[each]["route"].Size(); i++) {
+				if (i > 0) {
+					positem += ", ";
+				}
+
+				positem += constraints[each]["route"][i].GetString();
+			}
+		}
+
+		if (constraints[each]["points"].IsArray()) {
+			if (positem.size() > 0) {
+				positem += " and ";
+			}
+
+			positem += "via ";
+
+			for (size_t i = 0; i < constraints[each]["points"].Size(); i++) {
+				if (i > 0) {
+					positem += ", ";
+				}
+
+				positem += constraints[each]["points"][i].GetString();
+			}
+		}
+
+		string negitem = "";
+		if (constraints[each]["noroute"].IsArray() || constraints[each]["nopoints"].IsArray()) {
+
+			if (constraints[each]["noroute"].IsArray()) {
+				for (size_t i = 0; i < constraints[each]["noroute"].Size(); i++) {
+					if (i > 0) {
+						negitem += ", ";
+					}
+
+					negitem += constraints[each]["noroute"][i].GetString();
+				}
+			}
+
+			if (constraints[each]["nopoints"].IsArray()) {
+				if (negitem.size() > 0) {
+					negitem += " or ";
+				}
+
+				negitem += "via ";
+
+				for (size_t i = 0; i < constraints[each]["nopoints"].Size(); i++) {
+					if (i > 0) {
+						negitem += ", ";;
+					}
+
+					negitem += constraints[each]["nopoints"][i].GetString();
+				}
+			}
+
+		}
+
+		string lvlitem = "";
+		int lvls[2]{ MININT, MAXINT };
+		if (constraints[each]["min"].IsInt()) {
+			lvls[0] = constraints[each]["min"].GetInt();
+		}
+		if (constraints[each]["max"].IsInt()) {
+			lvls[1] = constraints[each]["max"].GetInt();
+		}
+
+		if (lvls[0] == MININT && lvls[1] == MAXINT) {
+			lvlitem = "Any Level";
+		}
+		else if (lvls[0] == MININT) {
+			lvlitem = to_string(lvls[1]) + "-";
+		}
+		else if (lvls[1] == MAXINT) {
+			lvlitem = to_string(lvls[0]) + "+";
+
 		}
 		else {
-			all = false;
+			lvlitem = to_string(lvls[0]) + "-" + to_string(lvls[1]);
 		}
-	} while (all);
 
-	string out = "";
 
-	for (string each : outroute) {
-		out += each + " / ";
+		if (positem.size() > 0 || negitem.size() > 0) {
+			if (negitem.size() > 0) {
+				negitem += "not ";
+
+				if (positem.size() > 0) {
+					positem += " but ";
+				}
+			}
+
+			if (lvlitem.size() > 0) {
+				negitem += " ";
+			}
+		}
+
+
+		out.push_back(positem + negitem + "(" + lvlitem + ")");
 	}
 
-	if (out == "") {
-		out = "None";
+	string outstring = "";
+
+	for (string each : out) {
+		outstring += each + " / ";
+	}
+
+	if (outstring == "") {
+		outstring = "None";
 	}
 	else {
-		out = out.substr(0, out.length() - 3);
+		outstring = outstring.substr(0, outstring.length() - 3);
 	}
 
-	return "Route. Valid Initial Routes: " + out;
+	return "Valid Initial Routes: " + outstring;
 }
 
 //Outputs valid destinations (from Constraints array) as string
