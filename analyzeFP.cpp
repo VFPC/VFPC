@@ -1424,7 +1424,7 @@ string CVFPCPlugin::RouteOutput(const Value& constraints, vector<size_t> success
 		pos.push_back(i);
 	}
 
-	for (size_t i = 0; i < 2; i++) {
+	for (size_t i = 0; i < 5; i++) {
 		vector<size_t> newpos{};
 		for (size_t j : pos) {
 			switch (i) {
@@ -1523,8 +1523,11 @@ string CVFPCPlugin::RouteOutput(const Value& constraints, vector<size_t> success
 		string positem = "";
 		if (constraints[each]["route"].IsArray()) {
 			for (size_t i = 0; i < constraints[each]["route"].Size(); i++) {
+				if (i > 0) {
+					positem += ", ";
+				}
+
 				positem += constraints[each]["route"][i].GetString();
-				positem += ", ";
 			}
 		}
 
@@ -1536,8 +1539,11 @@ string CVFPCPlugin::RouteOutput(const Value& constraints, vector<size_t> success
 			positem += "via ";
 
 			for (size_t i = 0; i < constraints[each]["points"].Size(); i++) {
+				if (i > 0) {
+					positem += ", ";
+				}
+
 				positem += constraints[each]["points"][i].GetString();
-				positem += ", ";
 			}
 		}
 
@@ -1546,8 +1552,11 @@ string CVFPCPlugin::RouteOutput(const Value& constraints, vector<size_t> success
 
 			if (constraints[each]["noroute"].IsArray()) {
 				for (size_t i = 0; i < constraints[each]["noroute"].Size(); i++) {
+					if (i > 0) {
+						negitem += ", ";
+					}
+
 					negitem += constraints[each]["noroute"][i].GetString();
-					negitem += ", ";
 				}
 			}
 
@@ -1559,19 +1568,14 @@ string CVFPCPlugin::RouteOutput(const Value& constraints, vector<size_t> success
 				negitem += "via ";
 
 				for (size_t i = 0; i < constraints[each]["nopoints"].Size(); i++) {
+					if (i > 0) {
+						negitem += ", ";;
+					}
+
 					negitem += constraints[each]["nopoints"][i].GetString();
-					negitem += ", ";
 				}
 			}
 
-		}
-
-		if (negitem.size() > 0) {
-			negitem += "not ";
-
-			if (positem.size() > 0) {
-				positem += " but ";
-			}
 		}
 
 		string lvlitem = "";
@@ -1595,6 +1599,21 @@ string CVFPCPlugin::RouteOutput(const Value& constraints, vector<size_t> success
 		}
 		else {
 			lvlitem = to_string(lvls[0]) + "-" + to_string(lvls[1]);
+		}
+
+
+		if (positem.size() > 0 || negitem.size() > 0) {
+			if (negitem.size() > 0) {
+				negitem += "not ";
+
+				if (positem.size() > 0) {
+					positem += " but ";
+				}
+			}
+
+			if (lvlitem.size() > 0) {
+				negitem += " ";
+			}
 		}
 
 
