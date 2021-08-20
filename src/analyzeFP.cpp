@@ -172,13 +172,13 @@ bool CVFPCPlugin::versionCall() {
 	APICall("version", version);
 
 	bool timefail = false;
-	if (version.HasMember("date") && version["date"].IsString() && version.HasMember("day") && version["day"].IsInt()) {
+	if (version.HasMember("time") && version["time"].IsString() && version.HasMember("day") && version["day"].IsInt()) {
 		int day = version["day"].GetInt();
 		day += 6;
 		day %= 7;
 		timedata[0] = day;
 
-		string time = version["date"].GetString();
+		string time = version["time"].GetString();
 		if (time.size() == 5) {
 			try {
 				int hour = stoi(time.substr(0, 2));
