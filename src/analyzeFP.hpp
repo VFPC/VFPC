@@ -68,7 +68,7 @@ public:
 
 	virtual string MinMaxOutput(const Value& constraints, vector<size_t> successes);
 
-	virtual string RouteOutput(const Value& constraints, vector<size_t> successes, vector<string> extracted_route, string dest, int rfl);
+	virtual string RouteOutput(const Value& constraints, vector<size_t> successes, vector<string> extracted_route, string dest, int rfl, bool req_lvl = false);
 
 	virtual string DestinationOutput(size_t origin_int, string dest);
 

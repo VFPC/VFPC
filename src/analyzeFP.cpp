@@ -981,7 +981,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			case 2:
 			{
 				if (round == 2) {
-					returnOut[1][4] = returnOut[0][4] = "Failed " + MinMaxOutput(conditions, successes) + " " + RouteOutput(conditions, successes, points, destination, RFL);
+					returnOut[1][4] = returnOut[0][4] = "Failed " + MinMaxOutput(conditions, successes) + " Alternative " + RouteOutput(conditions, successes, points, destination, RFL, true);
 				}
 
 				returnOut[0][3] = "Passed Route.";
@@ -1471,7 +1471,7 @@ string CVFPCPlugin::MinMaxOutput(const Value& constraints, vector<size_t> succes
 }
 
 //Outputs valid initial routes (from Constraints array) as string
-string CVFPCPlugin::RouteOutput(const Value& constraints, vector<size_t> successes, vector<string> extracted_route, string dest, int rfl) {
+string CVFPCPlugin::RouteOutput(const Value& constraints, vector<size_t> successes, vector<string> extracted_route, string dest, int rfl, bool req_lvl) {
 	vector<size_t> pos{};
 	int checks[5]{ 0 };
 
@@ -1677,18 +1677,18 @@ string CVFPCPlugin::RouteOutput(const Value& constraints, vector<size_t> success
 
 	string outstring = "";
 
-	for (string each : out) {
-		outstring += each + " / ";
-	}
-
-	if (outstring == "") {
+	if (pos.size() == 0 || (req_lvl && !checks[4])) {
 		outstring = "None";
 	}
 	else {
+		for (string each : out) {
+			outstring += each + " / ";
+		}
+
 		outstring = outstring.substr(0, outstring.length() - 3);
 	}
 
-	return "Valid Initial Routes: " + outstring;
+	return "Valid Initial Routes: " + outstring + ".";
 }
 
 //Outputs valid destinations (from Constraints array) as string
