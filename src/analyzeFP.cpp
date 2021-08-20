@@ -138,39 +138,6 @@ bool CVFPCPlugin::webCall(string url, string& out) {
 	return false;
 }
 
-//Makes CURL call to Date/Time server and stores output
-bool CVFPCPlugin::timeCall() {
-	Document doc;
-	string url = "http://worldtimeapi.org/api/timezone/Europe/London";
-	string buf = "";
-
-	if (webCall(url, buf))
-	{
-		if (doc.Parse<0>(buf.c_str()).HasParseError())
-		{
-			sendMessage("An error occurred whilst reading date/time data. The plugin will continue attempting to load current date/time data.");
-			debugMessage("Error", str(boost::format("Config Parse: %s (Offset: %i)\n'") % doc.GetParseError() % doc.GetErrorOffset()));
-		}
-		else if (doc.HasMember("datetime") && doc["datetime"].IsString() && doc.HasMember("day_of_week") && doc["day_of_week"].IsInt()) {
-			string hour = ((string)doc["datetime"].GetString()).substr(11, 2);
-			string mins = ((string)doc["datetime"].GetString()).substr(14, 2);
-
-			timedata[0] = doc["day_of_week"].GetInt();
-			timedata[1] = stoi(hour);
-			timedata[2] = stoi(mins);
-
-			return true;
-		}
-	}
-	else
-	{
-		sendMessage("An error occurred whilst downloading date/time data. The plugin will continue attempting to load current date/time data.");
-		debugMessage("Error", "Failed to download date/time data.");
-	}
-
-	return false;
-}
-
 //Makes CURL call to API server for data and stores output
 bool CVFPCPlugin::APICall(string endpoint, Document& out) {
 	string url = MY_API_ADDRESS + endpoint;
@@ -1810,9 +1777,6 @@ bool CVFPCPlugin::Enabled(CFlightPlan flightPlan) {
 		if (!strcmp(cad.c_str(), "VFPC/OFF")) {
 			return false;
 		}
-		else {
-			return true;
-		}
 	}
 	catch (const std::exception& ex) {
 		sendMessage("Error", ex.what());
@@ -1826,6 +1790,8 @@ bool CVFPCPlugin::Enabled(CFlightPlan flightPlan) {
 		sendMessage("Error", "An unexpected error occured");
 		debugMessage("Error", "An unexpected error occured");
 	}
+
+	return true;
 }
 
 //Gets flight plan, checks if (S/D)VFR, calls checking algorithms, and outputs pass/fail result to departure list item
@@ -2072,6 +2038,7 @@ void CVFPCPlugin::runWebCalls() {
 		sendMessage("Error", "An unexpected error occured");
 		debugMessage("Error", "An unexpected error occured");
 	}
+
 }
 
 //Runs once per second, when EuroScope clock updates
