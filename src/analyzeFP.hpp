@@ -36,8 +36,6 @@ public:
 
 	virtual bool webCall(string url, string& out);
 
-	virtual bool timeCall();
-
 	virtual bool APICall(string endpoint, Document& out);
 
 	virtual bool versionCall();
