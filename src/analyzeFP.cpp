@@ -166,11 +166,43 @@ bool CVFPCPlugin::APICall(string endpoint, Document& out) {
 	return true;
 }
 
-//Makes CURL call to API server for current version and stores output
+//Makes CURL call to API server for current date, time, and version and stores output
 bool CVFPCPlugin::versionCall() {
 	Document version;
 	APICall("version", version);
-	
+
+	bool timefail = false;
+	if (version.HasMember("date") && version["date"].IsString() && version.HasMember("day") && version["day"].IsInt()) {
+		int day = version["day"].GetInt();
+		day += 6;
+		day %= 7;
+		timedata[0] = day;
+
+		string time = version["date"].GetString();
+		if (time.size() == 5) {
+			try {
+				int hour = stoi(time.substr(0, 2));
+				int mins = stoi(time.substr(3, 2));
+
+				timedata[1] = hour;
+				timedata[2] = mins;
+			}
+			catch (...) {
+				timefail = true;
+			}
+		}
+		else {
+			timefail = true;
+		}
+	}
+	else {
+		timefail = true;
+	}
+
+	if (timefail) {
+		sendMessage("Failed to read date/time from API.");
+	}
+
 	if (version.HasMember("VFPC_Version") && version["VFPC_Version"].IsString()) {
 		vector<string> current = split(version["VFPC_Version"].GetString(), '.');
 		vector<string> installed = split(MY_PLUGIN_VERSION, '.');
@@ -2038,7 +2070,6 @@ void CVFPCPlugin::runWebCalls() {
 		sendMessage("Error", "An unexpected error occured");
 		debugMessage("Error", "An unexpected error occured");
 	}
-
 }
 
 //Runs once per second, when EuroScope clock updates
