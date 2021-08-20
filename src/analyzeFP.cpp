@@ -981,7 +981,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			case 2:
 			{
 				if (round == 2) {
-					returnOut[1][4] = returnOut[0][4] = "Failed " + MinMaxOutput(conditions, successes);
+					returnOut[1][4] = returnOut[0][4] = "Failed " + MinMaxOutput(conditions, successes) + " " + RouteOutput(conditions, successes, points, destination, RFL);
 				}
 
 				returnOut[0][3] = "Passed Route.";
