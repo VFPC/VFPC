@@ -1,7 +1,7 @@
 name: Clear cache
 
 on:
-  [release, workflow_dispatch]
+  [release]
 
 jobs:
   # This workflow contains a single job called "build"
