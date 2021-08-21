@@ -1,0 +1,13 @@
+name: Clear cache
+
+on:
+  [release, workflow_dispatch]
+
+jobs:
+  # This workflow contains a single job called "build"
+  cache_clear:
+    runs-on: ubuntu-latest
+    env:
+      CACHECLEAR_PASS: ${{ secrets.CACHECLEAR_PASS }}
+    steps:
+      - run: curl -X POST -F "cacheclearpass=$CACHECLEAR_PASS" https://vfpc.tomjmills.co.uk/admin/clearversioncache
