@@ -7,7 +7,7 @@ UK VFPC (UK VATSIM Flight Plan Checker) is a plugin for EuroScope that checks fi
 ## READ BEFORE USE
 This plugin only works with the latest sector files and navigation data. Please ensure that your EuroScope sector files are always up-to-date.
 
-Additionally, please regularly update your navigation data (`EuroScope/DataFiles`) to the latest AIRAC, found in the `NavData` folder of the `EDGG EDGG_FULL` profile at: http://files.aero-nav.com/EDXX.
+Additionally, please regularly update your navigation data (`EuroScope/DataFiles` and `EuroScope/UK/Data/DataFiles`) to the latest AIRAC, found in the `NavData` folder of the `EDGG EDGG_FULL` profile at: http://files.aero-nav.com/EDXX.
 
 After updating your sector files or navigation data, please remember to restart EuroScope before using the plugin.
 
