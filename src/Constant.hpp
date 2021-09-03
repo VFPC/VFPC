@@ -10,6 +10,8 @@
 
 #define PLUGIN_WELCOME_MESSAGE	"Welcome to the (UK) VATSIM Flight Plan Checker"
 
+using namespace std;
+
 const int TAG_ITEM_CHECKFP = 1;
 
 const int TAG_FUNC_CHECKFP_MENU = 100;
@@ -22,27 +24,27 @@ const COLORREF TAG_RED = RGB(190, 0, 0);
 
 const size_t API_REFRESH_TIME = 10;
 
-const char* const EVEN_DIRECTION = "EVEN";
-const char* const ODD_DIRECTION = "ODD";
+const string EVEN_DIRECTION = "EVEN";
+const string ODD_DIRECTION = "ODD";
 
-const char* const PLUGIN_FILE = "VFPC.dll";
-const char* const DATA_FILE = "Sid.json";
+const string PLUGIN_FILE = "VFPC.dll";
+const string DATA_FILE = "Sid.json";
 
-const char* const COMMAND_PREFIX = ".vfpc ";
-const char* const LOAD_COMMAND = "load";
-const char* const FILE_COMMAND = "file";
-const char* const LOG_COMMAND = "log";
-const char* const CHECK_COMMAND = "check";
+const string COMMAND_PREFIX = ".vfpc ";
+const string LOAD_COMMAND = "load";
+const string FILE_COMMAND = "file";
+const string LOG_COMMAND = "log";
+const string CHECK_COMMAND = "check";
 
-const char* const DCT_ENTRY = "DCT";
-const char* const SPDLVL_SEP = "/";
-const char* const OUTDATED_SID = "#";
+const string DCT_ENTRY = "DCT";
+const string SPDLVL_SEP = "/";
+const string OUTDATED_SID = "#";
 
-const char* const RESULT_SEP = ", ";
-const char* const ROUTE_RESULT_SEP = " / ";
-const char* const NO_RESULTS = "None";
+const string RESULT_SEP = ", ";
+const string ROUTE_RESULT_SEP = " / ";
+const string NO_RESULTS = "None";
 
-const char* const WILDCARD = "*";
+const string WILDCARD = "*";
 
 inline static bool startsWith(const char *pre, const char *str)
 {
