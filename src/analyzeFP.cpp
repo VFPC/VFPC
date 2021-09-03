@@ -1160,7 +1160,7 @@ string CVFPCPlugin::RestrictionsOutput(const Value& sid_ele, bool check_type, bo
 				out += " for ";
 			}
 
-			out += rests[i][0] + " Between " + rests[i][1] + " / ";
+			out += rests[i][0] + " Between " + rests[i][1] + *ROUTE_RESULT_SEP;
 		}
 		else if (check_type) {
 			if (out.size() > 0) {
@@ -1177,7 +1177,7 @@ string CVFPCPlugin::RestrictionsOutput(const Value& sid_ele, bool check_type, bo
 				out += "B";
 			}
 
-			out += "etween " + rests[i][1] + " / ";
+			out += "etween " + rests[i][1] + *ROUTE_RESULT_SEP;
 		}
 	}
 
@@ -1686,7 +1686,7 @@ string CVFPCPlugin::RouteOutput(const Value& constraints, vector<size_t> success
 	}
 	else {
 		for (string each : out) {
-			outstring += each + " / ";
+			outstring += each + *ROUTE_RESULT_SEP;
 		}
 
 		outstring = outstring.substr(0, outstring.length() - 3);

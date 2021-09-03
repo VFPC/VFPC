@@ -39,6 +39,7 @@ const char* const SPDLVL_SEP = "/";
 const char* const OUTDATED_SID = "#";
 
 const char* const RESULT_SEP = ", ";
+const char* const ROUTE_RESULT_SEP = " / ";
 const char* const NO_RESULTS = "None";
 
 const char* const WILDCARD = "*";
