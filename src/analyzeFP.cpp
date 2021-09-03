@@ -14,6 +14,9 @@ int relCount;
 
 std::future<void> fut;
 
+// Matches Speed/Alt Data In Route
+regex LVL_CHNG("(N|M|K)[0-9]{3,4}((A|F)[0-9]{3}|(S|M)[0-9]{4})$");
+
 using namespace std;
 using namespace EuroScopePlugIn;
 
@@ -228,8 +231,8 @@ bool CVFPCPlugin::fileCall(Document &out) {
 	char DllPathFile[_MAX_PATH];
 	GetModuleFileNameA(HINSTANCE(&__ImageBase), DllPathFile, sizeof(DllPathFile));
 	string pfad = DllPathFile;
-	pfad.resize(pfad.size() - strlen("VFPC.dll"));
-	pfad += "Sid.json";
+	pfad.resize(pfad.size() - strlen(PLUGIN_FILE.c_str()));
+	pfad += DATA_FILE;
 
 	stringstream ss;
 	ifstream ifs;
@@ -240,7 +243,7 @@ bool CVFPCPlugin::fileCall(Document &out) {
 		ifs.close();
 
 		if (out.Parse<0>(ss.str().c_str()).HasParseError()) {
-			sendMessage("An error occurred whilst reading data. The plugin will not automatically attempt to reload. To restart data fetching from the API, type \".vfpc load\". To reattempt loading data from the Sid.json file, type \".vfpc file\".");
+			sendMessage("An error occurred whilst reading data. The plugin will not automatically attempt to reload. To restart data fetching from the API, type \"" + COMMAND_PREFIX + LOAD_COMMAND + "\". To reattempt loading data from the Sid.json file, type \"" + COMMAND_PREFIX + FILE_COMMAND + "\".");
 			debugMessage("Error", str(boost::format("Config Parse: %s (Offset: %i)\n'") % out.GetParseError() % out.GetErrorOffset()));
 
 			out.Parse<0>("[]");
@@ -250,8 +253,8 @@ bool CVFPCPlugin::fileCall(Document &out) {
 		return true;
 	}
 	else {
-		sendMessage("Sid.json file not found. The plugin will not automatically attempt to reload. To restart data fetching from the API, type \".vfpc load\". To reattempt loading data from the Sid.json file, type \".vfpc file\".");
-		debugMessage("Error", "Sid.json file not found.");
+		sendMessage(DATA_FILE + " file not found. The plugin will not automatically attempt to reload. To restart data fetching from the API, type \"" + COMMAND_PREFIX + LOAD_COMMAND + "\". To reattempt loading data from the Sid.json file, type \"" + COMMAND_PREFIX + FILE_COMMAND + "\".");
+		debugMessage("Error", DATA_FILE + " file not found.");
 
 		out.Parse<0>("[]");
 		return false;
@@ -499,18 +502,15 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		points.push_back(extracted.GetPointName(i));
 	}
 
-	// Matches Speed/Alt Data In Route
-	regex lvl_chng("(N|M|K)[0-9]{3,4}((A|F)[0-9]{3}|(S|M)[0-9]{4})$");
-
 	// Remove "DCT" Instances from Route
 	for (size_t i = 0; i < route.size(); i++) {
-		if (route[i] == "DCT") {
+		if (!strcmp(route[i].c_str(), DCT_ENTRY.c_str())) {
 			route.erase(route.begin() + i);
 		}
 	}
 
 	//Remove Speed/Level Data From Start Of Route
-	if (route.size() > 0 && regex_match(route[0], lvl_chng)) {
+	if (route.size() > 0 && regex_match(route[0], LVL_CHNG)) {
 		route.erase(route.begin());
 	}
 
@@ -520,7 +520,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		size_t pos = 0;
 
 		for (size_t j = 0; j < route[i].size(); j++) {
-			if (route[i][j] == '/') {
+			if (!strcmp(&route[i][j], SPDLVL_SEP.c_str())) {
 				count++;
 				pos = j;
 			}
@@ -533,12 +533,12 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		}
 		case 2:
 		{
-			size_t first_pos = route[i].find('/');
+			size_t first_pos = route[i].find(SPDLVL_SEP);
 			route[i] = route[i].substr(first_pos, string::npos);
 		}
 		case 1:
 		{
-			if (route[i].size() > pos + 1 && regex_match((route[i].substr(pos + 1, string::npos)), lvl_chng)) {
+			if (route[i].size() > pos + 1 && regex_match((route[i].substr(pos + 1, string::npos)), LVL_CHNG)) {
 				route[i] = route[i].substr(0, pos);
 				break;
 			}
@@ -553,7 +553,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		}
 		default:
 		{
-			returnOut[0][returnOut.size() - 2] = "Invalid Syntax - Too Many \"/\" Characters in One or More Waypoints";
+			returnOut[0][returnOut.size() - 2] = "Invalid Syntax - Too Many \"" + SPDLVL_SEP + "\" Characters in One or More Waypoints";
 			returnOut[0].back() = "Failed";
 
 			returnOut[1][returnOut.size() - 2] = "Invalid Route Item: " + route[i];
@@ -570,7 +570,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	//Route with SID
 	if (sid.length()) {
 		// Remove any # characters from SID name
-		boost::erase_all(sid, "#");
+		boost::erase_all(sid, OUTDATED_SID);
 
 		if (origin == "EGLL" && sid == "CHK") {
 			first_wp = "CPT";
@@ -605,7 +605,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					bool valid = true;
 					//EuroScope "SID/Runway" Assignment Syntax
 					if (entry_size > wp_size + 2) {
-						if (route[0][wp_size + 2] == '/' && entry_size >= wp_size + 5 && entry_size <= wp_size + 6) {
+						if (!strcmp(&route[0][wp_size + 2], SPDLVL_SEP.c_str()) && entry_size >= wp_size + 5 && entry_size <= wp_size + 6) {
 							if (!isdigit(route[0][wp_size + 3])) {
 								valid = false;
 							}
@@ -825,7 +825,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 							string direction = conditions[i]["dir"].GetString();
 							boost::to_upper(direction);
 
-							if (direction == "EVEN") {
+							if (direction == EVEN_DIRECTION) {
 								//Assume invalid until condition matched
 								res = false;
 
@@ -838,7 +838,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 									res = true;
 								}
 							}
-							else if (direction == "ODD") {
+							else if (direction == ODD_DIRECTION) {
 								//Assume invalid until condition matched
 								res = false;
 
@@ -1042,11 +1042,11 @@ string CVFPCPlugin::BansOutput(const Value& constraints, vector<size_t> successe
 	string out = "";
 
 	for (string each : bans) {
-		out += each + ", ";
+		out += each + RESULT_SEP;
 	}
 
 	if (out == "") {
-		out = "None";
+		out = NO_RESULTS;
 	}
 	else {
 		out = out.substr(0, out.length() - 2);
@@ -1075,11 +1075,11 @@ string CVFPCPlugin::WarningsOutput(const Value& constraints, vector<size_t> succ
 	string out = "";
 
 	for (string each : warnings) {
-		out += each + ", ";
+		out += each + RESULT_SEP;
 	}
 
 	if (out == "") {
-		out = "None";
+		out = NO_RESULTS;
 	}
 	else {
 		out = out.substr(0, out.length() - 2);
@@ -1108,11 +1108,11 @@ string CVFPCPlugin::AlternativesOutput(const Value& sid_ele, vector<size_t> succ
 	alts.erase(itr, alts.end());
 
 	if (!alts.size()) {
-		out = "None";
+		out = NO_RESULTS;
 	}
 	else {
 		for (string each : alts) {
-			out += each + ", ";
+			out += each + RESULT_SEP;
 		}
 	}
 
@@ -1160,14 +1160,14 @@ string CVFPCPlugin::RestrictionsOutput(const Value& sid_ele, bool check_type, bo
 				out += " for ";
 			}
 
-			out += rests[i][0] + " Between " + rests[i][1] + " / ";
+			out += rests[i][0] + " Between " + rests[i][1] + ROUTE_RESULT_SEP;
 		}
 		else if (check_type) {
 			if (out.size() > 0) {
 				out += " for ";
 			}
 
-			out += rests[i][0] + ", ";
+			out += rests[i][0] + RESULT_SEP;
 		}
 		else if (check_time) {
 			if (out.size() > 0) {
@@ -1177,12 +1177,12 @@ string CVFPCPlugin::RestrictionsOutput(const Value& sid_ele, bool check_type, bo
 				out += "B";
 			}
 
-			out += "etween " + rests[i][1] + " / ";
+			out += "etween " + rests[i][1] + ROUTE_RESULT_SEP;
 		}
 	}
 
 	if (out == "") {
-		out = "None";
+		out = NO_RESULTS;
 	}
 	else if (check_time) {
 		out = out.substr(0, out.size() - 3);
@@ -1224,7 +1224,7 @@ vector<vector<string>> CVFPCPlugin::RestrictionsSingle(const Value& restrictions
 							this_rest[0] += item;
 						}
 
-						this_rest[0] += ", ";
+						this_rest[0] += RESULT_SEP;
 					}
 				}
 
@@ -1324,7 +1324,7 @@ string CVFPCPlugin::SuffixOutput(const Value& sid_eles, vector<size_t> successes
 	}
 	else {
 		for (string each : suffices) {
-			out += each + ", ";
+			out += each + RESULT_SEP;
 		}
 
 		out = out.substr(0, out.size() - 2) + ".";
@@ -1363,10 +1363,10 @@ string CVFPCPlugin::DirectionOutput(const Value& constraints, vector<size_t> suc
 	for (int each : successes) {
 		if (constraints[each].HasMember("dir") && constraints[each]["dir"].IsString()) {
 			string val = constraints[each]["dir"].GetString();
-			if (val == "EVEN") {
+			if (val == EVEN_DIRECTION) {
 				lvls[0] = true;
 			}
-			else if (val == "ODD") {
+			else if (val == ODD_DIRECTION) {
 				lvls[1] = true;
 			}
 		}
@@ -1461,7 +1461,7 @@ string CVFPCPlugin::MinMaxOutput(const Value& constraints, vector<size_t> succes
 		}
 		else {
 			out += to_string(each[0]) + "-" + to_string(each[1]);
-			out += ", ";
+			out += RESULT_SEP;
 		}
 	}
 
@@ -1583,7 +1583,7 @@ string CVFPCPlugin::RouteOutput(const Value& constraints, vector<size_t> success
 		if (constraints[each]["route"].IsArray()) {
 			for (size_t i = 0; i < constraints[each]["route"].Size(); i++) {
 				if (i > 0) {
-					positem += ", ";
+					positem += RESULT_SEP;
 				}
 
 				positem += constraints[each]["route"][i].GetString();
@@ -1599,7 +1599,7 @@ string CVFPCPlugin::RouteOutput(const Value& constraints, vector<size_t> success
 
 			for (size_t i = 0; i < constraints[each]["points"].Size(); i++) {
 				if (i > 0) {
-					positem += ", ";
+					positem += RESULT_SEP;
 				}
 
 				positem += constraints[each]["points"][i].GetString();
@@ -1612,7 +1612,7 @@ string CVFPCPlugin::RouteOutput(const Value& constraints, vector<size_t> success
 			if (constraints[each]["noroute"].IsArray()) {
 				for (size_t i = 0; i < constraints[each]["noroute"].Size(); i++) {
 					if (i > 0) {
-						negitem += ", ";
+						negitem += RESULT_SEP;
 					}
 
 					negitem += constraints[each]["noroute"][i].GetString();
@@ -1628,7 +1628,7 @@ string CVFPCPlugin::RouteOutput(const Value& constraints, vector<size_t> success
 
 				for (size_t i = 0; i < constraints[each]["nopoints"].Size(); i++) {
 					if (i > 0) {
-						negitem += ", ";;
+						negitem += RESULT_SEP;;
 					}
 
 					negitem += constraints[each]["nopoints"][i].GetString();
@@ -1682,7 +1682,7 @@ string CVFPCPlugin::RouteOutput(const Value& constraints, vector<size_t> success
 	string outstring = "";
 
 	if (pos.size() == 0 || (req_lvl && !checks[4])) {
-		outstring = "None";
+		outstring = NO_RESULTS;
 	}
 	else {
 		for (string each : out) {
@@ -1740,7 +1740,7 @@ string CVFPCPlugin::DestinationOutput(size_t origin_int, string dest) {
 
 		for (string each : a) {
 			out += each;
-			out += ", ";
+			out += RESULT_SEP;
 		}
 
 		out = out.substr(0, out.size() - 2) + ".";
@@ -1755,7 +1755,7 @@ string CVFPCPlugin::DestinationOutput(size_t origin_int, string dest) {
 
 		for (string each : b) {
 			out += each;
-			out += ", ";
+			out += RESULT_SEP;
 		}
 
 		out = out.substr(0, out.size() - 2) + ".";
@@ -1879,7 +1879,7 @@ void CVFPCPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget,
 bool CVFPCPlugin::OnCompileCommand(const char * sCommandLine) {
 	try {
 		//Restart Automatic Data Loading
-		if (startsWith(".vfpc load", sCommandLine))
+		if (startsWith((COMMAND_PREFIX + LOAD_COMMAND).c_str(), sCommandLine))
 		{
 			if (autoLoad) {
 				sendMessage("Auto-Load Already Active.");
@@ -1895,17 +1895,17 @@ bool CVFPCPlugin::OnCompileCommand(const char * sCommandLine) {
 			return true;
 		}
 		//Disable API and load from Sid.json file
-		else if (startsWith(".vfpc file", sCommandLine))
+		else if (startsWith((COMMAND_PREFIX + FILE_COMMAND).c_str(), sCommandLine))
 		{
 			autoLoad = false;
 			fileLoad = true;
-			sendMessage("Attempting to load from Sid.json file.");
-			debugMessage("Info", "Will now load from Sid.json file.");
+			sendMessage("Attempting to load from " + DATA_FILE + " file.");
+			debugMessage("Info", "Will now load from " + DATA_FILE + " file.");
 			getSids();
 			return true;
 		}
 		//Activate Debug Logging
-		else if (startsWith(".vfpc log", sCommandLine)) {
+		else if (startsWith((COMMAND_PREFIX + LOG_COMMAND).c_str(), sCommandLine)) {
 			if (debugMode) {
 				debugMessage("Info", "Logging mode deactivated.");
 				debugMode = false;
@@ -1917,7 +1917,7 @@ bool CVFPCPlugin::OnCompileCommand(const char * sCommandLine) {
 			return true;
 		}
 		//Text-Equivalent of "Show Checks" Button
-		else if (startsWith(".vfpc check", sCommandLine))
+		else if (startsWith((COMMAND_PREFIX + CHECK_COMMAND).c_str(), sCommandLine))
 		{
 			checkFPDetail();
 			return true;
