@@ -1484,18 +1484,19 @@ string CVFPCPlugin::RouteOutput(const Value& constraints, vector<size_t> success
 		for (size_t j : pos) {
 			switch (i) {
 			case 0: {
-				bool res = false;
+				bool res = true;
 
 				if (constraints[j]["dests"].IsArray() && constraints[j]["dests"].Size()) {
 					for (size_t k = 0; k < constraints[j]["dests"].Size(); k++) {
 						if (constraints[j]["dests"][k].IsString()) {
-							if (startsWith(constraints[j]["dests"][k].GetString(), dest.c_str())) {
-								newpos.push_back(j);
+							if (!startsWith(constraints[j]["dests"][k].GetString(), dest.c_str())) {
+								res = false;
 							}
 						}
 					}
 				}
-				else {
+
+				if (res) {
 					newpos.push_back(j);
 				}
 				break;
@@ -1519,14 +1520,17 @@ string CVFPCPlugin::RouteOutput(const Value& constraints, vector<size_t> success
 				break;
 			}
 			case 2: {
+				bool res = true;
+
 				if (constraints[j]["points"].IsArray() && constraints[j]["points"].Size()) {
 					for (size_t k = 0; k < extracted_route.size(); k++) {
 						if (arrayContains(constraints[j]["points"], extracted_route[k])) {
-							newpos.push_back(j);
+							res = false;
 						}
 					}
 				}
-				else {
+
+				if (res) {
 					newpos.push_back(j);
 				}
 				break;
