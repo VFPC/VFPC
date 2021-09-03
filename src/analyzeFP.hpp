@@ -153,7 +153,7 @@ public:
 		for (SizeType i = 0; i < valid.Size(); i++) {
 			string r = valid[i].GetString();
 
-			if (r == "*") {
+			if (*r.c_str() == *WILDCARD) {
 				return true;
 			}
 
@@ -169,7 +169,7 @@ public:
 			}
 			else {
 				for (SizeType j = 0; j < current.size(); j++) {
-					if (current[j] != rte[j] && current[j] != "*") {
+					if (current[j] != rte[j] && *current[j].c_str() != *WILDCARD) {
 						admissible = false;
 					}
 				}
