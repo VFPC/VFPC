@@ -491,7 +491,11 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 	int RFL = flightPlan.GetFlightPlanData().GetFinalAltitude();
 
-	vector<string> route = split(flightPlan.GetFlightPlanData().GetRoute(), ' ');
+
+	string rawroute = flightPlan.GetFlightPlanData().GetRoute();
+	boost::trim(rawroute);
+
+	vector<string> route = split(rawroute, ' ');
 	for (size_t i = 0; i < route.size(); i++) {
 		boost::to_upper(route[i]);
 	}
