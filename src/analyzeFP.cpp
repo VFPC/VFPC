@@ -531,101 +531,95 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	regex awy("(U)?[A-Z][0-9]{1,3}([A-Z])?");
 
 	bool success = true;
-
-	if (success && route.size() > 0 && regex_match(route.front(), spdlvl)) {
-		route.erase(route.begin());
-	}
-
-	if (success && route.size() > 0) {
-		if (regex_match(route.front(), icaorwy)) {
-			if (!strcmp(route.front().substr(0, 4).c_str(), origin.c_str())) {
-				route.erase(route.begin());
-			}
-			else {
-				success = false;
-			}
-		}
-	}
-	else {
-		success = false;
-	}
-
-	if (success && route.size() > 0) {
-		if (regex_match(route.back(), icaorwy)) {
-			if (!strcmp(route.back().substr(0, 4).c_str(), destination.c_str())) {
-				route.pop_back();
-			}
-			else {
-				success = false;
-			}
-		}
-	}
-	else {
-		success = false;
-	}
-
-	if (success && route.size() > 0) {
-		if (!strcmp(route.front().c_str(), "SID")) {
-			route.erase(route.begin());
-		}
-	}
-	if (success && route.size() > 0) {
-		if (!strcmp(route.front().c_str(), "STAR")) {
-			route.pop_back();
-		}
-	}
-
-	if (success && route.size() > 0) {
-		if (regex_match(route.front(), sidstarrwy)) {
-			route.erase(route.begin());
-		}
-	}
-	else {
-		success = false;
-	}
-
-	if (success && route.size() > 0) {
-		if (regex_match(route.back(), sidstarrwy)) {
-			route.pop_back();
-		}
-	}
-	else {
-		success = false;
-	}
-
 	vector<string> new_route{};
-	if (success && route.size() > 0) {
-		for (string each : route) {
-			if (regex_match(each, dctspdlvl)) {
-				success = false;
-			}
-			else if (strcmp(each.c_str(), "DCT")) {
-				if (regex_match(each, wpt)) {
-					size_t slash = each.find('/');
 
-					if (slash != string::npos) {
-						each = each.substr(0, slash);
+	for (size_t i = 0; i < 9; i++) {
+		if (success && route.size() > 0) {
+			switch (i) {
+			case 0:
+				if (regex_match(route.front(), spdlvl)) {
+					route.erase(route.begin());
+				}
+				break;
+			case 1:
+				if (regex_match(route.front(), icaorwy)) {
+					if (!strcmp(route.front().substr(0, 4).c_str(), origin.c_str())) {
+						route.erase(route.begin());
 					}
+					else {
+						success = false;
+					}
+				}
+				break;
+			case 2:
+				if (regex_match(route.back(), icaorwy)) {
+					if (!strcmp(route.back().substr(0, 4).c_str(), destination.c_str())) {
+						route.pop_back();
+					}
+					else {
+						success = false;
+					}
+				}
+				break;
+			case 3:
+				if (!strcmp(route.front().c_str(), "SID")) {
+					route.erase(route.begin());
+				}
+				break;
+			case 4:
+				if (!strcmp(route.front().c_str(), "STAR")) {
+					route.pop_back();
+				}
+				break;
+			case 5:
+				if (regex_match(route.front(), sidstarrwy)) {
+					route.erase(route.begin());
+				}
+				break;
+			case 6:
+				if (regex_match(route.back(), sidstarrwy)) {
+					route.pop_back();
+				}
+				break;
+			case 7:
+				for (string each : route) {
+					if (regex_match(each, dctspdlvl)) {
+						success = false;
+					}
+					else if (strcmp(each.c_str(), "DCT")) {
+						if (regex_match(each, wpt)) {
+							size_t slash = each.find('/');
 
-					new_route.push_back(each);
+							if (slash != string::npos) {
+								each = each.substr(0, slash);
+							}
+
+							new_route.push_back(each);
+						}
+						else if (regex_match(each, awy)) {
+							new_route.push_back(each);
+						}
+						else {
+							success = false;
+						}
+					}
 				}
-				else if (regex_match(each, awy)) {
-					new_route.push_back(each);
-				}
-				else {
+
+				route = new_route;
+				break;
+			case 8:
+				if (strcmp(route.front().c_str(), first_wp.c_str())) {
 					success = false;
 				}
+				else {
+					route.erase(route.begin());
+				}
+				break;
 			}
 		}
-	}
-
-	route = new_route;
-
-	if (strcmp(route.front().c_str(), first_wp.c_str())) {
-		success = false;
-	}
-	else {
-		route.erase(route.begin());
+		else {
+			success = false;
+		}
 	}
 
 	if (!success) {
