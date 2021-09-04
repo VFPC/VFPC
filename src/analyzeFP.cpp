@@ -524,7 +524,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 	// Matches Speed/Alt Data In Route
 	regex spdlvl("(N|M|K)[0-9]{3,4}((A|F)[0-9]{3}|(S|M)[0-9]{4})");
-	regex icaorwy("[A-Z]{4}[0-9][A-Z](/[0-9]{2}(L|C|R)?)?");
+	regex icaorwy("[A-Z]{4}(/[0-9]{2}(L|C|R)?)?");
 	regex sidstarrwy("[A-Z]{2}([A-Z]([A-Z]{2})?)?[0-9][A-Z](/[0-9]{2}(L|C|R)?)?");
 	regex dctspdlvl("DCT\/(N|M|K)[0-9]{3,4}((A|F)[0-9]{3}|(S|M)[0-9]{4})");
 	regex wpt("[A-Z]{2}([A-Z]([A-Z]{2})?)?((N|M|K)[0-9]{3,4}((A|F)[0-9]{3}|(S|M)[0-9]{4}))?");
