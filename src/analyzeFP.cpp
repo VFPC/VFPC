@@ -14,9 +14,6 @@ int relCount;
 
 std::future<void> fut;
 
-// Matches Speed/Alt Data In Route
-regex LVL_CHNG("(N|M|K)[0-9]{3,4}((A|F)[0-9]{3}|(S|M)[0-9]{4})$");
-
 using namespace std;
 using namespace EuroScopePlugIn;
 
@@ -491,7 +488,6 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 	int RFL = flightPlan.GetFlightPlanData().GetFinalAltitude();
 
-
 	string rawroute = flightPlan.GetFlightPlanData().GetRoute();
 	boost::trim(rawroute);
 
@@ -504,67 +500,6 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	CFlightPlanExtractedRoute extracted = flightPlan.GetExtractedRoute();
 	for (int i = 0; i < extracted.GetPointsNumber(); i++) {
 		points.push_back(extracted.GetPointName(i));
-	}
-
-	// Remove "DCT" Instances from Route
-	for (size_t i = 0; i < route.size(); i++) {
-		if (!strcmp(route[i].c_str(), DCT_ENTRY.c_str())) {
-			route.erase(route.begin() + i);
-		}
-	}
-
-	//Remove Speed/Level Data From Start Of Route
-	if (route.size() > 0 && regex_match(route[0], LVL_CHNG)) {
-		route.erase(route.begin());
-	}
-
-	// Remove Speed / Level Change Instances from Route
-	for (size_t i = 0; i < route.size(); i++) {
-		int count = 0;
-		size_t pos = 0;
-
-		for (size_t j = 0; j < route[i].size(); j++) {
-			if (!strcmp(&route[i][j], SPDLVL_SEP.c_str())) {
-				count++;
-				pos = j;
-			}
-		}
-
-		switch (count) {
-		case 0:
-		{
-			break;
-		}
-		case 2:
-		{
-			size_t first_pos = route[i].find(SPDLVL_SEP);
-			route[i] = route[i].substr(first_pos, string::npos);
-		}
-		case 1:
-		{
-			if (route[i].size() > pos + 1 && regex_match((route[i].substr(pos + 1, string::npos)), LVL_CHNG)) {
-				route[i] = route[i].substr(0, pos);
-				break;
-			}
-			else {
-				returnOut[0][returnOut[0].size() - 2] = "Invalid Speed/Level Change";
-				returnOut[0].back() = "Failed";
-
-				returnOut[1][returnOut[1].size() - 2] = "Invalid Route Item: " + route[i];
-				returnOut[1].back() = "Failed";
-				return returnOut;
-			}
-		}
-		default:
-		{
-			returnOut[0][returnOut.size() - 2] = "Invalid Syntax - Too Many \"" + SPDLVL_SEP + "\" Characters in One or More Waypoints";
-			returnOut[0].back() = "Failed";
-
-			returnOut[1][returnOut.size() - 2] = "Invalid Route Item: " + route[i];
-			returnOut[1].back() = "Failed";
-			return returnOut;
-		}
-		}
 	}
 
 	string sid = flightPlan.GetFlightPlanData().GetSidName(); boost::to_upper(sid);
@@ -584,89 +519,119 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			first_wp = sid.substr(0, sid.find_first_of("0123456789"));
 			if (0 != first_wp.length())
 				boost::to_upper(first_wp);
-
-			if (first_wp.length() != sid.length()) {
-				sid_suffix = sid.substr(sid.find_first_of("0123456789"), sid.length());
-				boost::to_upper(sid_suffix);
-			}
 		}
+	}
 
-		// Check First Waypoint Correct. Remove SID References & First Waypoint From Route.
-		bool success = false;
-		bool stop = false;
+	// Matches Speed/Alt Data In Route
+	regex spdlvl("(N|M|K)[0-9]{3,4}((A|F)[0-9]{3}|(S|M)[0-9]{4})");
+	regex icaorwy("[A-Z]{4}[0-9][A-Z](/[0-9]{2}(L|C|R)?)?");
+	regex sidstarrwy("[A-Z]{2}([A-Z]([A-Z]{2})?)?[0-9][A-Z](/[0-9]{2}(L|C|R)?)?");
+	regex dctspdlvl("DCT\/(N|M|K)[0-9]{3,4}((A|F)[0-9]{3}|(S|M)[0-9]{4})");
+	regex wpt("[A-Z]{2}([A-Z]([A-Z]{2})?)?((N|M|K)[0-9]{3,4}((A|F)[0-9]{3}|(S|M)[0-9]{4}))?");
+	regex awy("(U)?[A-Z][0-9]{1,3}([A-Z])?");
 
-		while (!stop && route.size() > 0) {
-			size_t wp_size = first_wp.size();
-			size_t entry_size = route[0].size();
-			if (route[0].substr(0, wp_size) == first_wp) {
-				//First Waypoint
-				if (wp_size == entry_size) {
-					success = true;
-					stop = true;
-				}
-				//3 or 5 Letter Waypoint SID - In Full
-				else if (entry_size >= wp_size + 2 && isdigit(route[0][wp_size]) && isalpha(route[0][wp_size + 1])) {
-					bool valid = true;
-					//EuroScope "SID/Runway" Assignment Syntax
-					if (entry_size > wp_size + 2) {
-						if (!strcmp(&route[0][wp_size + 2], SPDLVL_SEP.c_str()) && entry_size >= wp_size + 5 && entry_size <= wp_size + 6) {
-							if (!isdigit(route[0][wp_size + 3])) {
-								valid = false;
-							}
+	bool success = true;
 
-							size_t mod = 0;
-							if (entry_size == wp_size + 6) {
-								if (!isdigit(route[0][wp_size + 4])) {
-									valid = false;
-								}
-								mod++;
-							}
+	if (success && route.size() > 0 && regex_match(route.front(), spdlvl)) {
+		route.erase(route.begin());
+	}
 
-							if (!isalpha(route[0][wp_size + 4 + mod])) {
-								valid = false;
-							}
-
-						}
-						else {
-							valid = false;
-						}
-
-						if (!valid) {
-							stop = true;
-						}
-					}
-				}
-				else {
-					stop = true;
-				}
-
-				route.erase(route.begin());
-			}
-			//5 Letter Waypoint SID - Abbreviated to 6 Chars
-			else if (wp_size == 5 && entry_size >= wp_size && isdigit(route[0][wp_size - 1])) {
-				//SID Has Letter Suffix
-				for (size_t i = wp_size; i < entry_size; i++) {
-					if (!isalpha(route[0][i])) {
-						stop = true;
-					}
-				}
-
+	if (success && route.size() > 0) {
+		if (regex_match(route.front(), icaorwy)) {
+			if (!strcmp(route.front().substr(0, 4).c_str(), origin.c_str())) {
 				route.erase(route.begin());
 			}
 			else {
-				stop = true;
+				success = false;
 			}
 		}
+	}
+	else {
+		success = false;
+	}
 
-		//Route Discontinuity at End of SID
-		if (!success) {
-			returnOut[0][1] = "Route Not From Final SID Fix";
-			returnOut[0].back() = "Failed";
-
-			returnOut[1][1] = "Route must start at final SID fix (" + first_wp + ").";
-			returnOut[1].back() = "Failed";
-			return returnOut;
+	if (success && route.size() > 0) {
+		if (regex_match(route.back(), icaorwy)) {
+			if (!strcmp(route.back().substr(0, 4).c_str(), destination.c_str())) {
+				route.pop_back();
+			}
+			else {
+				success = false;
+			}
 		}
+	}
+	else {
+		success = false;
+	}
+
+	if (success && route.size() > 0) {
+		if (!strcmp(route.front().c_str(), "SID")) {
+			route.erase(route.begin());
+		}
+	}
+	if (success && route.size() > 0) {
+		if (!strcmp(route.front().c_str(), "STAR")) {
+			route.pop_back();
+		}
+	}
+
+	if (success && route.size() > 0) {
+		if (regex_match(route.front(), sidstarrwy)) {
+			route.erase(route.begin());
+		}
+	}
+	else {
+		success = false;
+	}
+
+	if (success && route.size() > 0) {
+		if (regex_match(route.back(), sidstarrwy)) {
+			route.pop_back();
+		}
+	}
+	else {
+		success = false;
+	}
+
+	vector<string> new_route{};
+	if (success && route.size() > 0) {
+		for (string each : route) {
+			if (regex_match(each, dctspdlvl)) {
+				success = false;
+			}
+			else if (strcmp(each.c_str(), "DCT")) {
+				if (regex_match(each, wpt)) {
+					size_t slash = each.find('/');
+
+					if (slash != string::npos) {
+						each = each.substr(0, slash);
+					}
+
+					new_route.push_back(each);
+				}
+				else if (regex_match(each, awy)) {
+					new_route.push_back(each);
+				}
+				else {
+					success = false;
+				}
+			}
+		}
+	}
+
+	route = new_route;
+
+	if (strcmp(route.front().c_str(), first_wp.c_str())) {
+		success = false;
+	}
+	else {
+		route.erase(route.begin());
+	}
+
+	if (!success) {
+		returnOut[0][1] = returnOut[1][1] = "Invalid Route";
+		returnOut[0].back() = returnOut[1].back() = "Failed";
+		return returnOut;
 	}
 
 	// Any SIDs defined
