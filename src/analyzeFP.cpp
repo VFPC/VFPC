@@ -527,7 +527,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	regex icaorwy("[A-Z]{4}(/[0-9]{2}(L|C|R)?)?");
 	regex sidstarrwy("[A-Z]{2}([A-Z]([A-Z]{2})?)?[0-9][A-Z](/[0-9]{2}(L|C|R)?)?");
 	regex dctspdlvl("DCT\/(N|M|K)[0-9]{3,4}((A|F)[0-9]{3}|(S|M)[0-9]{4})");
-	regex wpt("[A-Z]{2}([A-Z]([A-Z]{2})?)?((N|M|K)[0-9]{3,4}((A|F)[0-9]{3}|(S|M)[0-9]{4}))?");
+	regex wpt("[A-Z]{2}([A-Z]([A-Z]{2})?)?(/(N|M|K)[0-9]{3,4}((A|F)[0-9]{3}|(S|M)[0-9]{4}))?");
 	regex awy("(U)?[A-Z][0-9]{1,3}([A-Z])?");
 
 	bool success = true;
@@ -542,6 +542,16 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 				}
 				break;
 			case 1:
+				if (regex_match(route.front(), sidstarrwy)) {
+					route.erase(route.begin());
+				}
+				break;
+			case 2:
+				if (regex_match(route.back(), sidstarrwy)) {
+					route.pop_back();
+				}
+				break;
+			case 3:
 				if (regex_match(route.front(), icaorwy)) {
 					if (!strcmp(route.front().substr(0, 4).c_str(), origin.c_str())) {
 						route.erase(route.begin());
@@ -551,7 +561,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					}
 				}
 				break;
-			case 2:
+			case 4:
 				if (regex_match(route.back(), icaorwy)) {
 					if (!strcmp(route.back().substr(0, 4).c_str(), destination.c_str())) {
 						route.pop_back();
@@ -561,23 +571,13 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 					}
 				}
 				break;
-			case 3:
+			case 5:
 				if (!strcmp(route.front().c_str(), "SID")) {
 					route.erase(route.begin());
 				}
 				break;
-			case 4:
-				if (!strcmp(route.front().c_str(), "STAR")) {
-					route.pop_back();
-				}
-				break;
-			case 5:
-				if (regex_match(route.front(), sidstarrwy)) {
-					route.erase(route.begin());
-				}
-				break;
 			case 6:
-				if (regex_match(route.back(), sidstarrwy)) {
+				if (!strcmp(route.back().c_str(), "STAR")) {
 					route.pop_back();
 				}
 				break;
