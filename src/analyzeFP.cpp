@@ -1524,7 +1524,7 @@ string CVFPCPlugin::RouteOutput(const Value& constraints, vector<size_t> success
 
 				if (constraints[j]["points"].IsArray() && constraints[j]["points"].Size()) {
 					for (size_t k = 0; k < extracted_route.size(); k++) {
-						if (!arrayContains(constraints[j]["points"], extracted_route[k])) {
+						if (arrayContains(constraints[j]["points"], extracted_route[k])) {
 							res = true;
 						}
 					}
