@@ -1554,11 +1554,11 @@ string CVFPCPlugin::RouteOutput(const Value& constraints, vector<size_t> success
 			case 4: {
 				bool res = true;
 
-				if (constraints[j].HasMember("min") && (!constraints[j]["min"].IsInt() || constraints[j]["min"].GetInt() > rfl)) {
+				if (constraints[j].HasMember("min") && (!constraints[j]["min"].IsInt() || constraints[j]["min"].GetInt() > rfl / 100)) {
 					res = false;
 				}
 
-				if (constraints[j].HasMember("max") && (!constraints[j]["max"].IsInt() || constraints[j]["max"].GetInt() < rfl)) {
+				if (constraints[j].HasMember("max") && (!constraints[j]["max"].IsInt() || constraints[j]["max"].GetInt() < rfl / 100)) {
 					res = false;
 				}
 
