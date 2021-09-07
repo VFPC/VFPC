@@ -1113,35 +1113,43 @@ string CVFPCPlugin::RestrictionsOutput(const Value& sid_ele, bool check_type, bo
 		rests.insert(rests.end(), temp.begin(), temp.end());
 	}
 
+	sort(rests.begin(), rests.end());
+	vector<vector<string>>::iterator itr = unique(rests.begin(), rests.end());
+	rests.erase(itr, rests.end());
+
 	string out = "";
 	for (size_t i = 0; i < rests.size(); i++) {
+		string temp = "";
 		if (check_ban) {
-			out += "Banned";
+			temp += "Banned";
 		}
+
 		if (check_type && check_time) {
-			if (out.size() > 0) {
-				out += " for ";
+			if (temp.size() > 0) {
+				temp += " for ";
 			}
 
-			out += rests[i][0] + " Between " + rests[i][1] + ROUTE_RESULT_SEP;
+			temp += rests[i][0] + " Between " + rests[i][1] + ROUTE_RESULT_SEP;
 		}
 		else if (check_type) {
-			if (out.size() > 0) {
-				out += " for ";
+			if (temp.size() > 0) {
+				temp += " for ";
 			}
 
-			out += rests[i][0] + RESULT_SEP;
+			temp += rests[i][0] + RESULT_SEP;
 		}
 		else if (check_time) {
-			if (out.size() > 0) {
-				out += " b";
+			if (temp.size() > 0) {
+				temp += " b";
 			}
 			else {
-				out += "B";
+				temp += "B";
 			}
 
-			out += "etween " + rests[i][1] + ROUTE_RESULT_SEP;
+			temp += "etween " + rests[i][1] + ROUTE_RESULT_SEP;
 		}
+
+		out += temp;
 	}
 
 	if (out == "") {
@@ -1151,7 +1159,7 @@ string CVFPCPlugin::RestrictionsOutput(const Value& sid_ele, bool check_type, bo
 		out = out.substr(0, out.size() - 3);
 	}
 	else {
-		out = out.substr(0, out.size() - 2) + " Aircraft";
+		out = out.substr(0, out.size() - 2);
 	}
 
 	return "SID Restrictions: " + out + ".";
