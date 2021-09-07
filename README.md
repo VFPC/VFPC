@@ -52,7 +52,7 @@ You can join the community Discord Server at: https://discord.gg/xucfd2K523
 - `.vfpc load` - Attempts to reactivate automatic data loading if it has been disabled for some reason. (Server connection lost, loading data from file, etc.)
 - `.vfpc debug` - Activates debug logging into a separate message box, named "VFPC Log"
 - `.vfpc file`- Deactivates loading from the API, and conducts a one-time load from the `Sid.json` file instead. Can also be used to reload from `Sid.json` after making changes.
-- `.vfpc check <callsign>` - Equivalent of clicking the "Show Checks" button for an aircraft. Replace `<callsign>` with the logon callsign of the aircraft.
+- `.vfpc check` - Equivalent of clicking the "Show Checks" button for an aircraft. Ensure that the aircraft in question is highlighted in the departure list.
 
 **N.B.** Disabling automatic data loading (or choosing to load from a file) will only last until the plugin is unloaded (including when EuroScope is closed). When the plugin is next loaded, it will always attempt to load from the API.
 
