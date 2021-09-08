@@ -214,7 +214,9 @@ public:
 
 	virtual bool clearLog();
 
-	virtual bool writeLog(string message);
+	virtual bool bufLog(string message);
+
+	virtual bool writeLog();
 
 	virtual void debugMessage(string type, string message);
 
