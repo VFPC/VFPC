@@ -224,7 +224,7 @@ public:
 
 	virtual void checkFPDetail();
 
-	virtual string getFails(vector<string> messageBuffer, COLORREF* pRGB);
+	virtual string getFails(CFlightPlan flightPlan, vector<string> messageBuffer, COLORREF* pRGB);
 
 	virtual void runWebCalls();
 

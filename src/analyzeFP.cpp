@@ -20,23 +20,23 @@ using namespace EuroScopePlugIn;
 //Run on Plugin Initialization
 CVFPCPlugin::CVFPCPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_PLUGIN_VERSION, MY_PLUGIN_DEVELOPER, MY_PLUGIN_COPYRIGHT)
 {
-	writeLog("VFPC Loaded. Clearing Log...");
+	writeLog("Plugin: Load - Clearing Log...");
 	clearLog();
 
-	writeLog("Initialising Settings...");
+	writeLog("Plugin: Load - Initialising Settings...");
 	debugMode = false;
 	validVersion = true; //Reset in first timer call
 	autoLoad = true;
 	fileLoad = false;
 
-	writeLog("Resetting Counters...");
+	writeLog("Plugin: Load - Resetting Counters...");
 	failPos = 0;
 	relCount = 0;
 
-	writeLog("Initialising Time Data...");
+	writeLog("Plugin: Load - Initialising Time Data...");
 	timedata = { 0, 0, 0 };
 
-	writeLog("Sending Load Message...");
+	writeLog("Plugin: Load - Sending Load Message...");
 	string loadingMessage = "Loading complete. Version: ";
 	loadingMessage += MY_PLUGIN_VERSION;
 	loadingMessage += ".";
@@ -44,18 +44,18 @@ CVFPCPlugin::CVFPCPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_
 
 	// Register Tag Item "VFPC"
 	if (validVersion) {
-		writeLog("Registering Tag Item...");
+		writeLog("Plugin: Load - Registering Tag Item...");
 		RegisterTagItemType("VFPC", TAG_ITEM_CHECKFP);
 		RegisterTagItemFunction("Options", TAG_FUNC_CHECKFP_MENU);
 	}
 
-	writeLog("Loading Complete");
+	writeLog("Plugin: Load - Complete");
 }
 
 //Run on Plugin Destruction (Closing EuroScope or unloading plugin)
 CVFPCPlugin::~CVFPCPlugin()
 {
-	writeLog("Unloading...");
+	writeLog("Plugin: Unloading...");
 }
 
 //Stores output of HTTP request in string
@@ -85,7 +85,7 @@ bool CVFPCPlugin::clearLog() {
 		ofs.open(path.c_str(), ios::trunc);
 
 		if (ofs.is_open()) {
-			ofs << "Log Cleared Successfully." << std::endl;
+			ofs << "Log: Cleared Successfully." << std::endl;
 			ofs.close();
 			return true;
 		}
@@ -143,10 +143,10 @@ void CVFPCPlugin::debugMessage(string type, string message) {
 		// Display Debug Message if debugMode = true
 		if (debugMode) {
 			DisplayUserMessage("VFPC Log", type.c_str(), message.c_str(), true, true, true, false, false);
-			writeLog("Debug Message - " + type + ": " + message);
+			writeLog("Debug Message: " + type + " - " + message);
 		}
 		else {
-			writeLog("Hidden Debug Message - " + type + ": " + message);
+			writeLog("Hidden Debug Message: " + type + " - " + message);
 		}
 	}
 	catch (const std::exception& ex) {
@@ -168,7 +168,7 @@ void CVFPCPlugin::sendMessage(string type, string message) {
 	try {
 		// Show a message
 		DisplayUserMessage("VFPC", type.c_str(), message.c_str(), true, true, true, true, false);
-		writeLog("Message - " + type + ": " + message);
+		writeLog("Message: " + type + " - " + message);
 	}
 	catch (const std::exception& ex) {
 		sendMessage("Error", ex.what());
@@ -188,7 +188,7 @@ void CVFPCPlugin::sendMessage(string type, string message) {
 void CVFPCPlugin::sendMessage(string message) {
 	try {
 		DisplayUserMessage("VFPC", "System", message.c_str(), true, true, true, false, false);
-		writeLog("Message - System: " + message);
+		writeLog("Message: System - " + message);
 	}
 	catch (const std::exception& ex) {
 		sendMessage("Error", ex.what());
@@ -206,7 +206,7 @@ void CVFPCPlugin::sendMessage(string message) {
 
 //CURL call, saves output to passed string reference
 bool CVFPCPlugin::webCall(string url, string& out) {
-	writeLog("Web Call To " + url);
+	writeLog("Web Call To " + url + ": Launching...");
 	CURL* curl = curl_easy_init();
 	curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 
@@ -221,11 +221,11 @@ bool CVFPCPlugin::webCall(string url, string& out) {
 	curl_easy_cleanup(curl);
 
 	if (httpCode == 200) {
-		writeLog("Web Call Successful");
+		writeLog("Web Call To " + url + ": Successful");
 		return true;
 	}
 	
-	writeLog("Web Call Failed");
+	writeLog("Web Call To " + url + ": Failed");
 	return false;
 }
 
@@ -233,16 +233,16 @@ bool CVFPCPlugin::webCall(string url, string& out) {
 bool CVFPCPlugin::APICall(string endpoint, Document& out) {
 	string url = MY_API_ADDRESS + endpoint;
 	string buf = "";
-	writeLog("API Call To " + url);
+	writeLog("API Call To " + url + ": Launching...");
 
 	if (webCall(url, buf))
 	{
-		writeLog("API Returned Data");
+		writeLog("API Call To " + url + ": Returned Data");
 		if (out.Parse<0>(buf.c_str()).HasParseError())
 		{
 			sendMessage("An error occurred whilst reading data. The plugin will not automatically attempt to reload from the API. To restart data fetching, type \".vfpc load\".");
 			debugMessage("Error", str(boost::format("Config Download: %s (Offset: %i)\n'") % out.GetParseError() % out.GetErrorOffset()));
-			writeLog("API Call Failed - Data Returned But Unreadable");
+			writeLog("API Call To " + url + ": Failed - Data Returned But Unreadable");
 			return false;
 
 			out.Parse<0>("[]");
@@ -252,37 +252,37 @@ bool CVFPCPlugin::APICall(string endpoint, Document& out) {
 	{
 		sendMessage("An error occurred whilst downloading data. The plugin will not automatically attempt to reload from the API. Check your connection and restart data fetching by typing \".vfpc load\".");
 		debugMessage("Error", "Failed to download data from API.");
-		writeLog("API Call Failed - No Data Returned");
+		writeLog("API Call To " + url + ": Failed - No Data Returned");
 		return false;
 
 		out.Parse<0>("[]");
 	}
 
-	writeLog("API Call Successful");
+	writeLog("API Call To " + url + ": Successful");
 	return true;
 }
 
 //Makes CURL call to API server for current date, time, and version and stores output
 bool CVFPCPlugin::versionCall() {
 	Document version;
-	writeLog("Version Call");
+	writeLog("Version Call: Launching...");
 	APICall("version", version);
 
 	bool timefail = false;
 
 	if (version.HasMember("time") && version["time"].IsString() && version.HasMember("day") && version["day"].IsInt()) {
-		writeLog("Day/Time Data Found");
-		writeLog("Checking Weekday...");
+		writeLog("Version Call: Day/Time Data Found");
+		writeLog("Version Call: Checking Weekday...");
 		int day = version["day"].GetInt();
-		writeLog("Weekday Entry Exists");
+		writeLog("Version Call: Weekday Entry Exists");
 		day += 6;
 		day %= 7;
 		timedata[0] = day;
-		writeLog("Weekday Data Read Successfully");
+		writeLog("Version Call: Weekday Data Read Successfully");
 
-		writeLog("Checking Time...");
+		writeLog("Version Call: Checking Time...");
 		string time = version["time"].GetString();
-		writeLog("Time Entry Exists");
+		writeLog("Version Call: Time Entry Exists");
 		if (time.size() == 5) {
 			try {
 				int hour = stoi(time.substr(0, 2));
@@ -290,20 +290,20 @@ bool CVFPCPlugin::versionCall() {
 
 				timedata[1] = hour;
 				timedata[2] = mins;
-				writeLog("Time Data Read Successfully");
+				writeLog("Version Call: Time Data Read Successfully");
 			}
 			catch (...) {
-				writeLog("Time Data Unreadable - String->Int Failed");
+				writeLog("Version Call: Time Data Unreadable - String->Int Failed");
 				timefail = true;
 			}
 		}
 		else {
-			writeLog("Time Data Unreadable - Wrong Size");
+			writeLog("Version Call: Time Data Unreadable - Wrong Size");
 			timefail = true;
 		}
 	}
 	else {
-		writeLog("Time Data Not Found");
+		writeLog("Version Call: Time Data Not Found");
 		timefail = true;
 	}
 
@@ -312,23 +312,23 @@ bool CVFPCPlugin::versionCall() {
 	}
 
 	if (version.HasMember("VFPC_Version") && version["VFPC_Version"].IsString()) {
-		writeLog("Version Data Found");
+		writeLog("Version Call: Version Data Found");
 		vector<string> current = split(version["VFPC_Version"].GetString(), '.');
 		vector<string> installed = split(MY_PLUGIN_VERSION, '.');
 
 		if ((installed[0] > current[0]) || //Major version higher
 			(installed[0] == current[0] && installed[1] > current[1]) || //Minor version higher
 			(installed[0] == current[0] && installed[1] == current[1] && installed[2] >= current[2])) { //Revision higher
-			writeLog("Latest Version In Use");
+			writeLog("Version Call: Latest Version In Use");
 			return true;
 		}
 		else {
-			writeLog("Old Version In Use");
+			writeLog("Version Call: Old Version In Use");
 			sendMessage("Update available - the plugin has been disabled. Please update and reload the plugin to continue. (Note: .vfpc load will NOT work.)");
 		}
 	}
 	else {
-		writeLog("Version Data Not Found");
+		writeLog("Version Call: Version Data Not Found");
 		sendMessage("Failed to check for updates - the plugin has been disabled. If no updates are available, please unload and reload the plugin to try again. (Note: .vfpc load will NOT work.)");
 	}
 
@@ -435,7 +435,6 @@ vector<bool> CVFPCPlugin::checkRestrictions(CFlightPlan flightPlan, string sid_s
 	vector<bool> res{ 0, 0 }; //0 = Constraint-Level Pass, 1 = SID-Level Pass
 	bool constExists = false;
 	if (restrictions.IsArray() && restrictions.Size()) {
-		writeLog("Restrictions Check: " + string(flightPlan.GetCallsign()) + " - Restrictions Array Found");
 		for (size_t j = 0; j < restrictions.Size(); j++) {
 			bool temp = true;
 			bool sidlevel = false;
@@ -577,6 +576,9 @@ vector<bool> CVFPCPlugin::checkRestrictions(CFlightPlan flightPlan, string sid_s
 		}
 
 		writeLog("Restrictions Check: " + string(flightPlan.GetCallsign()) + " - Complete");
+	}
+	else {
+		writeLog("Restrictions Check: " + string(flightPlan.GetCallsign()) + " - Failed, Restrictions Array Not Found");
 	}
 
 	if (!constExists) {
@@ -1033,67 +1035,67 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			case 5:
 			{
 				returnOut[0][7] = "Passed SID Restrictions.";
-				returnOut[1][7] = "Passed " + RestrictionsOutput(sid_ele, true, true, true, successes);
+				returnOut[1][7] = "Passed " + RestrictionsOutput(flightPlan, sid_ele, true, true, true, successes);
 
 				if (warn) {
-					returnOut[1][8] = returnOut[0][8] = WarningsOutput(conditions, successes);
+					returnOut[1][8] = returnOut[0][8] = WarningsOutput(flightPlan, conditions, successes);
 				}
 				else {
 					returnOut[1][8] = "No Warnings.";
 				}
         
 				if (round == 5) {
-					returnOut[1][9] = returnOut[0][9] = BansOutput(conditions, successes);
+					returnOut[1][9] = returnOut[0][9] = BansOutput(flightPlan, conditions, successes);
 				}
 			}
 			case 4:
 			{
 				returnOut[0][6] = "Valid Suffix.";
-				returnOut[1][6] = "Valid " + SuffixOutput(sid_ele, successes);
+				returnOut[1][6] = "Valid " + SuffixOutput(flightPlan, sid_ele, successes);
 
 				if (round == 4) {
 					if (restFails[0]) {
-						returnOut[1][6] = returnOut[0][6] = "Invalid " + SuffixOutput(sid_ele, successes);
+						returnOut[1][6] = returnOut[0][6] = "Invalid " + SuffixOutput(flightPlan, sid_ele, successes);
 					}
 					else {
-						returnOut[1][7] = returnOut[0][7] = "Failed " + RestrictionsOutput(sid_ele, restFails[1], restFails[2], restFails[3], successes) + " " + AlternativesOutput(sid_ele, successes);
+						returnOut[1][7] = returnOut[0][7] = "Failed " + RestrictionsOutput(flightPlan, sid_ele, restFails[1], restFails[2], restFails[3], successes) + " " + AlternativesOutput(flightPlan, sid_ele, successes);
 					}
 				}
 
 				returnOut[0][5] = "Passed Odd-Even Rule.";
-				returnOut[1][5] = "Passed " + DirectionOutput(conditions, successes);
+				returnOut[1][5] = "Passed " + DirectionOutput(flightPlan, conditions, successes);
 			}
 			case 3:
 			{
 				if (round == 3) {
-					returnOut[1][5] = returnOut[0][5] = "Failed " + DirectionOutput(conditions, successes);
+					returnOut[1][5] = returnOut[0][5] = "Failed " + DirectionOutput(flightPlan, conditions, successes);
 				}
 
 				returnOut[0][4] = "Passed Min/Max Level.";
-				returnOut[1][4] = "Passed " + MinMaxOutput(conditions, successes);
+				returnOut[1][4] = "Passed " + MinMaxOutput(flightPlan, conditions, successes);
 			}
 			case 2:
 			{
 				if (round == 2) {
-					returnOut[1][4] = returnOut[0][4] = "Failed " + MinMaxOutput(conditions, successes) + " Alternative " + RouteOutput(conditions, successes, points, destination, RFL, true);
+					returnOut[1][4] = returnOut[0][4] = "Failed " + MinMaxOutput(flightPlan, conditions, successes) + " Alternative " + RouteOutput(flightPlan, conditions, successes, points, destination, RFL, true);
 				}
 
 				returnOut[0][3] = "Passed Route.";
-				returnOut[1][3] = "Passed Route. " + RouteOutput(conditions, successes, points, destination, RFL);
+				returnOut[1][3] = "Passed Route. " + RouteOutput(flightPlan, conditions, successes, points, destination, RFL);
 			}
 			case 1:
 			{
 				if (round == 1) {
-					returnOut[1][3] = returnOut[0][3] = "Failed Route. " + RouteOutput(conditions, successes, points, destination, RFL);
+					returnOut[1][3] = returnOut[0][3] = "Failed Route. " + RouteOutput(flightPlan, conditions, successes, points, destination, RFL);
 				}
 
 				returnOut[0][2] = "Passed Destination.";
-				returnOut[1][2] = "Passed " + DestinationOutput(origin_int, destination);
+				returnOut[1][2] = "Passed " + DestinationOutput(flightPlan, origin_int, destination);
 			}
 			case 0:
 			{
 				if (round == 0) {
-					returnOut[1][2] = returnOut[0][2] = "Failed " + DestinationOutput(origin_int, destination);
+					returnOut[1][2] = returnOut[0][2] = "Failed " + DestinationOutput(flightPlan, origin_int, destination);
 				}
 				break;
 			}
@@ -1101,14 +1103,14 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		}
 		else {
 			if (sidFails[0]) {
-				returnOut[1][6] = returnOut[0][7] = "Invalid " + SuffixOutput(sid_ele);
+				returnOut[1][6] = returnOut[0][7] = "Invalid " + SuffixOutput(flightPlan, sid_ele);
 			}
 			else {
 				returnOut[0][6] = "Valid Suffix.";
-				returnOut[1][6] = "Valid " + SuffixOutput(sid_ele);
+				returnOut[1][6] = "Valid " + SuffixOutput(flightPlan, sid_ele);
 
 				//sidFails[1], [2], or [3] must be false to get here
-				returnOut[1][7] = returnOut[0][7] = "Failed " + RestrictionsOutput(sid_ele, sidFails[1], sidFails[2], sidFails[3]) + " " + AlternativesOutput(sid_ele);
+				returnOut[1][7] = returnOut[0][7] = "Failed " + RestrictionsOutput(flightPlan, sid_ele, sidFails[1], sidFails[2], sidFails[3]) + " " + AlternativesOutput(flightPlan, sid_ele);
 			}
 		}
 
@@ -1884,23 +1886,31 @@ string CVFPCPlugin::DestinationOutput(CFlightPlan flightPlan, size_t origin_int,
 
 //Handles departure list menu and menu items
 void CVFPCPlugin::OnFunctionCall(int FunctionId, const char * ItemString, POINT Pt, RECT Area) {
+	writeLog("Tag Function Called");
 	try {
 		if (FunctionId == TAG_FUNC_CHECKFP_MENU) {
+			writeLog("Tag Function Called - Display Options Menu");
 			OpenPopupList(Area, "Options", 1);
 			AddPopupListElement("Show Checks", "", TAG_FUNC_CHECKFP_CHECK);
 			AddPopupListElement("Toggle Checks", "", TAG_FUNC_CHECKFP_DISMISS);
 		}
 		else if (FunctionId == TAG_FUNC_CHECKFP_CHECK) {
+			writeLog("Tag Function Called - Show Checks");
 			checkFPDetail();
 		}
 		else if (FunctionId == TAG_FUNC_CHECKFP_DISMISS) {
+			writeLog("Tag Function Called - Toggle Checks");
 			CFlightPlan flightPlan = FlightPlanSelectASEL();
 
 			if (Enabled(flightPlan)) {
+				writeLog(flightPlan.GetCallsign() + string(": Disabling Checks..."));
 				flightPlan.GetControllerAssignedData().SetFlightStripAnnotation(0, "VFPC/OFF");
+				writeLog(flightPlan.GetCallsign() + string(": Disabled Checks"));
 			}
 			else {
+				writeLog(flightPlan.GetCallsign() + string(": Enabling Checks..."));
 				flightPlan.GetControllerAssignedData().SetFlightStripAnnotation(0, "");
+				writeLog(flightPlan.GetCallsign() + string(": Enabled Checks"));
 			}
 		}
 	}
@@ -1920,8 +1930,11 @@ void CVFPCPlugin::OnFunctionCall(int FunctionId, const char * ItemString, POINT 
 
 bool CVFPCPlugin::Enabled(CFlightPlan flightPlan) {
 	try {
+		writeLog(flightPlan.GetCallsign() + string(" Toggle: Checking..."));
 		string cad = flightPlan.GetControllerAssignedData().GetFlightStripAnnotation(0);
+		writeLog(flightPlan.GetCallsign() + string(" Toggle: Got Annotation"));
 		if (!strcmp(cad.c_str(), "VFPC/OFF")) {
+			writeLog(flightPlan.GetCallsign() + string(" Toggle: Disabled"));
 			return false;
 		}
 	}
@@ -1938,36 +1951,44 @@ bool CVFPCPlugin::Enabled(CFlightPlan flightPlan) {
 		debugMessage("Error", "An unexpected error occured");
 	}
 
+	writeLog(flightPlan.GetCallsign() + string(" Toggle: Enabled"));
 	return true;
 }
 
 //Gets flight plan, checks if (S/D)VFR, calls checking algorithms, and outputs pass/fail result to departure list item
-void CVFPCPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int ItemCode, int TagData, char sItemString[16], int* pColorCode, COLORREF* pRGB, double* pFontSize){
+void CVFPCPlugin::OnGetTagItem(CFlightPlan flightPlan, CRadarTarget RadarTarget, int ItemCode, int TagData, char sItemString[16], int* pColorCode, COLORREF* pRGB, double* pFontSize){
 	try {
 		if (ItemCode == TAG_ITEM_CHECKFP) {
-			const char *origin = FlightPlan.GetFlightPlanData().GetOrigin();
+			writeLog(flightPlan.GetCallsign() + string(": Tag Item - Cycled With Flight Plan Check Code"));
+			const char *origin = flightPlan.GetFlightPlanData().GetOrigin();
 			if (find(activeAirports.begin(), activeAirports.end(), origin) == activeAirports.end()) {
+				writeLog("Adding " + string(origin) + " To Active Airports List");
 				activeAirports.push_back(origin);
 			}
 
-			if (validVersion && Enabled(FlightPlan) && airports.find(FlightPlan.GetFlightPlanData().GetOrigin()) != airports.end()) {
-				string FlightPlanString = FlightPlan.GetFlightPlanData().GetRoute();
-				int RFL = FlightPlan.GetFlightPlanData().GetFinalAltitude();
+			if (validVersion && Enabled(flightPlan) && airports.find(flightPlan.GetFlightPlanData().GetOrigin()) != airports.end()) {
+				writeLog(flightPlan.GetCallsign() + string(": Tag Item - Check Enabled & Airport Found"));
+				string FlightPlanString = flightPlan.GetFlightPlanData().GetRoute();
+				int RFL = flightPlan.GetFlightPlanData().GetFinalAltitude();
+				writeLog(flightPlan.GetCallsign() + string(": Tag Item - Got Flight Plan Data"));
 
 				*pColorCode = TAG_COLOR_RGB_DEFINED;
-				string fpType{ FlightPlan.GetFlightPlanData().GetPlanType() };
+				string fpType{ flightPlan.GetFlightPlanData().GetPlanType() };
 				if (fpType == "V" || fpType == "S" || fpType == "D") {
+					writeLog(flightPlan.GetCallsign() + string(": Tag Item - Not IFR, Check Aborted"));
 					*pRGB = TAG_GREEN;
 					strcpy_s(sItemString, 16, "VFR");
 				}
 				else {
-					vector<vector<string>> validize = validizeSid(FlightPlan);
-					vector<string> messageBuffer{ validize[0] }; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Route, 4 = Nav Performance, 5 = Min/Max Flight Level, 6 = Even/Odd, 7 = Suffix, 8 = Aircraft Type, 9 = Date/Time, 10 = Syntax, 11 = Passed/Failed
+					writeLog(flightPlan.GetCallsign() + string(": Tag Item - IFR, Launching Check..."));
+					vector<string> validize = validizeSid(flightPlan)[0]; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Route, 4 = Nav Performance, 5 = Min/Max Flight Level, 6 = Even/Odd, 7 = Suffix, 8 = Aircraft Type, 9 = Date/Time, 10 = Syntax, 11 = Passed/Failed
 
-					strcpy_s(sItemString, 16, getFails(validize[0], pRGB).c_str());
+					writeLog(flightPlan.GetCallsign() + string(": Tag Item - Check Complete, Setting Tag Alert..."));
+					strcpy_s(sItemString, 16, getFails(flightPlan, validize, pRGB).c_str());
 				}
 			}
 			else {
+				writeLog(flightPlan.GetCallsign() + string(": Tag Item - Cycled With Unknown Code"));
 				strcpy_s(sItemString, 16, " ");
 			}
 		}
@@ -1988,13 +2009,16 @@ void CVFPCPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget,
 
 //Handles console commands
 bool CVFPCPlugin::OnCompileCommand(const char * sCommandLine) {
+	writeLog("Command Detected");
 	try {
 		//Restart Automatic Data Loading
 		if (startsWith((COMMAND_PREFIX + LOAD_COMMAND).c_str(), sCommandLine))
 		{
+			writeLog("Command Detected: Load");
 			if (autoLoad) {
 				sendMessage("Auto-Load Already Active.");
 				debugMessage("Warning", "Auto-load activation attempted whilst already active.");
+				writeLog("Command: Load - Already Loading From API");
 			}
 			else {
 				fileLoad = false;
@@ -2002,12 +2026,14 @@ bool CVFPCPlugin::OnCompileCommand(const char * sCommandLine) {
 				relCount = 0;
 				sendMessage("Auto-Load Activated.");
 				debugMessage("Info", "Auto-load reactivated.");
+				writeLog("Command: Load - Activated Loading From API");
 			}
 			return true;
 		}
 		//Disable API and load from Sid.json file
 		else if (startsWith((COMMAND_PREFIX + FILE_COMMAND).c_str(), sCommandLine))
 		{
+			writeLog("Command Detected: File");
 			autoLoad = false;
 			fileLoad = true;
 			sendMessage("Attempting to load from " + DATA_FILE + " file.");
@@ -2017,19 +2043,23 @@ bool CVFPCPlugin::OnCompileCommand(const char * sCommandLine) {
 		}
 		//Activate Debug Logging
 		else if (startsWith((COMMAND_PREFIX + LOG_COMMAND).c_str(), sCommandLine)) {
+			writeLog("Command Detected: Log");
 			if (debugMode) {
 				debugMessage("Info", "Logging mode deactivated.");
 				debugMode = false;
+				writeLog("Command: Log - Deactivated Debug Mode");
 			}
 			else {
 				debugMode = true;
 				debugMessage("Info", "Logging mode activated.");
+				writeLog("Command: Log - Activated Debug Mode");
 			}
 			return true;
 		}
 		//Text-Equivalent of "Show Checks" Button
 		else if (startsWith((COMMAND_PREFIX + CHECK_COMMAND).c_str(), sCommandLine))
 		{
+			writeLog("Command Detected: Check");
 			checkFPDetail();
 			return true;
 		}
@@ -2054,19 +2084,24 @@ bool CVFPCPlugin::OnCompileCommand(const char * sCommandLine) {
 void CVFPCPlugin::checkFPDetail() {
 	try {
 		if (validVersion) {
-			CFlightPlan FlightPlan = FlightPlanSelectASEL();
-			string fpType{ FlightPlan.GetFlightPlanData().GetPlanType() };
+			CFlightPlan flightPlan = FlightPlanSelectASEL();
+			writeLog(flightPlan.GetCallsign() + string(": Show Checks - Requested"));
+			string fpType{ flightPlan.GetFlightPlanData().GetPlanType() };
 			if (fpType == "V" || fpType == "S" || fpType == "D") {
+				writeLog(flightPlan.GetCallsign() + string(": Show Checks - Not IFR, Check Aborted"));
 				string buf = "Flight Plan Checking Not Supported For VFR Flights.";
-				sendMessage(FlightPlan.GetCallsign(), buf);
-				debugMessage(FlightPlan.GetCallsign(), buf);
+				sendMessage(flightPlan.GetCallsign(), buf);
+				debugMessage(flightPlan.GetCallsign(), buf);
 			}
 			else {
-				vector<vector<string>> validize = validizeSid(FlightPlanSelectASEL());
+				writeLog(flightPlan.GetCallsign() + string(": Show Checks - IFR, Launching Check..."));
+				sendMessage(flightPlan.GetCallsign(), "Checking...");
+				vector<vector<string>> validize = validizeSid(flightPlan);
+
+				writeLog(flightPlan.GetCallsign() + string(": Show Checks - Check Complete, Preparing Output..."));
 				vector<string> messageBuffer{ validize[0] }; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Route, 4 = Nav Performance, 5 = Min/Max Flight Level, 6 = Even/Odd, 7 = Suffix, 8 = Aircraft Type, 9 = Date/Time, 10 = Syntax, 11 = Passed/Failed
 				vector<string> logBuffer{ validize[1] }; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Route, 4 = Nav Performance, 5 = Min/Max Flight Level, 6 = Even/Odd, 7 = Suffix, 8 = Aircraft Type, 9 = Date/Time, 10 = Syntax, 11 = Passed/Failed
-				sendMessage(messageBuffer.front(), "Checking...");
-#
+				
 				string buffer{ messageBuffer.at(1) + " | " };
 				string logbuf{ logBuffer.at(1) + " | " };
 
@@ -2090,6 +2125,7 @@ void CVFPCPlugin::checkFPDetail() {
 				buffer += messageBuffer.back();
 				logbuf += logBuffer.back();
 
+				writeLog(flightPlan.GetCallsign() + string(": Show Checks - Sending Output..."));
 				sendMessage(messageBuffer.front(), buffer);
 				debugMessage(logBuffer.front(), logbuf);
 			}
@@ -2111,41 +2147,53 @@ void CVFPCPlugin::checkFPDetail() {
 }
 
 //Compiles list of failed elements in flight plan, in preparation for adding to departure list
-string CVFPCPlugin::getFails(vector<string> messageBuffer, COLORREF* pRGB) {
+string CVFPCPlugin::getFails(CFlightPlan flightPlan, vector<string> messageBuffer, COLORREF* pRGB) {
+	writeLog(flightPlan.GetCallsign() + string(": Getting Fails"));
 	try {
 		*pRGB = TAG_RED;
 
 		if (messageBuffer.at(messageBuffer.size() - 2).find("Invalid") == 0) {
+			writeLog(flightPlan.GetCallsign() + string(": Fail - CHK"));
 			return "CHK";
 		}
 		else if (messageBuffer.at(1).find("SID - ") != 0 && messageBuffer.at(1).find("Non-SID Route.") != 0) {
+			writeLog(flightPlan.GetCallsign() + string(": Fail - SID"));
 			return "SID";
 		}
 		else if (messageBuffer.at(2).find("Failed") == 0) {
+			writeLog(flightPlan.GetCallsign() + string(": Fail - DST"));
 			return "DST";
 		}
 		else if (messageBuffer.at(3).find("Failed") == 0) {
+			writeLog(flightPlan.GetCallsign() + string(": Fail - RTE"));
 			return "RTE";
 		}
 		else if (messageBuffer.at(4).find("Failed") == 0) {
+			writeLog(flightPlan.GetCallsign() + string(": Fail - LVL"));
 			return "LVL";
 		}
 		else if (messageBuffer.at(5).find("Failed") == 0) {
+			writeLog(flightPlan.GetCallsign() + string(": Fail - OER"));
 			return "OER";
 		}
 		else if (messageBuffer.at(6).find("Invalid") == 0) {
+			writeLog(flightPlan.GetCallsign() + string(": Fail - SUF"));
 			return "SUF";
 		}
 		else if (messageBuffer.at(7).find("Failed") == 0) {
+			writeLog(flightPlan.GetCallsign() + string(": Fail - RST"));
 			return "RST";
 		}
 		else if (messageBuffer.at(8).find("Warnings") == 0) {
+			writeLog(flightPlan.GetCallsign() + string(": Fail - Warning"));
 			*pRGB = TAG_ORANGE;
 		}
 		else if (messageBuffer.at(9).find("Route Banned") == 0) {
+			writeLog(flightPlan.GetCallsign() + string(": Fail - BAN"));
 			return "BAN";
 		}
 		else {
+			writeLog(flightPlan.GetCallsign() + string(": Fail - Success"));
 			*pRGB = TAG_GREEN;
 		}
 
@@ -2170,8 +2218,11 @@ string CVFPCPlugin::getFails(vector<string> messageBuffer, COLORREF* pRGB) {
 //Runs all web/file calls at once
 void CVFPCPlugin::runWebCalls() {
 	try {
+		writeLog("Calls Manager: Launching Version Call...");
 		validVersion = versionCall();
+		writeLog("Calls Manager: Compiling SIDs...");
 		getSids();
+		writeLog("Calls Manager: Complete");
 	}
 	catch (const std::exception& ex) {
 		sendMessage("Error", ex.what());
@@ -2189,26 +2240,40 @@ void CVFPCPlugin::runWebCalls() {
 
 //Runs once per second, when EuroScope clock updates
 void CVFPCPlugin::OnTimer(int Counter) {
+	writeLog("Timer: Triggered");
 	try {
 		if (validVersion) {
+			writeLog("Timer: Running Jobs...");
 			if (relCount == -1 && fut.valid() && fut.wait_for(1ms) == std::future_status::ready) {
+				writeLog("Timer: API Calls Returned - Resetting...");
 				fut.get();
+				writeLog("Timer: API Calls Returned - Future Reset");
 				activeAirports.clear();
+				writeLog("Timer: API Calls Returned - Active Airports Cleared");
 				relCount = API_REFRESH_TIME;
+				writeLog("Timer: API Calls Returned - Counter Reset");
 			}
 
 			if (relCount > 0) {
+				writeLog("Timer: Decrementing Counter...");
 				relCount--;
+				writeLog("Timer: Counter Decremented");
 			}
 
 			// Loading proper Sids, when logged in
 			if (GetConnectionType() != CONNECTION_TYPE_NO && relCount == 0) {
+				writeLog("Timer: Connection Live - Launching API Calls...");
 				fut = std::async(std::launch::async, &CVFPCPlugin::runWebCalls, this);
+				writeLog("Timer: API Calls Launched - Disabling Counter");
 				relCount--;
+				writeLog("Timer: API Calls Launched - Counter Disabled");
 			}
 			else if (GetConnectionType() == CONNECTION_TYPE_NO) {
+				writeLog("Timer: Connection Closed - Clearing Collections...");
 				airports.clear();
+				writeLog("Timer: Connection Closed - Airports Cleared");
 				config.Clear();
+				writeLog("Timer: Connection Closed - JSON Cleared");
 			}
 		}
 	}
