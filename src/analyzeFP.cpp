@@ -376,43 +376,43 @@ bool CVFPCPlugin::fileCall(Document &out) {
 
 //Loads data and sorts into airports
 void CVFPCPlugin::getSids() {
-	CVFPCPlugin::writeLog("Reloading SID Data...");
+	CVFPCPlugin::writeLog("SID Data: Reloading...");
 	try {
 		//Load data from API
 		if (autoLoad) {
-			CVFPCPlugin::writeLog("Loading SID Data From API...");
+			writeLog("SID Data: From API - Loading...");
 			if (activeAirports.size() > 0) {
-				CVFPCPlugin::writeLog("Active Airports Found");
+				writeLog("SID Data: From API - Active Airports Found");
 				string endpoint = "airport?icao=";
 
 				for (size_t i = 0; i < activeAirports.size(); i++) {
-					CVFPCPlugin::writeLog("Requesting Data For " + activeAirports[i]);
+					writeLog("SID Data: From API - Requesting For " + activeAirports[i]);
 					endpoint += activeAirports[i] + "+";
 				}
 
 				endpoint = endpoint.substr(0, endpoint.size() - 1);
 
 				autoLoad = APICall(endpoint, config);
-				CVFPCPlugin::writeLog("Loaded SID Data From API");
+				writeLog("SID Data: From API - Loaded");
 			}
 		}
 		//Load data from Sid.json file
 		else if (fileLoad) {
-			CVFPCPlugin::writeLog("Loading SID Data From File...");
+			CVFPCPlugin::writeLog("SID Data: From File - Loading...");
 			fileLoad = fileCall(config);
-			CVFPCPlugin::writeLog("Loaded SID Data From File");
+			CVFPCPlugin::writeLog("SID Data: From File - Loaded");
 		}
 
 		//Sort new data into airports
-		CVFPCPlugin::writeLog("Sorting SID Data");
+		CVFPCPlugin::writeLog("SID Data: Sorting...");
 		airports.clear();
 		for (SizeType i = 0; i < config.Size(); i++) {
 			const Value& airport = config[i];
 			if (airport.HasMember("icao") && airport["icao"].IsString()) {
 				string airport_icao = airport["icao"].GetString();
-				CVFPCPlugin::writeLog("Found SID Data For " + airport_icao);
+				CVFPCPlugin::writeLog("SID Data: " + airport_icao + " - Found");
 				airports.insert(pair<string, SizeType>(airport_icao, i));
-				CVFPCPlugin::writeLog("Inserted SID Data For " + airport_icao);
+				CVFPCPlugin::writeLog("SID Data: " + airport_icao + " - Inserted");
 			}
 		}
 	}
@@ -590,23 +590,31 @@ vector<bool> CVFPCPlugin::checkRestrictions(CFlightPlan flightPlan, string sid_s
 }
 
 //Checks flight plan
-vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
+vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
+	string callsign = flightPlan.GetCallsign();
+	writeLog(callsign + string(" Validating..."));
 	//out[0] = Normal Output, out[1] = Debug Output
 	vector<vector<string>> returnOut = { vector<string>(), vector<string>() }; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Route, 4 = Nav Performance, 5 = Min/Max Flight Level, 6 = Even/Odd, 7 = Suffix, 8 = Aircraft Type, 9 = Date/Time, 10 = Syntax, 11 = Passed/Failed
 
-	returnOut[0].push_back(flightPlan.GetCallsign());
-	returnOut[1].push_back(flightPlan.GetCallsign());
+	writeLog(callsign + string(" Validate: Outputs - Initialising..."));
+	returnOut[0].push_back(callsign);
+	returnOut[1].push_back(callsign);
 	for (int i = 1; i < 12; i++) {
 		returnOut[0].push_back("-");
 		returnOut[1].push_back("-");
 	}
 
+	writeLog(callsign + string(" Validate: Airports - Getting..."));
 	string origin = flightPlan.GetFlightPlanData().GetOrigin(); boost::to_upper(origin);
+	writeLog(callsign + string(" Validate: Airports - Found Origin") + origin);
 	string destination = flightPlan.GetFlightPlanData().GetDestination(); boost::to_upper(destination);
+	writeLog(callsign + string(" Validate: Airports - Found Destination") + destination);
 	SizeType origin_int;
 
+	writeLog(callsign + string(" Validate: Origin - Finding " + origin + " Data..."));
 	// Airport defined
 	if (airports.find(origin) == airports.end()) {
+		writeLog(callsign + string(" Validate: Origin - " + origin + " Not Found"));
 		returnOut[0][1] = "Airport Not Found";
 		returnOut[0].back() = "Failed";
 
@@ -616,45 +624,60 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	}
 	else
 	{
+		writeLog(callsign + string(" Validate: Origin - " + origin + " Found"));
 		origin_int = airports[origin];
 	}
 
+	writeLog(callsign + string(" Validate: RFL - Getting..."));
 	int RFL = flightPlan.GetFlightPlanData().GetFinalAltitude();
 
+	writeLog(callsign + string(" Validate: Route - Getting..."));
 	string rawroute = flightPlan.GetFlightPlanData().GetRoute();
+	writeLog(callsign + string(" Validate: Route - Trimming..."));
 	boost::trim(rawroute);
 
+	writeLog(callsign + string(" Validate: Route - Splitting..."));
 	vector<string> route = split(rawroute, ' ');
+	writeLog(callsign + string(" Validate: Route - Converting To Upper Case..."));
 	for (size_t i = 0; i < route.size(); i++) {
 		boost::to_upper(route[i]);
 	}
 
+	writeLog(callsign + string(" Validate: Extracted Route Points - Getting..."));
 	vector<string> points{};
 	CFlightPlanExtractedRoute extracted = flightPlan.GetExtractedRoute();
+	writeLog(callsign + string(" Validate: Extracted Route Points - Saving..."));
 	for (int i = 0; i < extracted.GetPointsNumber(); i++) {
 		points.push_back(extracted.GetPointName(i));
 	}
 
+	writeLog(callsign + string(" Validate SID - Getting..."));
 	string sid = flightPlan.GetFlightPlanData().GetSidName(); boost::to_upper(sid);
 	string first_wp = "";
 	string sid_suffix = "";
 
+	writeLog(callsign + string(" Validate: SID - Validating..."));
 	//Route with SID
 	if (sid.length()) {
+		writeLog(callsign + string(" Validate: SID Exists - " + sid + ", Checking For Outdated Indicator..."));
 		// Remove any # characters from SID name
 		boost::erase_all(sid, OUTDATED_SID);
 
+		writeLog(callsign + string(" Validate: First Waypoint - Getting..."));
 		if (origin == "EGLL" && sid == "CHK") {
+			writeLog(callsign + string(" Validate: First Waypoint - EGLL CPT Easterly Procedure In Use"));
 			first_wp = "CPT";
 			sid_suffix = "CHK";
 		}
 		else {
 			first_wp = sid.substr(0, sid.find_first_of("0123456789"));
 			if (0 != first_wp.length())
+				writeLog(callsign + string(" Validate: First Waypoint - Converting To Upper Case..."));
 				boost::to_upper(first_wp);
 		}
 	}
 
+	writeLog(callsign + string(" Validate: Route Syntax - Checking..."));
 	// Matches Speed/Alt Data In Route
 	regex spdlvl("(N|M|K)[0-9]{3,4}((A|F)[0-9]{3}|(S|M)[0-9]{4})");
 	regex icaorwy("[A-Z]{4}(/[0-9]{2}(L|C|R)?)?");
@@ -668,6 +691,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 
 	for (size_t i = 0; i < 9; i++) {
 		if (success && route.size() > 0) {
+			writeLog(callsign + string(" Validate: Route Syntax - Running Check...") + to_string(i) + string("..."));
 			switch (i) {
 			case 0:
 				if (regex_match(route.front(), spdlvl)) {
@@ -756,13 +780,18 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 	}
 
 	if (!success) {
+		writeLog(callsign + string(" Validate: Route Syntax - Failed"));
 		returnOut[0][1] = returnOut[1][1] = "Invalid Route";
 		returnOut[0].back() = returnOut[1].back() = "Failed";
 		return returnOut;
 	}
 
+	writeLog(callsign + string(" Validate: Route Syntax - Passed"));
+
+	writeLog(callsign + string(" Validate: SID - Checking Definitions..."));
 	// Any SIDs defined
-	if (!config[origin_int].HasMember("sids") || !config[origin_int]["sids"].IsArray()) {
+	if (!config[origin_int].HasMember("sids") || !config[origin_int]["sids"].IsArray() || !config[origin_int]["sids"].Size()) {
+		writeLog(callsign + string(" Validate: SID - None Defined..."));
 		returnOut[0][1] = "No SIDs or Non-SID Routes Defined";
 		returnOut[0].back() = "Failed";
 
@@ -771,10 +800,12 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 		return returnOut;
 	}
 
+	writeLog(callsign + string(" Validate: SID - Finding Definition..."));
 	//Find routes for selected SID
 	size_t pos = string::npos;
 	for (size_t i = 0; i < config[origin_int]["sids"].Size(); i++) {
 		if (config[origin_int]["sids"][i].HasMember("point") && !first_wp.compare(config[origin_int]["sids"][i]["point"].GetString()) && config[origin_int]["sids"][i].HasMember("constraints") && config[origin_int]["sids"][i]["constraints"].IsArray()) {
+			writeLog(callsign + string(" Validate: SID - Found Definition"));
 			pos = i;
 		}
 	}
@@ -854,7 +885,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 						//Route
 						bool res = true;
 
-						if (conditions[i].HasMember("route") && conditions[i]["route"].IsArray() && conditions[i]["route"].Size() && !routeContains(flightPlan.GetCallsign(), route, conditions[i]["route"])) {
+						if (conditions[i].HasMember("route") && conditions[i]["route"].IsArray() && conditions[i]["route"].Size() && !routeContains(callsign(), route, conditions[i]["route"])) {
 							res = false;
 						}
 
@@ -872,7 +903,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 							}
 						}
 
-						if (conditions[i].HasMember("noroute") && res && conditions[i]["noroute"].IsArray() && conditions[i]["noroute"].Size() && routeContains(flightPlan.GetCallsign(), route, conditions[i]["noroute"])) {
+						if (conditions[i].HasMember("noroute") && res && conditions[i]["noroute"].IsArray() && conditions[i]["noroute"].Size() && routeContains(callsign(), route, conditions[i]["noroute"])) {
 							res = false;
 						}
 
@@ -1003,7 +1034,7 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 			}
 		}
 
-		returnOut[1][0] = returnOut[0][0] = flightPlan.GetCallsign();
+		returnOut[1][0] = returnOut[0][0] = callsign();
 		for (size_t i = 1; i < returnOut[0].size(); i++) {
 			returnOut[1][i] = returnOut[0][i] = "-";
 		}
@@ -1981,7 +2012,7 @@ void CVFPCPlugin::OnGetTagItem(CFlightPlan flightPlan, CRadarTarget RadarTarget,
 				}
 				else {
 					writeLog(flightPlan.GetCallsign() + string(": Tag Item - IFR, Launching Check..."));
-					vector<string> validize = validizeSid(flightPlan)[0]; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Route, 4 = Nav Performance, 5 = Min/Max Flight Level, 6 = Even/Odd, 7 = Suffix, 8 = Aircraft Type, 9 = Date/Time, 10 = Syntax, 11 = Passed/Failed
+					vector<string> validize = validateSid(flightPlan)[0]; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Route, 4 = Nav Performance, 5 = Min/Max Flight Level, 6 = Even/Odd, 7 = Suffix, 8 = Aircraft Type, 9 = Date/Time, 10 = Syntax, 11 = Passed/Failed
 
 					writeLog(flightPlan.GetCallsign() + string(": Tag Item - Check Complete, Setting Tag Alert..."));
 					strcpy_s(sItemString, 16, getFails(flightPlan, validize, pRGB).c_str());
@@ -2096,7 +2127,7 @@ void CVFPCPlugin::checkFPDetail() {
 			else {
 				writeLog(flightPlan.GetCallsign() + string(": Show Checks - IFR, Launching Check..."));
 				sendMessage(flightPlan.GetCallsign(), "Checking...");
-				vector<vector<string>> validize = validizeSid(flightPlan);
+				vector<vector<string>> validize = validateSid(flightPlan);
 
 				writeLog(flightPlan.GetCallsign() + string(": Show Checks - Check Complete, Preparing Output..."));
 				vector<string> messageBuffer{ validize[0] }; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Route, 4 = Nav Performance, 5 = Min/Max Flight Level, 6 = Even/Odd, 7 = Suffix, 8 = Aircraft Type, 9 = Date/Time, 10 = Syntax, 11 = Passed/Failed
