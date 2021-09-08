@@ -604,6 +604,8 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 		returnOut[1].push_back("-");
 	}
 
+	returnOut[0].back() = returnOut[1].back() = "Failed";
+
 	writeLog(callsign + string(" Validate: Airports - Getting..."));
 	string origin = flightPlan.GetFlightPlanData().GetOrigin(); boost::to_upper(origin);
 	writeLog(callsign + string(" Validate: Airports - Found Origin ") + origin);
@@ -893,7 +895,7 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 						//Route
 						bool res = true;
 
-						if (conditions[i].HasMember("route") && conditions[i]["route"].IsArray() && conditions[i]["route"].Size() && !routeContains(callsign(), route, conditions[i]["route"])) {
+						if (conditions[i].HasMember("route") && conditions[i]["route"].IsArray() && conditions[i]["route"].Size() && !routeContains(callsign, route, conditions[i]["route"])) {
 							res = false;
 						}
 
@@ -911,7 +913,7 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 							}
 						}
 
-						if (conditions[i].HasMember("noroute") && res && conditions[i]["noroute"].IsArray() && conditions[i]["noroute"].Size() && routeContains(callsign(), route, conditions[i]["noroute"])) {
+						if (conditions[i].HasMember("noroute") && res && conditions[i]["noroute"].IsArray() && conditions[i]["noroute"].Size() && routeContains(callsign, route, conditions[i]["noroute"])) {
 							res = false;
 						}
 
@@ -1044,13 +1046,7 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 			}
 		}
 
-		returnOut[1][0] = returnOut[0][0] = callsign;
-		for (size_t i = 1; i < returnOut[0].size(); i++) {
-			returnOut[1][i] = returnOut[0][i] = "-";
-		}
-
-		returnOut[1].back() = returnOut[0].back() = "Failed";
-
+		writeLog(callsign + string(" Validate: Setting SID/Non-SID Output..."));
 		if (sid.length()) {
 			returnOut[1][1] = returnOut[0][1] = "SID - " + sid + ".";
 		}
@@ -1058,7 +1054,9 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 			returnOut[1][1] = returnOut[0][1] = "Non-SID Route.";
 		}
 
+		writeLog(callsign + string(" Validate: SID-Wide Restrictions - Checking If Passed..."));
 		if (sidwide) {
+			writeLog(callsign + string(" Validate: SID-Wide Restrictions - Passed"));
 			vector<size_t> successes{};
 
 			for (size_t i = 0; i < validity.size(); i++) {
@@ -1066,6 +1064,8 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 					successes.push_back(i);
 				}
 			}
+
+			writeLog(callsign + string(" Validate: Result - Setting Type ") + to_string(round) + string("..."));
 
 			switch (round) {
 			case 6:
@@ -1141,12 +1141,17 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 				break;
 			}
 			}
+
+			writeLog(callsign + string(" Validate: Result - Type ") + to_string(round) + string(" Set"));
 		}
 		else {
+			writeLog(callsign + string(" Validate: SID-Wide Restrictions - Failed"));
 			if (sidFails[0]) {
+				writeLog(callsign + string(" Validate: SID-Wide Restrictions - Invalid Suffix"));
 				returnOut[1][6] = returnOut[0][7] = "Invalid " + SuffixOutput(flightPlan, sid_ele);
 			}
 			else {
+				writeLog(callsign + string(" Validate: SID-Wide Restrictions - Invalid Type/Date/Time"));
 				returnOut[0][6] = "Valid Suffix.";
 				returnOut[1][6] = "Valid " + SuffixOutput(flightPlan, sid_ele);
 
