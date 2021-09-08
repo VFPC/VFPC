@@ -113,7 +113,7 @@ bool CVFPCPlugin::writeLog(string message) {
 		path += LOG_FILE;
 
 		ofstream ofs;
-		ofs.open(path.c_str(), ios::trunc);
+		ofs.open(path.c_str(), ios_base::app);
 
 		if (ofs.is_open()) {
 			ofs << message.c_str() << std::endl;
@@ -144,6 +144,9 @@ void CVFPCPlugin::debugMessage(string type, string message) {
 		if (debugMode) {
 			DisplayUserMessage("VFPC Log", type.c_str(), message.c_str(), true, true, true, false, false);
 			writeLog("Debug Message - " + type + ": " + message);
+		}
+		else {
+			writeLog("Hidden Debug Message - " + type + ": " + message);
 		}
 	}
 	catch (const std::exception& ex) {
