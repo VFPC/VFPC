@@ -29,6 +29,7 @@ const string ODD_DIRECTION = "ODD";
 
 const string PLUGIN_FILE = "VFPC.dll";
 const string DATA_FILE = "Sid.json";
+const string LOG_FILE = "VFPC.log";
 
 const string COMMAND_PREFIX = ".vfpc ";
 const string LOAD_COMMAND = "load";

@@ -20,16 +20,23 @@ using namespace EuroScopePlugIn;
 //Run on Plugin Initialization
 CVFPCPlugin::CVFPCPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_PLUGIN_VERSION, MY_PLUGIN_DEVELOPER, MY_PLUGIN_COPYRIGHT)
 {
+	writeLog("VFPC Loaded. Clearing Log...");
+	clearLog();
+
+	writeLog("Initialising Settings...");
 	debugMode = false;
 	validVersion = true; //Reset in first timer call
 	autoLoad = true;
 	fileLoad = false;
 
+	writeLog("Resetting Counters...");
 	failPos = 0;
 	relCount = 0;
 
+	writeLog("Initialising Time Data...");
 	timedata = { 0, 0, 0 };
 
+	writeLog("Sending Load Message...");
 	string loadingMessage = "Loading complete. Version: ";
 	loadingMessage += MY_PLUGIN_VERSION;
 	loadingMessage += ".";
@@ -37,14 +44,18 @@ CVFPCPlugin::CVFPCPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_
 
 	// Register Tag Item "VFPC"
 	if (validVersion) {
+		writeLog("Registering Tag Item...");
 		RegisterTagItemType("VFPC", TAG_ITEM_CHECKFP);
 		RegisterTagItemFunction("Options", TAG_FUNC_CHECKFP_MENU);
 	}
+
+	writeLog("Loading Complete");
 }
 
 //Run on Plugin Destruction (Closing EuroScope or unloading plugin)
 CVFPCPlugin::~CVFPCPlugin()
 {
+	writeLog("Unloading...");
 }
 
 //Stores output of HTTP request in string
@@ -55,12 +66,84 @@ static size_t curlCallback(void *contents, size_t size, size_t nmemb, void *outS
 	return size * nmemb;
 }
 
+string CVFPCPlugin::getPath() {
+	char DllPathFile[_MAX_PATH];
+	GetModuleFileNameA(HINSTANCE(&__ImageBase), DllPathFile, sizeof(DllPathFile));
+	string path = DllPathFile;
+	path.resize(path.size() - strlen(PLUGIN_FILE.c_str()));
+
+	return path;
+}
+
+//Clear log file
+bool CVFPCPlugin::clearLog() {
+	try {
+		string path = getPath();
+		path += LOG_FILE;
+
+		ofstream ofs;
+		ofs.open(path.c_str(), ios::trunc);
+
+		if (ofs.is_open()) {
+			ofs << "Log Cleared Successfully." << std::endl;
+			ofs.close();
+			return true;
+		}
+	}
+	catch (const std::exception& ex) {
+		sendMessage("Error", ex.what());
+		debugMessage("Error", ex.what());
+	}
+	catch (const std::string& ex) {
+		sendMessage("Error", ex);
+		debugMessage("Error", ex);
+	}
+	catch (...) {
+		sendMessage("Error", "An unexpected error occured");
+		debugMessage("Error", "An unexpected error occured");
+	}
+
+	return false;
+}
+
+//Write to log file
+bool CVFPCPlugin::writeLog(string message) {
+	try {
+		string path = getPath();
+		path += LOG_FILE;
+
+		ofstream ofs;
+		ofs.open(path.c_str(), ios::trunc);
+
+		if (ofs.is_open()) {
+			ofs << message.c_str() << std::endl;
+			ofs.close();
+			return true;
+		}
+	}
+	catch (const std::exception& ex) {
+		sendMessage("Error", ex.what());
+		debugMessage("Error", ex.what());
+	}
+	catch (const std::string& ex) {
+		sendMessage("Error", ex);
+		debugMessage("Error", ex);
+	}
+	catch (...) {
+		sendMessage("Error", "An unexpected error occured");
+		debugMessage("Error", "An unexpected error occured");
+	}
+
+	return false;
+}
+
 //Send message to user via "VFPC Log" channel
 void CVFPCPlugin::debugMessage(string type, string message) {
 	try {
 		// Display Debug Message if debugMode = true
 		if (debugMode) {
 			DisplayUserMessage("VFPC Log", type.c_str(), message.c_str(), true, true, true, false, false);
+			writeLog("Debug Message - " + type + ": " + message);
 		}
 	}
 	catch (const std::exception& ex) {
@@ -82,6 +165,7 @@ void CVFPCPlugin::sendMessage(string type, string message) {
 	try {
 		// Show a message
 		DisplayUserMessage("VFPC", type.c_str(), message.c_str(), true, true, true, true, false);
+		writeLog("Message - " + type + ": " + message);
 	}
 	catch (const std::exception& ex) {
 		sendMessage("Error", ex.what());
@@ -101,6 +185,7 @@ void CVFPCPlugin::sendMessage(string type, string message) {
 void CVFPCPlugin::sendMessage(string message) {
 	try {
 		DisplayUserMessage("VFPC", "System", message.c_str(), true, true, true, false, false);
+		writeLog("Message - System: " + message);
 	}
 	catch (const std::exception& ex) {
 		sendMessage("Error", ex.what());
@@ -118,6 +203,7 @@ void CVFPCPlugin::sendMessage(string message) {
 
 //CURL call, saves output to passed string reference
 bool CVFPCPlugin::webCall(string url, string& out) {
+	writeLog("Web Call To " + url);
 	CURL* curl = curl_easy_init();
 	curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 
@@ -132,9 +218,11 @@ bool CVFPCPlugin::webCall(string url, string& out) {
 	curl_easy_cleanup(curl);
 
 	if (httpCode == 200) {
+		writeLog("Web Call Successful");
 		return true;
 	}
 	
+	writeLog("Web Call Failed");
 	return false;
 }
 
@@ -142,13 +230,16 @@ bool CVFPCPlugin::webCall(string url, string& out) {
 bool CVFPCPlugin::APICall(string endpoint, Document& out) {
 	string url = MY_API_ADDRESS + endpoint;
 	string buf = "";
+	writeLog("API Call To " + url);
 
 	if (webCall(url, buf))
 	{
+		writeLog("API Returned Data");
 		if (out.Parse<0>(buf.c_str()).HasParseError())
 		{
 			sendMessage("An error occurred whilst reading data. The plugin will not automatically attempt to reload from the API. To restart data fetching, type \".vfpc load\".");
 			debugMessage("Error", str(boost::format("Config Download: %s (Offset: %i)\n'") % out.GetParseError() % out.GetErrorOffset()));
+			writeLog("API Call Failed - Data Returned But Unreadable");
 			return false;
 
 			out.Parse<0>("[]");
@@ -158,27 +249,37 @@ bool CVFPCPlugin::APICall(string endpoint, Document& out) {
 	{
 		sendMessage("An error occurred whilst downloading data. The plugin will not automatically attempt to reload from the API. Check your connection and restart data fetching by typing \".vfpc load\".");
 		debugMessage("Error", "Failed to download data from API.");
+		writeLog("API Call Failed - No Data Returned");
 		return false;
 
 		out.Parse<0>("[]");
 	}
 
+	writeLog("API Call Successful");
 	return true;
 }
 
 //Makes CURL call to API server for current date, time, and version and stores output
 bool CVFPCPlugin::versionCall() {
 	Document version;
+	writeLog("Version Call");
 	APICall("version", version);
 
 	bool timefail = false;
+
 	if (version.HasMember("time") && version["time"].IsString() && version.HasMember("day") && version["day"].IsInt()) {
+		writeLog("Day/Time Data Found");
+		writeLog("Checking Weekday...");
 		int day = version["day"].GetInt();
+		writeLog("Weekday Entry Exists");
 		day += 6;
 		day %= 7;
 		timedata[0] = day;
+		writeLog("Weekday Data Read Successfully");
 
+		writeLog("Checking Time...");
 		string time = version["time"].GetString();
+		writeLog("Time Entry Exists");
 		if (time.size() == 5) {
 			try {
 				int hour = stoi(time.substr(0, 2));
@@ -186,16 +287,20 @@ bool CVFPCPlugin::versionCall() {
 
 				timedata[1] = hour;
 				timedata[2] = mins;
+				writeLog("Time Data Read Successfully");
 			}
 			catch (...) {
+				writeLog("Time Data Unreadable - String->Int Failed");
 				timefail = true;
 			}
 		}
 		else {
+			writeLog("Time Data Unreadable - Wrong Size");
 			timefail = true;
 		}
 	}
 	else {
+		writeLog("Time Data Not Found");
 		timefail = true;
 	}
 
@@ -204,19 +309,23 @@ bool CVFPCPlugin::versionCall() {
 	}
 
 	if (version.HasMember("VFPC_Version") && version["VFPC_Version"].IsString()) {
+		writeLog("Version Data Found");
 		vector<string> current = split(version["VFPC_Version"].GetString(), '.');
 		vector<string> installed = split(MY_PLUGIN_VERSION, '.');
 
 		if ((installed[0] > current[0]) || //Major version higher
 			(installed[0] == current[0] && installed[1] > current[1]) || //Minor version higher
 			(installed[0] == current[0] && installed[1] == current[1] && installed[2] >= current[2])) { //Revision higher
+			writeLog("Latest Version In Use");
 			return true;
 		}
 		else {
+			writeLog("Old Version In Use");
 			sendMessage("Update available - the plugin has been disabled. Please update and reload the plugin to continue. (Note: .vfpc load will NOT work.)");
 		}
 	}
 	else {
+		writeLog("Version Data Not Found");
 		sendMessage("Failed to check for updates - the plugin has been disabled. If no updates are available, please unload and reload the plugin to try again. (Note: .vfpc load will NOT work.)");
 	}
 
@@ -225,68 +334,82 @@ bool CVFPCPlugin::versionCall() {
 
 //Loads data from file
 bool CVFPCPlugin::fileCall(Document &out) {
-	char DllPathFile[_MAX_PATH];
-	GetModuleFileNameA(HINSTANCE(&__ImageBase), DllPathFile, sizeof(DllPathFile));
-	string pfad = DllPathFile;
-	pfad.resize(pfad.size() - strlen(PLUGIN_FILE.c_str()));
-	pfad += DATA_FILE;
+	writeLog("File Load Requested");
+	string path = getPath();
+	path += DATA_FILE;
 
+	writeLog("Opening " + DATA_FILE + " File");
 	stringstream ss;
 	ifstream ifs;
-	ifs.open(pfad.c_str(), ios::binary);
+	ifs.open(path.c_str(), ios::binary);
 
 	if (ifs.is_open()) {
+		writeLog(DATA_FILE + " File Opened");
 		ss << ifs.rdbuf();
 		ifs.close();
+		writeLog(DATA_FILE + " File Read");
 
 		if (out.Parse<0>(ss.str().c_str()).HasParseError()) {
 			sendMessage("An error occurred whilst reading data. The plugin will not automatically attempt to reload. To restart data fetching from the API, type \"" + COMMAND_PREFIX + LOAD_COMMAND + "\". To reattempt loading data from the Sid.json file, type \"" + COMMAND_PREFIX + FILE_COMMAND + "\".");
 			debugMessage("Error", str(boost::format("Config Parse: %s (Offset: %i)\n'") % out.GetParseError() % out.GetErrorOffset()));
+			writeLog("File Read Failed - Data Found But Unreadable");
 
 			out.Parse<0>("[]");
 			return false;
 		}
-
-		return true;
 	}
 	else {
 		sendMessage(DATA_FILE + " file not found. The plugin will not automatically attempt to reload. To restart data fetching from the API, type \"" + COMMAND_PREFIX + LOAD_COMMAND + "\". To reattempt loading data from the Sid.json file, type \"" + COMMAND_PREFIX + FILE_COMMAND + "\".");
 		debugMessage("Error", DATA_FILE + " file not found.");
+		writeLog("File Read Failed - File Not Found");
 
 		out.Parse<0>("[]");
 		return false;
 	}
+
+	writeLog("File Read Successful");
+	return true;
 }
 
 //Loads data and sorts into airports
 void CVFPCPlugin::getSids() {
+	CVFPCPlugin::writeLog("Reloading SID Data...");
 	try {
 		//Load data from API
 		if (autoLoad) {
+			CVFPCPlugin::writeLog("Loading SID Data From API...");
 			if (activeAirports.size() > 0) {
+				CVFPCPlugin::writeLog("Active Airports Found");
 				string endpoint = "airport?icao=";
 
 				for (size_t i = 0; i < activeAirports.size(); i++) {
+					CVFPCPlugin::writeLog("Requesting Data For " + activeAirports[i]);
 					endpoint += activeAirports[i] + "+";
 				}
 
 				endpoint = endpoint.substr(0, endpoint.size() - 1);
 
 				autoLoad = APICall(endpoint, config);
+				CVFPCPlugin::writeLog("Loaded SID Data From API");
 			}
 		}
 		//Load data from Sid.json file
 		else if (fileLoad) {
+			CVFPCPlugin::writeLog("Loading SID Data From File...");
 			fileLoad = fileCall(config);
+			CVFPCPlugin::writeLog("Loaded SID Data From File");
 		}
 
 		//Sort new data into airports
+		CVFPCPlugin::writeLog("Sorting SID Data");
 		airports.clear();
 		for (SizeType i = 0; i < config.Size(); i++) {
 			const Value& airport = config[i];
 			if (airport.HasMember("icao") && airport["icao"].IsString()) {
 				string airport_icao = airport["icao"].GetString();
+				CVFPCPlugin::writeLog("Found SID Data For " + airport_icao);
 				airports.insert(pair<string, SizeType>(airport_icao, i));
+				CVFPCPlugin::writeLog("Inserted SID Data For " + airport_icao);
 			}
 		}
 	}

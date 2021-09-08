@@ -203,7 +203,13 @@ public:
 		}
 	}
 
+	virtual string getPath();
+
 	virtual bool OnCompileCommand(const char * sCommandLine);
+
+	virtual bool clearLog();
+
+	virtual bool writeLog(string message);
 
 	virtual void debugMessage(string type, string message);
 
