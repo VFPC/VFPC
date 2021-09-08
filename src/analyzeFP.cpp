@@ -606,9 +606,9 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 
 	writeLog(callsign + string(" Validate: Airports - Getting..."));
 	string origin = flightPlan.GetFlightPlanData().GetOrigin(); boost::to_upper(origin);
-	writeLog(callsign + string(" Validate: Airports - Found Origin") + origin);
+	writeLog(callsign + string(" Validate: Airports - Found Origin ") + origin);
 	string destination = flightPlan.GetFlightPlanData().GetDestination(); boost::to_upper(destination);
-	writeLog(callsign + string(" Validate: Airports - Found Destination") + destination);
+	writeLog(callsign + string(" Validate: Airports - Found Destination ") + destination);
 	SizeType origin_int;
 
 	writeLog(callsign + string(" Validate: Origin - Finding " + origin + " Data..."));
@@ -630,9 +630,11 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 
 	writeLog(callsign + string(" Validate: RFL - Getting..."));
 	int RFL = flightPlan.GetFlightPlanData().GetFinalAltitude();
+	writeLog(callsign + string(" Validate: RFL - ") + to_string(RFL));
 
 	writeLog(callsign + string(" Validate: Route - Getting..."));
 	string rawroute = flightPlan.GetFlightPlanData().GetRoute();
+	writeLog(callsign + string(" Validate: Route - ") + rawroute);
 	writeLog(callsign + string(" Validate: Route - Trimming..."));
 	boost::trim(rawroute);
 
@@ -812,6 +814,7 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 
 	// Needed SID defined
 	if (pos == string::npos) {
+		writeLog(callsign + string(" Validate: SID - Definition Not Found..."));
 		if (first_wp == "") {
 			returnOut[0][1] = "SID Required";
 			returnOut[1][1] = "Non-SID departure routes not in database.";
@@ -826,11 +829,13 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 		}
 	} 
 	else {
+		writeLog(callsign + string(" Validate: SID - " + sid + " Definition Found, Saving..."));
 		const Value& sid_ele = config[origin_int]["sids"][pos];
 		const Value& conditions = sid_ele["constraints"];
 
 		int round = 0;
 
+		writeLog(callsign + string(" Validate: Checks - Initialising..."));
 		vector<bool> validity, new_validity;
 		vector<string> results;
 		bool sidFails[4]{ 0 };
@@ -838,6 +843,7 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 		bool warn = false;
 		int Min, Max;
 
+		writeLog(callsign + string(" Validate: Checks - SID-Level Restrictions..."));
 		//SID-Level Restrictions Array
 		sidFails[0] = true;
 		vector<bool> temp = checkRestrictions(flightPlan, sid_suffix, sid_ele["restrictions"], sidFails, sidFails);
@@ -846,6 +852,7 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 			sidwide = true;
 		}
 
+		writeLog(callsign + string(" Validate: Checks - Initialising Validity List..."));
 		//Initialise validity array to fully true#
 		for (SizeType i = 0; i < conditions.Size(); i++) {
 			validity.push_back(true);
@@ -853,6 +860,7 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 			
 		//Constraints Array
 		while (round < 6) {
+			writeLog(callsign + string(" Validate: Checks - Starting Round ") + to_string(round) + string("..."));
 			new_validity = {};
 
 			for (SizeType i = 0; i < conditions.Size(); i++) {
@@ -1026,15 +1034,17 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 			}
 
 			if (all_of(new_validity.begin(), new_validity.end(), [](bool v) { return !v; })) {
+				writeLog(callsign + string(" Validate: Checks - Failed On Round ") + to_string(round));
 				break;
 			}
 			else {
+				writeLog(callsign + string(" Validate: Checks - Round ") + to_string(round) + string(" Complete"));
 				validity = new_validity;
 				round++;
 			}
 		}
 
-		returnOut[1][0] = returnOut[0][0] = callsign();
+		returnOut[1][0] = returnOut[0][0] = callsign;
 		for (size_t i = 1; i < returnOut[0].size(); i++) {
 			returnOut[1][i] = returnOut[0][i] = "-";
 		}

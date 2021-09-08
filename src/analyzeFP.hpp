@@ -37,7 +37,7 @@ public:
 
 	virtual vector<bool> checkRestrictions(CFlightPlan flightPlan, string sid_suffix, const Value& restrictions, bool *sidfails, bool* fails);
 
-	virtual vector<vector<string>> validizeSid(CFlightPlan flightPlan);
+	virtual vector<vector<string>> validateSid(CFlightPlan flightPlan);
 
 	virtual string BansOutput(CFlightPlan flightPlan, const Value& constraints, vector<size_t> successes);
 
