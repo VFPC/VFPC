@@ -431,9 +431,11 @@ void CVFPCPlugin::getSids() {
 }
 
 vector<bool> CVFPCPlugin::checkRestrictions(CFlightPlan flightPlan, string sid_suffix, const Value& restrictions, bool *sidfails, bool *constfails) {
+	writeLog("Restrictions Check: " + string(flightPlan.GetCallsign()) + " - SID Suffix: " + sid_suffix + ", SID Fails: " + BoolToString(*sidfails) + ", Const Fails" + BoolToString(*constfails));
 	vector<bool> res{ 0, 0 }; //0 = Constraint-Level Pass, 1 = SID-Level Pass
 	bool constExists = false;
 	if (restrictions.IsArray() && restrictions.Size()) {
+		writeLog("Restrictions Check: " + string(flightPlan.GetCallsign()) + " - Restrictions Array Found");
 		for (size_t j = 0; j < restrictions.Size(); j++) {
 			bool temp = true;
 			bool sidlevel = false;
@@ -573,12 +575,15 @@ vector<bool> CVFPCPlugin::checkRestrictions(CFlightPlan flightPlan, string sid_s
 				res[sidlevel] = true;
 			}
 		}
+
+		writeLog("Restrictions Check: " + string(flightPlan.GetCallsign()) + " - Complete");
 	}
 
 	if (!constExists) {
 		res[0] = true;
 	}
 
+	writeLog("Restrictions Check: " + string(flightPlan.GetCallsign()) + " - Constraint-Level Success: " + BoolToString(res[0]) + ", SID-Level Success: " + BoolToString(res[1]));
 	return res;
 }
 
@@ -1112,7 +1117,8 @@ vector<vector<string>> CVFPCPlugin::validizeSid(CFlightPlan flightPlan) {
 }
 
 //Outputs route bans as string
-string CVFPCPlugin::BansOutput(const Value& constraints, vector<size_t> successes) {
+string CVFPCPlugin::BansOutput(CFlightPlan flightPlan, const Value& constraints, vector<size_t> successes) {
+	writeLog(flightPlan.GetCallsign() + string(" - Generating Bans Output..."));
 	vector<string> bans{};
 	for (int each : successes) {
 		if (constraints[each]["alerts"].IsArray() && constraints[each]["alerts"].Size()) {
@@ -1145,7 +1151,8 @@ string CVFPCPlugin::BansOutput(const Value& constraints, vector<size_t> successe
 }
 
 //Outputs route warnings as string
-string CVFPCPlugin::WarningsOutput(const Value& constraints, vector<size_t> successes) {
+string CVFPCPlugin::WarningsOutput(CFlightPlan flightPlan, const Value& constraints, vector<size_t> successes) {
+	writeLog(flightPlan.GetCallsign() + string(" - Generating Warnings Output..."));
 	vector<string> warnings{};
 	for (int each : successes) {
 		if (constraints[each]["alerts"].IsArray() && constraints[each]["alerts"].Size()) {
@@ -1178,7 +1185,8 @@ string CVFPCPlugin::WarningsOutput(const Value& constraints, vector<size_t> succ
 }
 
 //Outputs recommended alternatives (from Restrictions arrays for a SID) as string
-string CVFPCPlugin::AlternativesOutput(const Value& sid_ele, vector<size_t> successes) {
+string CVFPCPlugin::AlternativesOutput(CFlightPlan flightPlan, const Value& sid_ele, vector<size_t> successes) {
+	writeLog(flightPlan.GetCallsign() + string(" - Generating Alternatives Output..."));
 	vector<string> alts{};
 	const Value& constraints = sid_ele["constraints"];
 
@@ -1227,7 +1235,8 @@ vector<string> CVFPCPlugin::AlternativesSingle(const Value& restrictions) {
 }
 
 //Outputs aircraft type and date/time restrictions (from Restrictions array) as string
-string CVFPCPlugin::RestrictionsOutput(const Value& sid_ele, bool check_type, bool check_time, bool check_ban, vector<size_t> successes) {
+string CVFPCPlugin::RestrictionsOutput(CFlightPlan flightPlan, const Value& sid_ele, bool check_type, bool check_time, bool check_ban, vector<size_t> successes) {
+	writeLog(flightPlan.GetCallsign() + string(" - Generating Restrictions Output..."));
 	vector<vector<string>> rests{};
 	const Value& constraints = sid_ele["constraints"];
 
@@ -1398,7 +1407,8 @@ vector<vector<string>> CVFPCPlugin::RestrictionsSingle(const Value& restrictions
 }
 
 //Outputs valid suffices (from Restrictions array) as string
-string CVFPCPlugin::SuffixOutput(const Value& sid_eles, vector<size_t> successes) {
+string CVFPCPlugin::SuffixOutput(CFlightPlan flightPlan, const Value& sid_eles, vector<size_t> successes) {
+	writeLog(flightPlan.GetCallsign() + string(" - Generating Suffices Output..."));
 	vector<string> suffices{};
 	const Value& constraints = sid_eles["constraints"];
 
@@ -1455,7 +1465,8 @@ vector<string> CVFPCPlugin::SuffixSingle(const Value& restrictions) {
 }
 
 //Outputs valid cruise level direction (from Constraints array) as string
-string CVFPCPlugin::DirectionOutput(const Value& constraints, vector<size_t> successes) {
+string CVFPCPlugin::DirectionOutput(CFlightPlan flightPlan, const Value& constraints, vector<size_t> successes) {
+	writeLog(flightPlan.GetCallsign() + string(" - Generating Odd-Even Rule Output..."));
 	bool lvls[2] { false, false };
 	for (int each : successes) {
 		if (constraints[each].HasMember("dir") && constraints[each]["dir"].IsString()) {
@@ -1492,7 +1503,8 @@ string CVFPCPlugin::DirectionOutput(const Value& constraints, vector<size_t> suc
 }
 
 //Outputs valid cruise level blocks (from Constraints array) as string
-string CVFPCPlugin::MinMaxOutput(const Value& constraints, vector<size_t> successes) {
+string CVFPCPlugin::MinMaxOutput(CFlightPlan flightPlan, const Value& constraints, vector<size_t> successes) {
+	writeLog(flightPlan.GetCallsign() + string(" - Generating Min/Max Levels Output..."));
 	vector<vector<int>> raw_lvls{};
 	for (int each : successes) {
 		vector<int> lvls = { MININT, MAXINT };
@@ -1568,7 +1580,8 @@ string CVFPCPlugin::MinMaxOutput(const Value& constraints, vector<size_t> succes
 }
 
 //Outputs valid initial routes (from Constraints array) as string
-string CVFPCPlugin::RouteOutput(const Value& constraints, vector<size_t> successes, vector<string> extracted_route, string dest, int rfl, bool req_lvl) {
+string CVFPCPlugin::RouteOutput(CFlightPlan flightPlan, const Value& constraints, vector<size_t> successes, vector<string> extracted_route, string dest, int rfl, bool req_lvl) {
+	writeLog(flightPlan.GetCallsign() + string(" - Generating Route Output..."));
 	vector<size_t> pos{};
 	int checks[5]{ 0 };
 
@@ -1793,7 +1806,8 @@ string CVFPCPlugin::RouteOutput(const Value& constraints, vector<size_t> success
 }
 
 //Outputs valid destinations (from Constraints array) as string
-string CVFPCPlugin::DestinationOutput(size_t origin_int, string dest) {
+string CVFPCPlugin::DestinationOutput(CFlightPlan flightPlan, size_t origin_int, string dest) {
+	writeLog(flightPlan.GetCallsign() + string(" - Generating Destination Output..."));
 	vector<string> a{}; //Explicitly Permitted
 	vector<string> b{}; //Implicitly Permitted (Not Explicitly Prohibited)
 

@@ -39,29 +39,29 @@ public:
 
 	virtual vector<vector<string>> validizeSid(CFlightPlan flightPlan);
 
-	virtual string BansOutput(const Value& constraints, vector<size_t> successes);
+	virtual string BansOutput(CFlightPlan flightPlan, const Value& constraints, vector<size_t> successes);
 
-	virtual string WarningsOutput(const Value& constraints, vector<size_t> successes);
+	virtual string WarningsOutput(CFlightPlan flightPlan, const Value& constraints, vector<size_t> successes);
 
-	virtual string AlternativesOutput(const Value& sid_ele, vector<size_t> successes = {});
+	virtual string AlternativesOutput(CFlightPlan flightPlan, const Value& sid_ele, vector<size_t> successes = {});
 
 	virtual vector<string> AlternativesSingle(const Value& sid_ele);
 
-	virtual string RestrictionsOutput(const Value& sid_ele, bool check_type = true, bool check_time = true, bool check_ban = true, vector<size_t> successes = {});
+	virtual string RestrictionsOutput(CFlightPlan flightPlan, const Value& sid_ele, bool check_type = true, bool check_time = true, bool check_ban = true, vector<size_t> successes = {});
 
 	virtual vector<vector<string>> RestrictionsSingle(const Value& restrictions, bool check_type = true, bool check_time = true, bool check_ban = true);
 	
-	virtual string SuffixOutput(const Value& sid_ele, vector<size_t> successes = {});
+	virtual string SuffixOutput(CFlightPlan flightPlan, const Value& sid_ele, vector<size_t> successes = {});
 
 	virtual vector<string> SuffixSingle(const Value& restrictions);
 
-	virtual string DirectionOutput(const Value& constraints, vector<size_t> successes);
+	virtual string DirectionOutput(CFlightPlan flightPlan, const Value& constraints, vector<size_t> successes);
 
-	virtual string MinMaxOutput(const Value& constraints, vector<size_t> successes);
+	virtual string MinMaxOutput(CFlightPlan flightPlan, const Value& constraints, vector<size_t> successes);
 
-	virtual string RouteOutput(const Value& constraints, vector<size_t> successes, vector<string> extracted_route, string dest, int rfl, bool req_lvl = false);
+	virtual string RouteOutput(CFlightPlan flightPlan, const Value& constraints, vector<size_t> successes, vector<string> extracted_route, string dest, int rfl, bool req_lvl = false);
 
-	virtual string DestinationOutput(size_t origin_int, string dest);
+	virtual string DestinationOutput(CFlightPlan flightPlan, size_t origin_int, string dest);
 
 	virtual void OnFunctionCall(int FunctionId, const char * ItemString, POINT Pt, RECT Area);
 
@@ -201,6 +201,11 @@ public:
 		default:
 			return "Out of Range";
 		}
+	}
+
+	inline const char * const BoolToString(bool b)
+	{
+		return b ? "true" : "false";
 	}
 
 	virtual string getPath();
