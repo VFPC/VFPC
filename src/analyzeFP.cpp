@@ -815,7 +815,7 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 				else {
 					route.erase(route.begin());
 				}
-				break;s
+				break;
 			}
 		}
 		else {
