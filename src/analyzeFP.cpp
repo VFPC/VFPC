@@ -707,6 +707,7 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 		}
 		else {
 			first_wp = sid.substr(0, sid.find_first_of("0123456789"));
+			sid_suffix = sid.back();
 			if (0 != first_wp.length())
 				bufLog(callsign + string(" Validate: First Waypoint - Converting To Upper Case..."));
 				boost::to_upper(first_wp);
@@ -716,108 +717,123 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 	bufLog(callsign + string(" Validate: Route Syntax - Checking..."));
 	// Matches Speed/Alt Data In Route
 	regex spdlvl("(N|M|K)[0-9]{3,4}((A|F)[0-9]{3}|(S|M)[0-9]{4})");
-	regex icaorwy("[A-Z]{4}(/[0-9]{2}(L|C|R)?)?");
-	regex sidstarrwy("[A-Z]{2}([A-Z]([A-Z]{2})?)?[0-9][A-Z](/[0-9]{2}(L|C|R)?)?");
+	regex spdlvlslash("\/(N|M|K)[0-9]{3,4}((A|F)[0-9]{3}|(S|M)[0-9]{4})");
+	regex icaorwy("[A-Z]{4}(\/[0-9]{2}(L|C|R)?)?");
+	regex sidstarrwy("[A-Z]{2,5}[0-9][A-Z](\/[0-9]{2}(L|C|R)?)?");
 	regex dctspdlvl("DCT\/(N|M|K)[0-9]{3,4}((A|F)[0-9]{3}|(S|M)[0-9]{4})");
-	regex wpt("[A-Z]{2}([A-Z]([A-Z]{2})?)?(/(N|M|K)[0-9]{3,4}((A|F)[0-9]{3}|(S|M)[0-9]{4}))?");
+	//regex wpt("[A-Z]{2}([A-Z]([A-Z]{2})?)?(/(N|M|K)[0-9]{3,4}((A|F)[0-9]{3}|(S|M)[0-9]{4}))?");
+	//regex coord("([0-9]{4}(N|S))|([0-9]{2}(N|S)[0-9]{2,3}(E|W))(/(N|M|K)[0-9]{3,4}((A|F)[0-9]{3}|(S|M)[0-9]{4}))?");
 	regex awy("(U)?[A-Z][0-9]{1,3}([A-Z])?");
 
 	bool success = true;
 	vector<string> new_route{};
+	string outchk{};
 
 	for (size_t i = 0; i < 9; i++) {
-		if (success && route.size() > 0) {
-			bufLog(callsign + string(" Validate: Route Syntax - Running Check...") + to_string(i) + string("..."));
-			switch (i) {
-			case 0:
-				if (regex_match(route.front(), spdlvl)) {
-					route.erase(route.begin());
-				}
-				break;
-			case 1:
-				if (regex_match(route.front(), sidstarrwy)) {
-					route.erase(route.begin());
-				}
-				break;
-			case 2:
-				if (regex_match(route.back(), sidstarrwy)) {
-					route.pop_back();
-				}
-				break;
-			case 3:
-				if (regex_match(route.front(), icaorwy)) {
-					if (!strcmp(route.front().substr(0, 4).c_str(), origin.c_str())) {
+		if (success) {
+			if (route.size() > 0) {
+				bufLog(callsign + string(" Validate: Route Syntax - Running Check ") + to_string(i) + string("..."));
+				switch (i) {
+				case 0:
+					if (regex_match(route.front(), spdlvl)) {
 						route.erase(route.begin());
 					}
-					else {
-						success = false;
+					break;
+				case 1:
+					if (regex_match(route.front(), sidstarrwy)) {
+						route.erase(route.begin());
 					}
-				}
-				break;
-			case 4:
-				if (regex_match(route.back(), icaorwy)) {
-					if (!strcmp(route.back().substr(0, 4).c_str(), destination.c_str())) {
+					break;
+				case 2:
+					if (regex_match(route.back(), sidstarrwy)) {
 						route.pop_back();
 					}
-					else {
-						success = false;
-					}
-				}
-				break;
-			case 5:
-				if (!strcmp(route.front().c_str(), "SID")) {
-					route.erase(route.begin());
-				}
-				break;
-			case 6:
-				if (!strcmp(route.back().c_str(), "STAR")) {
-					route.pop_back();
-				}
-				break;
-			case 7:
-				for (string each : route) {
-					if (regex_match(each, dctspdlvl)) {
-						success = false;
-					}
-					else if (strcmp(each.c_str(), "DCT")) {
-						if (regex_match(each, wpt)) {
-							size_t slash = each.find('/');
-
-							if (slash != string::npos) {
-								each = each.substr(0, slash);
-							}
-
-							new_route.push_back(each);
-						}
-						else if (regex_match(each, awy)) {
-							new_route.push_back(each);
+					break;
+				case 3:
+					if (regex_match(route.front(), icaorwy)) {
+						if (!strcmp(route.front().substr(0, 4).c_str(), origin.c_str())) {
+							route.erase(route.begin());
 						}
 						else {
+							outchk = "Different Origin in Route";
 							success = false;
 						}
 					}
-				}
+					break;
+				case 4:
+					if (regex_match(route.back(), icaorwy)) {
+						if (!strcmp(route.back().substr(0, 4).c_str(), destination.c_str())) {
+							route.pop_back();
+						}
+						else {
+							outchk = "Different Destination in Route";
+							success = false;
+						}
+					}
+					break;
+				case 5:
+					if (!strcmp(route.front().c_str(), "SID")) {
+						route.erase(route.begin());
+					}
+					break;
+				case 6:
+					if (!strcmp(route.back().c_str(), "STAR")) {
+						route.pop_back();
+					}
+					break;
+				case 7:
+					for (string each : route) {
+						if (regex_match(each, dctspdlvl)) {
+							success = false;
+						}
+						else if (strcmp(each.c_str(), "DCT")) {
+							if (regex_match(each, awy)) {
+								new_route.push_back(each);
+							}
+							else {
+								size_t slash = each.find('/');
 
-				route = new_route;
-				break;
-			case 8:
-				if (strcmp(route.front().c_str(), first_wp.c_str())) {
-					success = false;
+								if (slash == string::npos) {
+									new_route.push_back(each);
+								}
+								else {
+									string chng = each.substr(slash);
+
+									if (regex_match(chng, spdlvlslash)) {
+										new_route.push_back(each.substr(0, slash));
+									}
+									else {
+										outchk = "Invalid Speed/Level Change";
+										success = false;
+									}
+								}
+							}
+						}
+					}
+
+					route = new_route;
+					break;
+				case 8:
+					if (sid.length() && strcmp(route.front().c_str(), first_wp.c_str())) {
+						outchk = "Route Not From First Waypoint";
+						success = false;
+					}
+					else {
+						route.erase(route.begin());
+					}
+					break;
 				}
-				else {
-					route.erase(route.begin());
-				}
-				break;
 			}
-		}
-		else {
-			success = false;
+			else {
+				outchk = "No Route";
+				success = false;
+			}
 		}
 	}
 
 	if (!success) {
 		bufLog(callsign + string(" Validate: Route Syntax - Failed"));
-		returnOut[0][1] = returnOut[1][1] = "Invalid Route";
+		returnOut[0][returnOut[0].size() - 2] = returnOut[1][returnOut[1].size() - 2] = "Invalid Syntax - " + outchk + ".";
 		returnOut[0].back() = returnOut[1].back() = "Failed";
 		return returnOut;
 	}
@@ -2059,7 +2075,7 @@ void CVFPCPlugin::OnGetTagItem(CFlightPlan flightPlan, CRadarTarget RadarTarget,
 				}
 				else {
 					bufLog(flightPlan.GetCallsign() + string(": Tag Item - IFR, Launching Check..."));
-					vector<string> validize = validateSid(flightPlan)[0]; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Route, 4 = Nav Performance, 5 = Min/Max Flight Level, 6 = Even/Odd, 7 = Suffix, 8 = Aircraft Type, 9 = Date/Time, 10 = Syntax, 11 = Passed/Failed
+					vector<string> validize = validateSid(flightPlan)[0]; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Route, 4 = Min/Max Flight Level, 5 = Even/Odd, 6 = Suffix, 7 = Restrictions, 8 = Syntax, 9 = Passed/Failed
 
 					bufLog(flightPlan.GetCallsign() + string(": Tag Item - Check Complete, Setting Tag Alert..."));
 					strcpy_s(sItemString, 16, getFails(flightPlan, validize, pRGB).c_str());
@@ -2180,11 +2196,11 @@ void CVFPCPlugin::checkFPDetail() {
 				vector<string> messageBuffer{ validize[0] }; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Route, 4 = Nav Performance, 5 = Min/Max Flight Level, 6 = Even/Odd, 7 = Suffix, 8 = Aircraft Type, 9 = Date/Time, 10 = Syntax, 11 = Passed/Failed
 				vector<string> logBuffer{ validize[1] }; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Route, 4 = Nav Performance, 5 = Min/Max Flight Level, 6 = Even/Odd, 7 = Suffix, 8 = Aircraft Type, 9 = Date/Time, 10 = Syntax, 11 = Passed/Failed
 				
-				string buffer{ messageBuffer.at(1) + " | " };
-				string logbuf{ logBuffer.at(1) + " | " };
+				string buffer{};
+				string logbuf{};
 
 				if (messageBuffer.at(1).find("Invalid") != 0) {
-					for (size_t i = 2; i < messageBuffer.size() - 1; i++) {
+					for (size_t i = 1; i < messageBuffer.size() - 1; i++) {
 						string temp = messageBuffer.at(i);
 						string logtemp = logBuffer.at(i);
 
@@ -2230,43 +2246,43 @@ string CVFPCPlugin::getFails(CFlightPlan flightPlan, vector<string> messageBuffe
 	try {
 		*pRGB = TAG_RED;
 
-		if (messageBuffer.at(messageBuffer.size() - 2).find("Invalid") == 0) {
+		if (messageBuffer.at(messageBuffer.size() - 2).size() > 1 || messageBuffer.at(messageBuffer.size() - 2).find("-")) {
 			bufLog(flightPlan.GetCallsign() + string(": Fail - CHK"));
 			return "CHK";
 		}
-		else if (messageBuffer.at(1).find("SID - ") != 0 && messageBuffer.at(1).find("Non-SID Route.") != 0) {
+		else if (messageBuffer.at(1).find("SID - ") && messageBuffer.at(1).find("Non-SID Route.")) {
 			bufLog(flightPlan.GetCallsign() + string(": Fail - SID"));
 			return "SID";
 		}
-		else if (messageBuffer.at(2).find("Failed") == 0) {
+		else if (!messageBuffer.at(2).find("Failed")) {
 			bufLog(flightPlan.GetCallsign() + string(": Fail - DST"));
 			return "DST";
 		}
-		else if (messageBuffer.at(3).find("Failed") == 0) {
+		else if (!messageBuffer.at(3).find("Failed")) {
 			bufLog(flightPlan.GetCallsign() + string(": Fail - RTE"));
 			return "RTE";
 		}
-		else if (messageBuffer.at(4).find("Failed") == 0) {
+		else if (!messageBuffer.at(4).find("Failed")) {
 			bufLog(flightPlan.GetCallsign() + string(": Fail - LVL"));
 			return "LVL";
 		}
-		else if (messageBuffer.at(5).find("Failed") == 0) {
+		else if (!messageBuffer.at(5).find("Failed")) {
 			bufLog(flightPlan.GetCallsign() + string(": Fail - OER"));
 			return "OER";
 		}
-		else if (messageBuffer.at(6).find("Invalid") == 0) {
+		else if (!messageBuffer.at(6).find("Invalid")) {
 			bufLog(flightPlan.GetCallsign() + string(": Fail - SUF"));
 			return "SUF";
 		}
-		else if (messageBuffer.at(7).find("Failed") == 0) {
+		else if (!messageBuffer.at(7).find("Failed")) {
 			bufLog(flightPlan.GetCallsign() + string(": Fail - RST"));
 			return "RST";
 		}
-		else if (messageBuffer.at(8).find("Warnings") == 0) {
+		else if (!messageBuffer.at(8).find("Warnings")) {
 			bufLog(flightPlan.GetCallsign() + string(": Fail - Warning"));
 			*pRGB = TAG_ORANGE;
 		}
-		else if (messageBuffer.at(9).find("Route Banned") == 0) {
+		else if (!messageBuffer.at(9).find("Route Banned")) {
 			bufLog(flightPlan.GetCallsign() + string(": Fail - BAN"));
 			return "BAN";
 		}
