@@ -140,12 +140,32 @@ bool CVFPCPlugin::writeLog() {
 		string path = getPath();
 		path += LOG_FILE;
 
+		ifstream ifs;
+		ifs.open(path.c_str());
+		vector<string> file{};
+
+		if (ifs.is_open()) {
+			string line;
+			while (getline(ifs, line)) {
+				file.push_back(line);
+			}
+		}
+
+		file.insert(file.end(), logBuffer.begin(), logBuffer.end());
+
+		ifs.close();
+		size_t start = 0;
+
+		if (file.size() > 20000) {
+			start = file.size() - 20000;
+		}
+
 		ofstream ofs;
-		ofs.open(path.c_str(), ios_base::app);
+		ofs.open(path.c_str(), ios::trunc);
 
 		if (ofs.is_open()) {
-			for (string each : logBuffer) {
-				ofs << each.c_str() << std::endl;
+			for (int i = start; i < file.size(); i++) {
+				ofs << file.at(i).c_str() << std::endl;
 			}
 			ofs.close();
 			logBuffer.clear();
