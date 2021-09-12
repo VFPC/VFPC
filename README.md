@@ -30,10 +30,10 @@ You can join the community Discord Server at: https://discord.gg/xucfd2K523
 ## Check Results
 
 ### Green
-- `OK!`- All checks passed.
+- `OK!` - All checks passed.
 
 ### Yellow
-- `OK!`- All checks passed but one or more warnings were generated. This generally occurs in cases where the SRD contains ambiguous notes, which can't be coded for automatic interpretation.
+- `OK!` - All checks passed but one or more warnings were generated. This generally occurs in cases where the SRD contains ambiguous notes, which can't be coded for automatic interpretation.
 
 ### Red
 - `SID` - Assigned SID is invalid for some reason. (Not Found, Bad Suffix, Mismatch with Route, etc.)
