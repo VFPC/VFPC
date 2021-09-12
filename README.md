@@ -49,7 +49,8 @@ You can join the community Discord Server at: https://discord.gg/xucfd2K523
     - Failed Restriction
         - In cases where a destination restriction would cause the filed route to be ignored entirely (e.g. M145 filed by a non-Dublin inbound), a banned form of the route is provided, without the destination requirement. This allows the restriction to be displayed correctly. Alternative routes are also displayed.
     - SRD-Imposed Ban
-        - Route withdrawn until further notice or only available with prior approval from the Area Control Supervisor (generally during events).
+        - Routes withdrawn until further notice
+        - Routes available only with prior approval from the Area Control Supervisor (generally during events).
 
 ## Initial Setup:
 - Load up the plugin
