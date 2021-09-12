@@ -32,6 +32,9 @@ You can join the community Discord Server at: https://discord.gg/xucfd2K523
 ### Green
 - `OK!`- All checks passed.
 
+### Yellow
+- `OK!`- All checks passed but one or more warnings were generated. This generally occurs in cases where the SRD contains ambiguous notes, which can't be coded for automatic interpretation.
+
 ### Red
 - `SID` - Assigned SID is invalid for some reason. (Not Found, Bad Suffix, Mismatch with Route, etc.)
 - `ENG` - Engine type is invalid for this SID/route.
@@ -41,7 +44,12 @@ You can join the community Discord Server at: https://discord.gg/xucfd2K523
 - `OER` - Filed altitude is in violation of the Odd/Even altitude requirement for this route.
 - `SUF` - Assigned SID suffix is banned for this route.
 - `RST` - Assigned SID (and suffix) is invalid for this aircraft type and/or for the current day and time.
-- `CHK` - Some kind of syntax error - (Bad characters in route, Invalid step climb instruction, etc.)
+- `CHK` - Some kind of syntax error (Bad characters in route, Invalid step climb instruction, etc.)
+- `BAN` - Route has ban attached. This can be for one of 2 reasons
+    - Failed Restriction
+        - In cases where a destination restriction would cause the filed route to be ignored entirely (e.g. M145 filed by a non-Dublin inbound), a banned form of the route is provided, without the destination requirement. This allows the restriction to be displayed correctly. Alternative routes are also displayed.
+    - SRD-Imposed Ban
+        - Route withdrawn until further notice or only available with prior approval from the Area Control Supervisor (generally during events).
 
 ## Initial Setup:
 - Load up the plugin
