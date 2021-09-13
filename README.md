@@ -4,6 +4,9 @@ UK VFPC (UK VATSIM Flight Plan Checker) is a plugin for EuroScope that checks fi
 
 **N.B.** - This plugin does negate or replace the need for Delivery controllers to thoroughly check each Flight Plan before issuing a clearance; nor will it provide a perfect solution to more serious issues (e.g. SID filed routes in completely the wrong direction).
 
+## Community
+You can join the community Discord Server at: https://discord.gg/xucfd2K523
+
 ## READ BEFORE USE
 This plugin only works with the latest sector files and navigation data. Please ensure that your EuroScope sector files are always up-to-date.
 
@@ -11,8 +14,16 @@ Additionally, please regularly update your navigation data (`EuroScope/DataFiles
 
 After updating your sector files or navigation data, please remember to restart EuroScope before using the plugin.
 
-## Community
-You can join the community Discord Server at: https://discord.gg/xucfd2K523
+## Initial Setup
+- Load up the plugin
+- Add a new Tag Item to the Departure List (Click the `S` on the left of the list header.)
+    - Tag Item Type: `VFPC (UK)/VFPC`
+    - Mouse Button Function: `VFPC (UK)/Options`
+    - Recommended Header: `FPC`
+    - Recommended Item Width: `3`
+    - Align To Center : `Off` (Unticked)
+    - Colour: `Default Other Item`
+- Ensure that the new Tag Item is Enabled (In the `F` menu on the left of the Departure List header.)
 
 ## Features
 - `VFPC` tag item: Shows check-result and allows output of detailed checking data.
@@ -26,16 +37,17 @@ You can join the community Discord Server at: https://discord.gg/xucfd2K523
 - Checks that the assigned SID is valid for the aircraft type operating the flight.
 - Checks that the assigned SID is valid on the current day/time.
 - Checks that there are no obvious syntax errors within the flight plan. (Invalid step climbs, Random symbol characters, etc.)
+- Checks for any SRD warnings/bans regarding the specific route in use.
 
 ## Check Results
 
-### Green
+### Green - Success
 - `OK!` - All checks passed.
 
-### Yellow
+### Yellow - Warning
 - `OK!` - All checks passed but one or more warnings were generated. This generally occurs in cases where the SRD contains ambiguous notes, which can't be coded for automatic interpretation.
 
-### Red
+### Red - Fail
 - `SID` - Assigned SID is invalid for some reason. (Not Found, Bad Suffix, Mismatch with Route, etc.)
 - `ENG` - Engine type is invalid for this SID/route.
 - `DST` - Filed destination is invalid for this SID.
@@ -50,13 +62,11 @@ You can join the community Discord Server at: https://discord.gg/xucfd2K523
         - In cases where a destination restriction would cause the filed route to be ignored entirely (e.g. M145 filed by a non-Dublin inbound), a banned form of the route is provided, without the destination requirement. This allows the restriction to be displayed correctly. Alternative routes are also displayed.
     - SRD-Imposed Ban
         - Routes withdrawn until further notice
-        - Routes available only with prior approval from the Area Control Supervisor (generally during events).
+        - CDR2 Routes - Plannable when NOTAMed out (may be used during events).
+        - CDR3 Routes - Not plannable. Available only with prior approval from the Area Control Supervisor (generally during events).
+        - **N.B.** CDR1 Routes (those plannable at specific times only) are not included in this category. Instead, their published time restrictions are included in the standard API data set and will be enforced automatically. However, many CDR1 routes are also CDR3 and may be utilised during events, when officially "inactive".
 
-## Initial Setup:
-- Load up the plugin
-- Add a new Tag Item to the Departure List with the VFPC Tag Type & Function - Recommended item width of 3.
-
-## Chat Commands:
+## Chat Commands
 - `.vfpc` - Root command. Must be placed before any of the below commands in order for them to run.
 - `.vfpc load` - Attempts to reactivate automatic data loading if it has been disabled for some reason. (Server connection lost, loading data from file, etc.)
 - `.vfpc debug` - Activates debug logging into a separate message box, named "VFPC Log"
