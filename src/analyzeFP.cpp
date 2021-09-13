@@ -164,7 +164,7 @@ bool CVFPCPlugin::writeLog() {
 		ofs.open(path.c_str(), ios::trunc);
 
 		if (ofs.is_open()) {
-			for (int i = start; i < file.size(); i++) {
+			for (size_t i = start; i < file.size(); i++) {
 				ofs << file.at(i).c_str() << std::endl;
 			}
 			ofs.close();
