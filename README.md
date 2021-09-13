@@ -4,6 +4,9 @@ UK VFPC (UK VATSIM Flight Plan Checker) is a plugin for EuroScope that checks fi
 
 **N.B.** - This plugin does negate or replace the need for Delivery controllers to thoroughly check each Flight Plan before issuing a clearance; nor will it provide a perfect solution to more serious issues (e.g. SID filed routes in completely the wrong direction).
 
+## Community
+You can join the community Discord Server at: https://discord.gg/xucfd2K523
+
 ## READ BEFORE USE
 This plugin only works with the latest sector files and navigation data. Please ensure that your EuroScope sector files are always up-to-date.
 
@@ -11,8 +14,16 @@ Additionally, please regularly update your navigation data (`EuroScope/DataFiles
 
 After updating your sector files or navigation data, please remember to restart EuroScope before using the plugin.
 
-## Community
-You can join the community Discord Server at: https://discord.gg/xucfd2K523
+## Initial Setup
+- Load up the plugin
+- Add a new Tag Item to the Departure List (Click the `S` on the left of the list header.)
+    - Tag Item Type: `VFPC (UK)/VFPC`
+    - Mouse Button Function: `VFPC (UK)/Options`
+    - Recommended Header: `FPC`
+    - Recommended Item Width: `3`
+    - Align To Center : `Off` (Unticked)
+    - Colour: `Default Other Item`
+- Ensure that the new Tag Item is Enabled (In the `F` menu on the left of the Departure List header.)
 
 ## Features
 - `VFPC` tag item: Shows check-result and allows output of detailed checking data.
@@ -52,17 +63,6 @@ You can join the community Discord Server at: https://discord.gg/xucfd2K523
     - SRD-Imposed Ban
         - Routes withdrawn until further notice
         - Routes available only with prior approval from the Area Control Supervisor (generally during events).
-
-## Initial Setup
-- Load up the plugin
-- Add a new Tag Item to the Departure List (Click the `S` on the left of the list header.)
-    - Tag Item Type: `VFPC (UK)/VFPC`
-    - Mouse Button Function: `VFPC (UK)/Options`
-    - Recommended Header: `FPC`
-    - Recommended Item Width: `3`
-    - Align To Center : `Off` (Unticked)
-    - Colour: `Default Other Item`
-- Ensure that the new Tag Item is Enabled (In the `F` menu on the left of the Departure List header.)
 
 ## Chat Commands
 - `.vfpc` - Root command. Must be placed before any of the below commands in order for them to run.
