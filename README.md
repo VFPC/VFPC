@@ -54,7 +54,14 @@ You can join the community Discord Server at: https://discord.gg/xucfd2K523
 
 ## Initial Setup:
 - Load up the plugin
-- Add a new Tag Item to the Departure List with the VFPC Tag Type & Function - Recommended item width of 3.
+- Add a new Tag Item to the Departure List (Click the `S` on the left of the list header.)
+    - Tag Item Type: `VFPC (UK)/VFPC`
+    - Mouse Button Function: `VFPC (UK)/Options`
+    - Recommended Header: `FPC`
+    - Recommended Item Width: 3
+    - Align To Center : `Off` (Unticked)
+    - Colour: `Default Other Item`
+- Ensure that the new Tag Item is Enabled (In the `F` menu on the left of the Departure List header.)
 
 ## Chat Commands:
 - `.vfpc` - Root command. Must be placed before any of the below commands in order for them to run.
