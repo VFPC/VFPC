@@ -1,4 +1,4 @@
-# VFPC
+# UK VFPC
 
 UK VFPC (UK VATSIM Flight Plan Checker) is a plugin for EuroScope that checks filed IFR flight plans against pre-defined departure restrictions. It displays the results of such checks in a user-friendly format, with the option to output detailed results.
 
