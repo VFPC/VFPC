@@ -41,13 +41,13 @@ After updating your sector files or navigation data, please remember to restart 
 
 ## Check Results
 
-### Green
+### Green - Success
 - `OK!` - All checks passed.
 
-### Yellow
+### Yellow - Warning
 - `OK!` - All checks passed but one or more warnings were generated. This generally occurs in cases where the SRD contains ambiguous notes, which can't be coded for automatic interpretation.
 
-### Red
+### Red - Fail
 - `SID` - Assigned SID is invalid for some reason. (Not Found, Bad Suffix, Mismatch with Route, etc.)
 - `ENG` - Engine type is invalid for this SID/route.
 - `DST` - Filed destination is invalid for this SID.
