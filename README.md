@@ -59,7 +59,7 @@ You can join the community Discord Server at: https://discord.gg/xucfd2K523
     - Tag Item Type: `VFPC (UK)/VFPC`
     - Mouse Button Function: `VFPC (UK)/Options`
     - Recommended Header: `FPC`
-    - Recommended Item Width: 3
+    - Recommended Item Width: `3`
     - Align To Center : `Off` (Unticked)
     - Colour: `Default Other Item`
 - Ensure that the new Tag Item is Enabled (In the `F` menu on the left of the Departure List header.)
