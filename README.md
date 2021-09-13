@@ -26,6 +26,7 @@ You can join the community Discord Server at: https://discord.gg/xucfd2K523
 - Checks that the assigned SID is valid for the aircraft type operating the flight.
 - Checks that the assigned SID is valid on the current day/time.
 - Checks that there are no obvious syntax errors within the flight plan. (Invalid step climbs, Random symbol characters, etc.)
+- Checks for any SRD warnings/bans regarding the specific route in use.
 
 ## Check Results
 
