@@ -67,3 +67,8 @@ You can join the community Discord Server at: https://discord.gg/xucfd2K523
 
 ## Disclaimer
 The plugin is currently in active development and you may encounter **unforseen bugs or other issues**. Please report them - we'll fix them as soon as we can. You run this plugin at your own risk - the developers are all volunteers and accept no liability for any problems encountered or damage to your system.
+
+## Acknowledgements
+This plugin was originally created by @DrFreas and significantly expanded by @hpeter2 and @svengcz. @lennycolton took over development in January 2021 and has rewritten almost all of the plugin's code. However, a few elements of the original code base (most notably, part of the UI) are still in use.
+
+The API was built from scratch by @GeekPro101, specifically for use with v3 of UK VFPC. The SRD Parser was written by @lennycolton and is used to provide regular AIRAC updates to the API. Both projects are closed source.
