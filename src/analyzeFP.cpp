@@ -748,8 +748,9 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 	bool success = true;
 	vector<string> new_route{};
 	string outchk{};
+	bool repeat = false;
 
-	for (size_t i = 0; i < 9; i++) {
+	for (size_t i = 0; i < 5; i++) {
 		if (success) {
 			if (route.size() > 0) {
 				bufLog(callsign + string(" Validate: Route Syntax - Running Check ") + to_string(i) + string("..."));
@@ -760,48 +761,58 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 					}
 					break;
 				case 1:
-					if (regex_match(route.front(), sidstarrwy)) {
-						route.erase(route.begin());
-					}
-					break;
-				case 2:
-					if (regex_match(route.back(), sidstarrwy)) {
-						route.pop_back();
-					}
-					break;
-				case 3:
-					if (regex_match(route.front(), icaorwy)) {
-						if (!strcmp(route.front().substr(0, 4).c_str(), origin.c_str())) {
+					do {
+						repeat = true;
+
+						if (regex_match(route.front(), sidstarrwy)) {
 							route.erase(route.begin());
 						}
-						else {
-							outchk = "Different Origin in Route";
-							success = false;
+						else if (!strcmp(route.front().c_str(), "SID")) {
+							route.erase(route.begin());
 						}
-					}
+						else if (regex_match(route.front(), icaorwy)) {
+							if (!strcmp(route.front().substr(0, 4).c_str(), origin.c_str())) {
+								route.erase(route.begin());
+							}
+							else {
+								outchk = "Different Origin in Route";
+								success = false;
+								repeat = false;
+							}
+						}
+						else {
+							repeat = false;
+						}
+					} while (repeat);
 					break;
-				case 4:
-					if (regex_match(route.back(), icaorwy)) {
-						if (!strcmp(route.back().substr(0, 4).c_str(), destination.c_str())) {
+				case 2:
+					do {
+						repeat = true;
+
+						if (regex_match(route.back(), sidstarrwy)) {
 							route.pop_back();
 						}
-						else {
-							outchk = "Different Destination in Route";
-							success = false;
+						else if (!strcmp(route.back().c_str(), "STAR")) {
+							route.pop_back();
 						}
-					}
+						else if (regex_match(route.back(), icaorwy)) {
+							if (regex_match(route.back(), icaorwy)) {
+								if (!strcmp(route.back().substr(0, 4).c_str(), destination.c_str())) {
+									route.pop_back();
+								}
+								else {
+									outchk = "Different Destination in Route";
+									success = false;
+									repeat = false;
+								}
+							}
+						}
+						else {
+							repeat = false;
+						}
+					} while (repeat);
 					break;
-				case 5:
-					if (!strcmp(route.front().c_str(), "SID")) {
-						route.erase(route.begin());
-					}
-					break;
-				case 6:
-					if (!strcmp(route.back().c_str(), "STAR")) {
-						route.pop_back();
-					}
-					break;
-				case 7:
+				case 3:
 					for (string each : route) {
 						if (regex_match(each, dctspdlvl)) {
 							success = false;
@@ -833,7 +844,7 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 
 					route = new_route;
 					break;
-				case 8:
+				case 4:
 					if (sid.length() && strcmp(route.front().c_str(), first_wp.c_str())) {
 						outchk = "Route Not From First Waypoint";
 						success = false;
