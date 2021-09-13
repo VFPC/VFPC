@@ -62,7 +62,9 @@ After updating your sector files or navigation data, please remember to restart 
         - In cases where a destination restriction would cause the filed route to be ignored entirely (e.g. M145 filed by a non-Dublin inbound), a banned form of the route is provided, without the destination requirement. This allows the restriction to be displayed correctly. Alternative routes are also displayed.
     - SRD-Imposed Ban
         - Routes withdrawn until further notice
-        - CDR2 Routes (Available only with prior approval from the Area Control Supervisor, generally during events).
+        - CDR2 Routes - Plannable when NOTAMed out (may be used during events).
+        - CDR3 Routes - Not plannable. Available only with prior approval from the Area Control Supervisor (generally during events).
+        - **N.B.** CDR1 Routes (those plannable at specific times only) are not included in this category. Instead, their published time restrictions are included in the standard API data set and will be enforced automatically. However, many CDR1 routes are also CDR3 and may be utilised during events, when officially "inactive".
 
 ## Chat Commands
 - `.vfpc` - Root command. Must be placed before any of the below commands in order for them to run.
