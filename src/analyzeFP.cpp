@@ -1004,6 +1004,21 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 					}
 					case 2:
 					{
+						//Restrictions Array
+						bool res = false;
+
+						temp = checkRestrictions(flightPlan, sid_suffix, conditions[i]["restrictions"], sidFails, restFails);
+
+						res = temp[0];
+						if (temp[1]) {
+							sidwide = true;
+						}
+
+						new_validity.push_back(res);
+						break;
+					}
+					case 3:
+					{
 						bool res = true;
 
 						//Min Level
@@ -1019,7 +1034,7 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 						new_validity.push_back(res);
 						break;
 					}
-					case 3:
+					case 4:
 					{
 						//Even/Odd Levels
 
@@ -1056,21 +1071,6 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 									res = true;
 								}
 							}
-						}
-
-						new_validity.push_back(res);
-						break;
-					}
-					case 4:
-					{
-						//Restrictions Array
-						bool res = false;
-
-						temp = checkRestrictions(flightPlan, sid_suffix, conditions[i]["restrictions"], sidFails, restFails);
-
-						res = temp[0];
-						if (temp[1]) {
-							sidwide = true;
 						}
 
 						new_validity.push_back(res);
@@ -1143,9 +1143,6 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 			}
 			case 5:
 			{
-				returnOut[0][7] = "Passed SID Restrictions.";
-				returnOut[1][7] = "Passed " + RestrictionsOutput(flightPlan, sid_ele, true, true, true, successes);
-
 				if (warn) {
 					returnOut[1][8] = returnOut[0][8] = WarningsOutput(flightPlan, conditions, successes);
 				}
@@ -1156,37 +1153,41 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 				if (round == 5) {
 					returnOut[1][9] = returnOut[0][9] = BansOutput(flightPlan, conditions, successes);
 				}
-			}
-			case 4:
-			{
-				returnOut[0][6] = "Valid Suffix.";
-				returnOut[1][6] = "Valid " + SuffixOutput(flightPlan, sid_ele, successes);
-
-				if (round == 4) {
-					if (restFails[0]) {
-						returnOut[1][6] = returnOut[0][6] = "Invalid " + SuffixOutput(flightPlan, sid_ele, successes);
-					}
-					else {
-						returnOut[1][7] = returnOut[0][7] = "Failed " + RestrictionsOutput(flightPlan, sid_ele, restFails[1], restFails[2], restFails[3], successes) + " " + AlternativesOutput(flightPlan, sid_ele, successes);
-					}
-				}
 
 				returnOut[0][5] = "Passed Odd-Even Rule.";
 				returnOut[1][5] = "Passed " + DirectionOutput(flightPlan, conditions, successes);
 			}
-			case 3:
+			case 4:
 			{
-				if (round == 3) {
+				if (round == 4) {
 					returnOut[1][5] = returnOut[0][5] = "Failed " + DirectionOutput(flightPlan, conditions, successes);
 				}
 
 				returnOut[0][4] = "Passed Min/Max Level.";
 				returnOut[1][4] = "Passed " + MinMaxOutput(flightPlan, conditions, successes);
 			}
+			case 3:
+			{
+				if (round == 3) {
+					returnOut[1][4] = returnOut[0][4] = "Failed " + MinMaxOutput(flightPlan, conditions, successes) + " Alternative " + RouteOutput(flightPlan, conditions, successes, points, destination, RFL, true);
+				}
+
+				returnOut[0][7] = "Passed SID Restrictions.";
+				returnOut[1][7] = "Passed " + RestrictionsOutput(flightPlan, sid_ele, true, true, true, successes);
+			}
 			case 2:
 			{
+
+				returnOut[0][6] = "Valid Suffix.";
+				returnOut[1][6] = "Valid " + SuffixOutput(flightPlan, sid_ele, successes);
+
 				if (round == 2) {
-					returnOut[1][4] = returnOut[0][4] = "Failed " + MinMaxOutput(flightPlan, conditions, successes) + " Alternative " + RouteOutput(flightPlan, conditions, successes, points, destination, RFL, true);
+					if (restFails[0]) {
+						returnOut[1][6] = returnOut[0][6] = "Invalid " + SuffixOutput(flightPlan, sid_ele, successes);
+					}
+					else {
+						returnOut[1][7] = returnOut[0][7] = "Failed " + RestrictionsOutput(flightPlan, sid_ele, restFails[1], restFails[2], restFails[3], successes) + " " + AlternativesOutput(flightPlan, sid_ele, successes);
+					}
 				}
 
 				returnOut[0][3] = "Passed Route.";
