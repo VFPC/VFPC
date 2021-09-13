@@ -53,7 +53,7 @@ You can join the community Discord Server at: https://discord.gg/xucfd2K523
         - Routes withdrawn until further notice
         - Routes available only with prior approval from the Area Control Supervisor (generally during events).
 
-## Initial Setup:
+## Initial Setup
 - Load up the plugin
 - Add a new Tag Item to the Departure List (Click the `S` on the left of the list header.)
     - Tag Item Type: `VFPC (UK)/VFPC`
@@ -64,7 +64,7 @@ You can join the community Discord Server at: https://discord.gg/xucfd2K523
     - Colour: `Default Other Item`
 - Ensure that the new Tag Item is Enabled (In the `F` menu on the left of the Departure List header.)
 
-## Chat Commands:
+## Chat Commands
 - `.vfpc` - Root command. Must be placed before any of the below commands in order for them to run.
 - `.vfpc load` - Attempts to reactivate automatic data loading if it has been disabled for some reason. (Server connection lost, loading data from file, etc.)
 - `.vfpc debug` - Activates debug logging into a separate message box, named "VFPC Log"
