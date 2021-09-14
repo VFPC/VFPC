@@ -68,6 +68,7 @@ static size_t curlCallback(void *contents, size_t size, size_t nmemb, void *outS
 	return size * nmemb;
 }
 
+//Gets path to current directory
 string CVFPCPlugin::getPath() {
 	char DllPathFile[_MAX_PATH];
 	GetModuleFileNameA(HINSTANCE(&__ImageBase), DllPathFile, sizeof(DllPathFile));
