@@ -37,6 +37,16 @@ CVFPCPlugin::CVFPCPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_
 	bufLog("Plugin: Load - Initialising Time Data...");
 	timedata = { 0, 0, 0 };
 
+	bufLog("Plugin: Load - Initialising Version Data...");
+	vector<string> installed = split(MY_PLUGIN_VERSION, '.');
+
+	minVersion = (int*)calloc(installed.size(), sizeof(int));
+	currentVersion = (int*)calloc(installed.size(), sizeof(int));
+	thisVersion = (int*)calloc(installed.size(), sizeof(int));
+	for (size_t i = 0; i < installed.size(); i++) {
+		thisVersion[i] = stoi(installed[i]);
+	}
+
 	bufLog("Plugin: Load - Sending Load Message...");
 	string loadingMessage = "Loading complete. Version: ";
 	loadingMessage += MY_PLUGIN_VERSION;
