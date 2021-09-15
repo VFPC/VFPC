@@ -1779,7 +1779,7 @@ string CVFPCPlugin::MinMaxOutput(CFlightPlan flightPlan, const Value& constraint
 string CVFPCPlugin::RouteOutput(CFlightPlan flightPlan, const Value& constraints, vector<size_t> successes, vector<string> extracted_route, string dest, int rfl, bool req_lvl) {
 	bufLog(flightPlan.GetCallsign() + string(" - Generating Route Output..."));
 	vector<size_t> pos{};
-	int checks[6]{ 0 };
+	int checks[8]{ 0 };
 
 	for (size_t i = 0; i < constraints.Size(); i++) {
 		pos.push_back(i);
@@ -1938,7 +1938,7 @@ string CVFPCPlugin::RouteOutput(CFlightPlan flightPlan, const Value& constraints
 			pos = newpos;
 			checks[i] = true;
 
-			if (i == 1 || i == 3) {
+			if (i == 1) {
 				i = 5;
 			}
 		}
@@ -2051,7 +2051,7 @@ string CVFPCPlugin::RouteOutput(CFlightPlan flightPlan, const Value& constraints
 
 	string outstring = "";
 
-	if (pos.size() == 0 || (req_lvl && !checks[4])) {
+	if (pos.size() == 0 || (req_lvl && !checks[6])) {
 		outstring = NO_RESULTS;
 	}
 	else {
