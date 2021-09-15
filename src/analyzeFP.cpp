@@ -1785,7 +1785,8 @@ string CVFPCPlugin::RouteOutput(CFlightPlan flightPlan, const Value& constraints
 		pos.push_back(i);
 	}
 
-	for (size_t i = 0; i < 5; i++) {
+	size_t i = 0;
+	while (i < 5) {
 		vector<size_t> newpos{};
 		for (size_t j : pos) {
 			switch (i) {
@@ -1879,7 +1880,13 @@ string CVFPCPlugin::RouteOutput(CFlightPlan flightPlan, const Value& constraints
 		if (newpos.size() > 0) {
 			pos = newpos;
 			checks[i] = true;
+
+			if (i == 1) {
+				i = 3;
+			}
 		}
+
+		i++;
 	}
 
 	vector<string> out{};
