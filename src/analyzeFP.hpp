@@ -235,6 +235,9 @@ public:
 protected:
 	Document config;
 	vector<string> activeAirports;
+	int *thisVersion;
+	vector<int> curVersion;
+	vector<int> minVersion;
 	map<string, rapidjson::SizeType> airports;
 };
 
