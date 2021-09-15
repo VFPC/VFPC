@@ -1845,6 +1845,9 @@ string CVFPCPlugin::RouteOutput(CFlightPlan flightPlan, const Value& constraints
 						}
 					}
 				}
+				else {
+					res = true;
+				}
 
 				if (res) {
 					newpos.push_back(j);
@@ -1879,6 +1882,9 @@ string CVFPCPlugin::RouteOutput(CFlightPlan flightPlan, const Value& constraints
 							res = true;
 						}
 					}
+				}
+				else {
+					res = true;
 				}
 
 				if (res) {
