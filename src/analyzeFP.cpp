@@ -1779,14 +1779,14 @@ string CVFPCPlugin::MinMaxOutput(CFlightPlan flightPlan, const Value& constraint
 string CVFPCPlugin::RouteOutput(CFlightPlan flightPlan, const Value& constraints, vector<size_t> successes, vector<string> extracted_route, string dest, int rfl, bool req_lvl) {
 	bufLog(flightPlan.GetCallsign() + string(" - Generating Route Output..."));
 	vector<size_t> pos{};
-	int checks[5]{ 0 };
+	int checks[6]{ 0 };
 
 	for (size_t i = 0; i < constraints.Size(); i++) {
 		pos.push_back(i);
 	}
 
 	size_t i = 0;
-	while (i < 5) {
+	while (i < 6) {
 		vector<size_t> newpos{};
 		for (size_t j : pos) {
 			switch (i) {
@@ -1867,6 +1867,22 @@ string CVFPCPlugin::RouteOutput(CFlightPlan flightPlan, const Value& constraints
 
 				if (constraints[j].HasMember("max") && (!constraints[j]["max"].IsInt() || constraints[j]["max"].GetInt() < rfl / 100)) {
 					res = false;
+				}
+
+				if (res) {
+					newpos.push_back(j);
+				}
+				break;
+			}
+			case 5: {
+				bool res = true;
+
+				if (constraints[j]["alerts"].IsArray() && constraints[j]["alerts"].Size()) {
+					for (size_t k = 0; k < constraints[j]["alerts"].Size(); k++) {
+						if (constraints[j]["alerts"][k].HasMember("ban") && constraints[j]["alerts"][k]["ban"].IsBool() && constraints[j]["alerts"][k]["ban"].GetBool()) {
+							res = false;
+						}
+					}
 				}
 
 				if (res) {
