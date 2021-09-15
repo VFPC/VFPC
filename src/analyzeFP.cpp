@@ -1797,7 +1797,7 @@ string CVFPCPlugin::RouteOutput(CFlightPlan flightPlan, const Value& constraints
 				if (constraints[j]["dests"].IsArray() && constraints[j]["dests"].Size()) {
 					for (size_t k = 0; k < constraints[j]["dests"].Size(); k++) {
 						if (constraints[j]["dests"][k].IsString()) {
-							if (!strcmp(constraints[j]["dests"][k].GetString(), dest.c_str())) {
+							if (string(constraints[j]["dests"][k].GetString()).size() == 4 && !strcmp(constraints[j]["dests"][k].GetString(), dest.c_str())) {
 								res = true;
 							}
 						}
@@ -1815,7 +1815,7 @@ string CVFPCPlugin::RouteOutput(CFlightPlan flightPlan, const Value& constraints
 				if (constraints[j]["nodests"].IsArray() && constraints[j]["nodests"].Size()) {
 					for (size_t k = 0; k < constraints[j]["nodests"].Size(); k++) {
 						if (constraints[j]["nodests"][k].IsString()) {
-							if (!strcmp(constraints[j]["nodests"][k].GetString(), dest.c_str())) {
+							if (string(constraints[j]["nodests"][k].GetString()).size() == 4 && !strcmp(constraints[j]["nodests"][k].GetString(), dest.c_str())) {
 								res = false;
 							}
 						}
