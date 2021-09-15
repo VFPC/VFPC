@@ -947,12 +947,19 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 	bufLog(callsign + string(" Validate: SID - Finding Definition..."));
 	//Find routes for selected SID
 	size_t pos = string::npos;
-	for (size_t i = 0; i < config[origin_int]["sids"].Size(); i++) {
-		if (config[origin_int]["sids"][i].HasMember("point") && !first_wp.compare(config[origin_int]["sids"][i]["point"].GetString()) && config[origin_int]["sids"][i].HasMember("constraints") && config[origin_int]["sids"][i]["constraints"].IsArray()) {
-			bufLog(callsign + string(" Validate: SID - Found Definition"));
-			pos = i;
+	if (config[origin_int]["sids"].Size() == 1 && config[origin_int]["sids"].HasMember("point") && config[origin_int]["sids"]["point"].IsString() && config[origin_int]["sids"]["point"].GetString() == "") {
+		bufLog(callsign + string(" Validate: SID - Bypassing Definition, Non-SID Airport"));
+		pos = 0;
+	}
+	else {
+		for (size_t i = 0; i < config[origin_int]["sids"].Size(); i++) {
+			if (config[origin_int]["sids"][i].HasMember("point") && !first_wp.compare(config[origin_int]["sids"][i]["point"].GetString()) && config[origin_int]["sids"][i].HasMember("constraints") && config[origin_int]["sids"][i]["constraints"].IsArray()) {
+				bufLog(callsign + string(" Validate: SID - Found Definition"));
+				pos = i;
+			}
 		}
 	}
+
 
 	// Needed SID defined
 	if (pos == string::npos) {
