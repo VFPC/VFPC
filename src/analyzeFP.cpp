@@ -1786,17 +1786,18 @@ string CVFPCPlugin::RouteOutput(CFlightPlan flightPlan, const Value& constraints
 	}
 
 	size_t i = 0;
-	while (i < 6) {
+	while (i < 8) {
 		vector<size_t> newpos{};
 		for (size_t j : pos) {
 			switch (i) {
+			//Exact dest/nodest match
 			case 0: {
 				bool res = false;
 
 				if (constraints[j]["dests"].IsArray() && constraints[j]["dests"].Size()) {
 					for (size_t k = 0; k < constraints[j]["dests"].Size(); k++) {
 						if (constraints[j]["dests"][k].IsString()) {
-							if (startsWith(constraints[j]["dests"][k].GetString(), dest.c_str())) {
+							if (!strcmp(constraints[j]["dests"][k].GetString(), dest.c_str())) {
 								res = true;
 							}
 						}
@@ -1814,6 +1815,43 @@ string CVFPCPlugin::RouteOutput(CFlightPlan flightPlan, const Value& constraints
 				if (constraints[j]["nodests"].IsArray() && constraints[j]["nodests"].Size()) {
 					for (size_t k = 0; k < constraints[j]["nodests"].Size(); k++) {
 						if (constraints[j]["nodests"][k].IsString()) {
+							if (!strcmp(constraints[j]["nodests"][k].GetString(), dest.c_str())) {
+								res = false;
+							}
+						}
+					}
+				}
+
+				if (res) {
+					newpos.push_back(j);
+				}
+				break;
+			}
+			//Any dest/nodest match
+			case 2: {
+				bool res = false;
+
+				if (constraints[j]["dests"].IsArray() && constraints[j]["dests"].Size()) {
+					for (size_t k = 0; k < constraints[j]["dests"].Size(); k++) {
+						if (constraints[j]["dests"][k].IsString()) {
+							if (startsWith(constraints[j]["dests"][k].GetString(), dest.c_str())) {
+								res = true;
+							}
+						}
+					}
+				}
+
+				if (res) {
+					newpos.push_back(j);
+				}
+				break;
+			}
+			case 3: {
+				bool res = true;
+
+				if (constraints[j]["nodests"].IsArray() && constraints[j]["nodests"].Size()) {
+					for (size_t k = 0; k < constraints[j]["nodests"].Size(); k++) {
+						if (constraints[j]["nodests"][k].IsString()) {
 							if (startsWith(constraints[j]["nodests"][k].GetString(), dest.c_str())) {
 								res = false;
 							}
@@ -1826,7 +1864,8 @@ string CVFPCPlugin::RouteOutput(CFlightPlan flightPlan, const Value& constraints
 				}
 				break;
 			}
-			case 2: {
+			//points/nopoints match
+			case 4: {
 				bool res = false;
 
 				if (constraints[j]["points"].IsArray() && constraints[j]["points"].Size()) {
@@ -1842,7 +1881,7 @@ string CVFPCPlugin::RouteOutput(CFlightPlan flightPlan, const Value& constraints
 				}
 				break;
 			}
-			case 3: {
+			case 5: {
 				bool res = true;
 
 				if (constraints[j]["nopoints"].IsArray() && constraints[j]["nopoints"].Size()) {
@@ -1858,7 +1897,8 @@ string CVFPCPlugin::RouteOutput(CFlightPlan flightPlan, const Value& constraints
 				}
 				break;
 			}
-			case 4: {
+			//Levels match
+			case 6: {
 				bool res = true;
 
 				if (constraints[j].HasMember("min") && (!constraints[j]["min"].IsInt() || constraints[j]["min"].GetInt() > rfl / 100)) {
@@ -1874,7 +1914,8 @@ string CVFPCPlugin::RouteOutput(CFlightPlan flightPlan, const Value& constraints
 				}
 				break;
 			}
-			case 5: {
+			//Remove anything banned
+			case 7: {
 				bool res = true;
 
 				if (constraints[j]["alerts"].IsArray() && constraints[j]["alerts"].Size()) {
@@ -1897,8 +1938,8 @@ string CVFPCPlugin::RouteOutput(CFlightPlan flightPlan, const Value& constraints
 			pos = newpos;
 			checks[i] = true;
 
-			if (i == 1) {
-				i = 3;
+			if (i == 1 || i == 3) {
+				i = 5;
 			}
 		}
 
