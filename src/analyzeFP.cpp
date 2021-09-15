@@ -40,8 +40,6 @@ CVFPCPlugin::CVFPCPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_
 	bufLog("Plugin: Load - Initialising Version Data...");
 	vector<string> installed = split(MY_PLUGIN_VERSION, '.');
 
-	minVersion = (int*)calloc(installed.size(), sizeof(int));
-	currentVersion = (int*)calloc(installed.size(), sizeof(int));
 	thisVersion = (int*)calloc(installed.size(), sizeof(int));
 	for (size_t i = 0; i < installed.size(); i++) {
 		thisVersion[i] = stoi(installed[i]);
@@ -376,18 +374,70 @@ bool CVFPCPlugin::versionCall() {
 
 	if (version.HasMember("VFPC_Version") && version["VFPC_Version"].IsString()) {
 		bufLog("Version Call: Version Data Found");
-		vector<string> current = split(version["VFPC_Version"].GetString(), '.');
-		vector<string> installed = split(MY_PLUGIN_VERSION, '.');
+		vector<string> minver = split(version["Min_Version"].GetString(), '.');
+		bool minchange = false;
+		vector<string> curver = split(version["VFPC_Version"].GetString(), '.');
+		bool curchange = false;
+		bool check = true;
 
-		if ((installed[0] > current[0]) || //Major version higher
-			(installed[0] == current[0] && installed[1] > current[1]) || //Minor version higher
-			(installed[0] == current[0] && installed[1] == current[1] && installed[2] >= current[2])) { //Revision higher
-			bufLog("Version Call: Latest Version In Use");
+		for (size_t i = 0; i < minver.size(); i++) {
+			int temp = stoi(minver[i]);
+			if (i < minVersion.size()) {
+				if (check && temp > minVersion[i]) {
+					minchange = true;
+				}
+				else if (temp != minVersion[i]) {
+					check = false;
+				}
+				minVersion[i] = temp;
+			}
+			else {
+				minchange = true;
+				minVersion.push_back(temp);
+			}
+		}
+
+		if (minVersion.size() > minver.size()) {
+			minVersion.resize(minver.size());
+		}
+
+		for (size_t i = 0; i < curver.size(); i++) {
+			int temp = stoi(curver[i]);
+			if (i < curVersion.size()) {
+				if (check && temp > curVersion[i]) {
+					curchange = true;
+				}
+				else if (temp != curVersion[i]) {
+					check = false;
+				}
+				curVersion[i] = temp;
+			}
+			else {
+				curchange = true;
+				curVersion.push_back(temp);
+			}
+		}
+
+		if (curVersion.size() > curver.size()) {
+			curVersion.resize(curver.size());
+		}
+
+		if (minVersion[0] > thisVersion[0] || (minVersion[0] == thisVersion[0] && minVersion[1] > thisVersion[1]) || (minVersion[0] == thisVersion[0] && minVersion[1] == thisVersion[1] && minVersion[2] > thisVersion[2])) {
+			bufLog("Version Call: Discontinued Version In Use");
+			if (minchange) {
+				sendMessage("Update required - the plugin has been disabled. Please update and reload the plugin to continue. (Note: .vfpc load will NOT work.)");
+			}
+		}
+		else if (curVersion[0] > thisVersion[0] || (curVersion[0] == thisVersion[0] && curVersion[1] > thisVersion[1]) || (curVersion[0] == thisVersion[0] && curVersion[1] == thisVersion[1] && curVersion[2] > thisVersion[2])) {
+			bufLog("Version Call: Outdated Version In Use");
+			if (curchange) {
+				sendMessage("Update available - you may continue using the plugin, but please update as soon as possible.");
+			}
 			return true;
 		}
 		else {
-			bufLog("Version Call: Old Version In Use");
-			sendMessage("Update available - the plugin has been disabled. Please update and reload the plugin to continue. (Note: .vfpc load will NOT work.)");
+			bufLog("Version Call: No New Version Since Last Check");
+			return true;
 		}
 	}
 	else {

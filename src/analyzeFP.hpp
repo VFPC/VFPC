@@ -236,8 +236,8 @@ protected:
 	Document config;
 	vector<string> activeAirports;
 	int *thisVersion;
-	int *currentVersion;
-	int *minVersion;
+	vector<int> curVersion;
+	vector<int> minVersion;
 	map<string, rapidjson::SizeType> airports;
 };
 
