@@ -1015,7 +1015,7 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 			validity.push_back(true);
 		}
 			
-		//Constraints Array
+		//Run Checks on Constraints Array
 		while (round < 6) {
 			bufLog(callsign + string(" Validate: Checks - Starting Round ") + to_string(round) + string("..."));
 			new_validity = {};
@@ -1042,18 +1042,7 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 							}
 						}
 
-						new_validity.push_back(res);
-						break;
-					}
-					case 1:
-					{
-						//Route
-						bool res = true;
-
-						if (conditions[i].HasMember("route") && conditions[i]["route"].IsArray() && conditions[i]["route"].Size() && !routeContains(callsign, route, conditions[i]["route"])) {
-							res = false;
-						}
-
+						//Exit Points
 						if (conditions[i].HasMember("points") && conditions[i]["points"].IsArray() && conditions[i]["points"].Size()) {
 							bool temp = false;
 
@@ -1068,10 +1057,6 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 							}
 						}
 
-						if (conditions[i].HasMember("noroute") && res && conditions[i]["noroute"].IsArray() && conditions[i]["noroute"].Size() && routeContains(callsign, route, conditions[i]["noroute"])) {
-							res = false;
-						}
-
 						if (conditions[i].HasMember("nopoints") && conditions[i]["nopoints"].IsArray() && conditions[i]["nopoints"].Size()) {
 							bool temp = false;
 
@@ -1084,6 +1069,22 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 							if (temp) {
 								res = false;
 							}
+						}
+
+						new_validity.push_back(res);
+						break;
+					}
+					case 1:
+					{
+						//Route
+						bool res = true;
+
+						if (conditions[i].HasMember("route") && conditions[i]["route"].IsArray() && conditions[i]["route"].Size() && !routeContains(callsign, route, conditions[i]["route"])) {
+							res = false;
+						}
+
+						if (conditions[i].HasMember("noroute") && res && conditions[i]["noroute"].IsArray() && conditions[i]["noroute"].Size() && routeContains(callsign, route, conditions[i]["noroute"])) {
+							res = false;
 						}
 
 						new_validity.push_back(res);
@@ -1222,6 +1223,7 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 
 			bufLog(callsign + string(" Validate: Result - Setting Type ") + to_string(round) + string("..."));
 
+			//Generate Output
 			switch (round) {
 			case 6:
 			{
