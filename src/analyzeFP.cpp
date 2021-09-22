@@ -865,8 +865,6 @@ vector<bool> CVFPCPlugin::checkDirection(const Value& conditions, int RFL, vecto
 			continue;
 		}
 
-		bool res = true;
-
 		//Assume any level valid if no "EVEN" or "ODD" declaration
 		bool res = true;
 
@@ -1232,7 +1230,6 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 		bool sidFails[4]{ 0 };
 		bool restFails[4]{ 0 }; // 0 = Suffix, 1 = Aircraft/Engines, 2 = Date/Time Restrictions
 		bool warn = false;
-		int Min, Max;
 
 		bufLog(callsign + string(" Validate: Checks - SID-Level Restrictions..."));
 		//SID-Level Restrictions Array
