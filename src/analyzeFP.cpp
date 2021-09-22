@@ -707,12 +707,12 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 	string callsign = flightPlan.GetCallsign();
 	bufLog(callsign + string(" Validating..."));
 	//out[0] = Normal Output, out[1] = Debug Output
-	vector<vector<string>> returnOut = { vector<string>(), vector<string>() }; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Route, 4 = Nav Performance, 5 = Min/Max Flight Level, 6 = Even/Odd, 7 = Suffix, 8 = Aircraft Type, 9 = Date/Time, 10 = Syntax, 11 = Passed/Failed
+	vector<vector<string>> returnOut = { vector<string>(), vector<string>() }; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Exit Point, 4 = Route, 5 = Min/Max Flight Level, 6 = Even/Odd, 7 = Suffix, 8 = Restrictions, 9 = Warnings, 10 = Bans, 11 = Syntax, 12 = Passed/Failed
 
 	bufLog(callsign + string(" Validate: Outputs - Initialising..."));
 	returnOut[0].push_back(callsign);
 	returnOut[1].push_back(callsign);
-	for (int i = 1; i < 12; i++) {
+	for (int i = 1; i < 13; i++) {
 		returnOut[0].push_back("-");
 		returnOut[1].push_back("-");
 	}
@@ -1016,7 +1016,7 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 		}
 			
 		//Run Checks on Constraints Array
-		while (round < 6) {
+		while (round < 7) {
 			bufLog(callsign + string(" Validate: Checks - Starting Round ") + to_string(round) + string("..."));
 			new_validity = {};
 
@@ -1042,7 +1042,14 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 							}
 						}
 
+						new_validity.push_back(res);
+						break;
+					}
+					case 1:
+					{
 						//Exit Points
+						bool res = true;
+
 						if (conditions[i].HasMember("points") && conditions[i]["points"].IsArray() && conditions[i]["points"].Size()) {
 							bool temp = false;
 
@@ -1074,7 +1081,7 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 						new_validity.push_back(res);
 						break;
 					}
-					case 1:
+					case 2:
 					{
 						//Route
 						bool res = true;
@@ -1090,7 +1097,7 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 						new_validity.push_back(res);
 						break;
 					}
-					case 2:
+					case 3:
 					{
 						//Restrictions Array
 						bool res = false;
@@ -1105,7 +1112,7 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 						new_validity.push_back(res);
 						break;
 					}
-					case 3:
+					case 4:
 					{
 						bool res = true;
 
@@ -1122,7 +1129,7 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 						new_validity.push_back(res);
 						break;
 					}
-					case 4:
+					case 5:
 					{
 						//Even/Odd Levels
 
@@ -1164,7 +1171,7 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 						new_validity.push_back(res);
 						break;
 					}
-					case 5:
+					case 6:
 					{
 						//Alerts (Warn/Ban)
 						bool res = true;
@@ -2252,7 +2259,7 @@ void CVFPCPlugin::OnGetTagItem(CFlightPlan flightPlan, CRadarTarget RadarTarget,
 				}
 				else {
 					bufLog(flightPlan.GetCallsign() + string(": Tag Item - IFR, Launching Check..."));
-					vector<string> validize = validateSid(flightPlan)[0]; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Route, 4 = Min/Max Flight Level, 5 = Even/Odd, 6 = Suffix, 7 = Restrictions, 8 = Syntax, 9 = Passed/Failed
+					vector<string> validize = validateSid(flightPlan)[0]; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Exit Point, 4 = Route, 5 = Min/Max Flight Level, 6 = Even/Odd, 7 = Suffix, 8 = Restrictions, 9 = Warnings, 10 = Bans, 11 = Syntax, 12 = Passed/Failed
 
 					bufLog(flightPlan.GetCallsign() + string(": Tag Item - Check Complete, Setting Tag Alert..."));
 					strcpy_s(sItemString, 16, getFails(flightPlan, validize, pRGB).c_str());
@@ -2370,8 +2377,8 @@ void CVFPCPlugin::checkFPDetail() {
 				vector<vector<string>> validize = validateSid(flightPlan);
 
 				bufLog(flightPlan.GetCallsign() + string(": Show Checks - Check Complete, Preparing Output..."));
-				vector<string> messageBuffer{ validize[0] }; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Route, 4 = Nav Performance, 5 = Min/Max Flight Level, 6 = Even/Odd, 7 = Suffix, 8 = Aircraft Type, 9 = Date/Time, 10 = Syntax, 11 = Passed/Failed
-				vector<string> logBuffer{ validize[1] }; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Route, 4 = Nav Performance, 5 = Min/Max Flight Level, 6 = Even/Odd, 7 = Suffix, 8 = Aircraft Type, 9 = Date/Time, 10 = Syntax, 11 = Passed/Failed
+				vector<string> messageBuffer{ validize[0] }; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Exit Point, 4 = Route, 5 = Min/Max Flight Level, 6 = Even/Odd, 7 = Suffix, 8 = Restrictions, 9 = Warnings, 10 = Bans, 11 = Syntax, 12 = Passed/Failed
+				vector<string> logBuffer{ validize[1] }; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Exit Point, 4 = Route, 5 = Min/Max Flight Level, 6 = Even/Odd, 7 = Suffix, 8 = Restrictions, 9 = Warnings, 10 = Bans, 11 = Syntax, 12 = Passed/Failed
 				
 				string buffer{};
 				string logbuf{};

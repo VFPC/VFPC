@@ -61,6 +61,8 @@ public:
 
 	virtual string RouteOutput(CFlightPlan flightPlan, const Value& constraints, vector<size_t> successes, vector<string> extracted_route, string dest, int rfl, bool req_lvl = false);
 
+	virtual string ExitPointOutput(CFlightPlan flightPlan, size_t origin_int, string exit);
+
 	virtual string DestinationOutput(CFlightPlan flightPlan, size_t origin_int, string dest);
 
 	virtual void OnFunctionCall(int FunctionId, const char * ItemString, POINT Pt, RECT Area);
