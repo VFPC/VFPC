@@ -1145,11 +1145,11 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 								res = false;
 
 								//Non-RVSM (Above FL410)
-								if ((RFL > 41000 && (RFL / 1000 - 41) % 4 == 2)) {
+								if ((RFL > RVSM_UPPER && ((RFL - RVSM_UPPER) / 1000) % 4 == 2)) {
 									res = true;
 								}
 								//RVSM (FL290-410) or Below FL290
-								else if (RFL <= 41000 && (RFL / 1000) % 2 == 0) {
+								else if (RFL <= RVSM_UPPER && (RFL / 1000) % 2 == 0) {
 									res = true;
 								}
 							}
@@ -1158,11 +1158,11 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 								res = false;
 
 								//Non-RVSM (Above FL410)
-								if ((RFL > 41000 && (RFL / 1000 - 41) % 4 == 0)) {
+								if ((RFL > RVSM_UPPER && ((RFL - RVSM_UPPER) / 1000) % 4 == 0)) {
 									res = true;
 								}
 								//RVSM (FL290-410) or Below FL290
-								else if (RFL <= 41000 && (RFL / 1000) % 2 == 1) {
+								else if (RFL <= RVSM_UPPER && (RFL / 1000) % 2 == 1) {
 									res = true;
 								}
 							}

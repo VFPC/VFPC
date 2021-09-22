@@ -47,6 +47,8 @@ const string NO_RESULTS = "None";
 
 const string WILDCARD = "*";
 
+const int RVSM_UPPER = 41000;
+
 inline static bool startsWith(const char *pre, const char *str)
 {
 	size_t lenpre = strlen(pre), lenstr = strlen(str);
