@@ -1232,67 +1232,76 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 
 			//Generate Output
 			switch (round) {
-			case 6:
+			case 7:
 			{
 				returnOut[1].back() = returnOut[0].back() = "Passed";
-				returnOut[1][9] = "No Route Ban.";
+				returnOut[1][10] = "No Route Ban.";
+			}
+			case 6:
+			{
+				if (warn) {
+					returnOut[1][9] = returnOut[0][9] = WarningsOutput(flightPlan, conditions, successes);
+				}
+				else {
+					returnOut[1][9] = "No Warnings.";
+				}
+        
+				if (round == 6) {
+					returnOut[1][10] = returnOut[0][10] = BansOutput(flightPlan, conditions, successes);
+				}
+
+				returnOut[0][6] = "Passed Odd-Even Rule.";
+				returnOut[1][6] = "Passed " + DirectionOutput(flightPlan, conditions, successes);
 			}
 			case 5:
 			{
-				if (warn) {
-					returnOut[1][8] = returnOut[0][8] = WarningsOutput(flightPlan, conditions, successes);
-				}
-				else {
-					returnOut[1][8] = "No Warnings.";
-				}
-        
 				if (round == 5) {
-					returnOut[1][9] = returnOut[0][9] = BansOutput(flightPlan, conditions, successes);
+					returnOut[1][6] = returnOut[0][6] = "Failed " + DirectionOutput(flightPlan, conditions, successes);
 				}
 
-				returnOut[0][5] = "Passed Odd-Even Rule.";
-				returnOut[1][5] = "Passed " + DirectionOutput(flightPlan, conditions, successes);
+				returnOut[0][5] = "Passed Min/Max Level.";
+				returnOut[1][5] = "Passed " + MinMaxOutput(flightPlan, conditions, successes);
 			}
 			case 4:
 			{
 				if (round == 4) {
-					returnOut[1][5] = returnOut[0][5] = "Failed " + DirectionOutput(flightPlan, conditions, successes);
+					returnOut[1][5] = returnOut[0][5] = "Failed " + MinMaxOutput(flightPlan, conditions, successes) + " Alternative " + RouteOutput(flightPlan, conditions, successes, points, destination, RFL, true);
 				}
 
-				returnOut[0][4] = "Passed Min/Max Level.";
-				returnOut[1][4] = "Passed " + MinMaxOutput(flightPlan, conditions, successes);
+				returnOut[0][8] = "Passed SID Restrictions.";
+				returnOut[1][8] = "Passed " + RestrictionsOutput(flightPlan, sid_ele, true, true, true, successes);
 			}
 			case 3:
 			{
+
+				returnOut[0][7] = "Valid Suffix.";
+				returnOut[1][7] = "Valid " + SuffixOutput(flightPlan, sid_ele, successes);
+
 				if (round == 3) {
-					returnOut[1][4] = returnOut[0][4] = "Failed " + MinMaxOutput(flightPlan, conditions, successes) + " Alternative " + RouteOutput(flightPlan, conditions, successes, points, destination, RFL, true);
+					if (restFails[0]) {
+						returnOut[1][7] = returnOut[0][7] = "Invalid " + SuffixOutput(flightPlan, sid_ele, successes);
+					}
+					else {
+						returnOut[1][8] = returnOut[0][8] = "Failed " + RestrictionsOutput(flightPlan, sid_ele, restFails[1], restFails[2], restFails[4], successes) + " " + AlternativesOutput(flightPlan, sid_ele, successes);
+					}
 				}
 
-				returnOut[0][7] = "Passed SID Restrictions.";
-				returnOut[1][7] = "Passed " + RestrictionsOutput(flightPlan, sid_ele, true, true, true, successes);
+				returnOut[0][4] = "Passed Route.";
+				returnOut[1][4] = "Passed Route. " + RouteOutput(flightPlan, conditions, successes, points, destination, RFL);
 			}
 			case 2:
 			{
-
-				returnOut[0][6] = "Valid Suffix.";
-				returnOut[1][6] = "Valid " + SuffixOutput(flightPlan, sid_ele, successes);
-
 				if (round == 2) {
-					if (restFails[0]) {
-						returnOut[1][6] = returnOut[0][6] = "Invalid " + SuffixOutput(flightPlan, sid_ele, successes);
-					}
-					else {
-						returnOut[1][7] = returnOut[0][7] = "Failed " + RestrictionsOutput(flightPlan, sid_ele, restFails[1], restFails[2], restFails[3], successes) + " " + AlternativesOutput(flightPlan, sid_ele, successes);
-					}
+					returnOut[1][4] = returnOut[0][4] = "Failed Route. " + RouteOutput(flightPlan, conditions, successes, points, destination, RFL);
 				}
 
-				returnOut[0][3] = "Passed Route.";
-				returnOut[1][3] = "Passed Route. " + RouteOutput(flightPlan, conditions, successes, points, destination, RFL);
+				returnOut[0][3] = "Passed Exit Point.";
+				returnOut[1][3] = "Passed " + ExitPointOutput(flightPlan, origin_int, points);
 			}
 			case 1:
 			{
 				if (round == 1) {
-					returnOut[1][3] = returnOut[0][3] = "Failed Route. " + RouteOutput(flightPlan, conditions, successes, points, destination, RFL);
+					returnOut[1][3] = returnOut[0][3] = "Failed " + ExitPointOutput(flightPlan, origin_int, points);
 				}
 
 				returnOut[0][2] = "Passed Destination.";
@@ -2085,6 +2094,11 @@ string CVFPCPlugin::RouteOutput(CFlightPlan flightPlan, const Value& constraints
 	return "Valid Initial Routes: " + outstring + ".";
 }
 
+//Outputs valid FIR exit points (from Constraints array) as string
+string CVFPCPlugin::ExitPointOutput(CFlightPlan flightPlan, size_t origin_int, vector<string> extracted_route) {
+
+}
+
 //Outputs valid destinations (from Constraints array) as string
 string CVFPCPlugin::DestinationOutput(CFlightPlan flightPlan, size_t origin_int, string dest) {
 	bufLog(flightPlan.GetCallsign() + string(" - Generating Destination Output..."));
@@ -2443,30 +2457,34 @@ string CVFPCPlugin::getFails(CFlightPlan flightPlan, vector<string> messageBuffe
 			return "DST";
 		}
 		else if (!messageBuffer.at(3).find("Failed")) {
+			bufLog(flightPlan.GetCallsign() + string(": Fail - XPT"));
+			return "XPT";
+		}
+		else if (!messageBuffer.at(4).find("Failed")) {
 			bufLog(flightPlan.GetCallsign() + string(": Fail - RTE"));
 			return "RTE";
 		}
-		else if (!messageBuffer.at(4).find("Failed")) {
+		else if (!messageBuffer.at(5).find("Failed")) {
 			bufLog(flightPlan.GetCallsign() + string(": Fail - LVL"));
 			return "LVL";
 		}
-		else if (!messageBuffer.at(5).find("Failed")) {
+		else if (!messageBuffer.at(6).find("Failed")) {
 			bufLog(flightPlan.GetCallsign() + string(": Fail - OER"));
 			return "OER";
 		}
-		else if (!messageBuffer.at(6).find("Invalid")) {
+		else if (!messageBuffer.at(7).find("Invalid")) {
 			bufLog(flightPlan.GetCallsign() + string(": Fail - SUF"));
 			return "SUF";
 		}
-		else if (!messageBuffer.at(7).find("Failed")) {
+		else if (!messageBuffer.at(8).find("Failed")) {
 			bufLog(flightPlan.GetCallsign() + string(": Fail - RST"));
 			return "RST";
 		}
-		else if (!messageBuffer.at(8).find("Warnings")) {
+		else if (!messageBuffer.at(9).find("Warnings")) {
 			bufLog(flightPlan.GetCallsign() + string(": Fail - Warning"));
 			*pRGB = TAG_ORANGE;
 		}
-		else if (!messageBuffer.at(9).find("Route Banned")) {
+		else if (!messageBuffer.at(10).find("Route Banned")) {
 			bufLog(flightPlan.GetCallsign() + string(": Fail - BAN"));
 			return "BAN";
 		}
