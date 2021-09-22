@@ -35,7 +35,21 @@ public:
 
 	virtual void getSids();
 
-	virtual vector<bool> checkRestrictions(CFlightPlan flightPlan, string sid_suffix, const Value& restrictions, bool *sidfails, bool* fails);
+	virtual vector<bool> checkDestination(const Value& constraints, string destination, vector<bool> in);
+
+	virtual vector<bool> checkExitPoint(const Value& constraints, vector<string> extracted_route, vector<bool> in);
+
+	virtual vector<bool> checkRoute(const Value& constraints, vector<string> extracted_route, vector<bool> in);
+
+	virtual vector<bool> checkRestriction(CFlightPlan flightPlan, string sid_suffix, const Value& restrictions, bool *sidfails, bool* fails);
+
+	virtual vector<bool> checkRestrictions(CFlightPlan flightPlan, const Value& conditions, string sid_suffix, bool *sidfails, bool* fails, bool *sidwide, vector<bool> in);
+
+	virtual vector<bool> checkMinMax(const Value& constraints, int RFL, vector<bool> in);
+
+	virtual vector<bool> checkDirection(const Value& constraints, int RFL, vector<bool> in);
+
+	virtual vector<bool> checkAlerts(const Value& constraints, bool *warn, vector<bool> in);
 
 	virtual vector<vector<string>> validateSid(CFlightPlan flightPlan);
 
@@ -151,7 +165,7 @@ public:
 		return s;
 	}
 
-	bool routeContains(string cs, vector<string> rte, const Value& valid) {
+	bool routeContains(vector<string> rte, const Value& valid) {
 		for (SizeType i = 0; i < valid.Size(); i++) {
 			string r = valid[i].GetString();
 
