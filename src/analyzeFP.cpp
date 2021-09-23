@@ -2193,8 +2193,120 @@ string CVFPCPlugin::RouteOutput(CFlightPlan flightPlan, const Value& constraints
 }
 
 //Outputs valid FIR exit points (from Constraints array) as string
-string CVFPCPlugin::ExitPointOutput(CFlightPlan flightPlan, size_t origin_int, vector<string> extracted_route) {
-	return "";
+string CVFPCPlugin::ExitPointOutput(CFlightPlan flightPlan, size_t origin_int, vector<string> points) {
+	bufLog(flightPlan.GetCallsign() + string(" - Generating Exit Point Output..."));
+	map<string, vector<string>> a{}; //Key = Exit Point, Value = Explicitly Permitted SIDs
+	vector<bool> b{}; //Implicitly Permitted SIDs (Not Explicitly Prohibited)
+
+	for (size_t i = 0; i < config[origin_int]["sids"].Size(); i++) {
+		b.push_back(false);
+
+		if (config[origin_int]["sids"][i].HasMember("point") && config[origin_int]["sids"][i]["point"].IsString()) {
+			const Value& conditions = config[origin_int]["sids"][i]["constraints"];
+			for (size_t j = 0; j < conditions.Size(); j++) {
+				if (conditions[j]["points"].IsArray() && conditions[j]["points"].Size()) {
+					for (string each : points) {
+						if (arrayContains(conditions[j]["points"], each)) {
+							if (a.find(each) == a.end()) {
+								vector<string> temp{ config[origin_int]["sids"][i]["point"].GetString() };
+								a.insert(pair<string, vector<string>>(each, temp));
+							}
+							else {
+								a[each].push_back(config[origin_int]["sids"][i]["point"].GetString());
+							}
+						}
+					}
+				}
+				else if (conditions[j]["nopoints"].IsArray() && conditions[j]["nopoints"].Size()) {
+					b[i] = true;
+					for (string each : points) {
+						if (arrayContains(conditions[i]["nopoints"], each)) {
+							b[i] = false;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	vector<string> out = {};
+
+	if (a.size()) {
+		for (pair<string, vector<string>> exit : a) {
+			string single = "";
+
+			for (string each : exit.second) {
+				if (each == "") {
+					single += "No SID";
+				}
+				else {
+					single += each;
+				}
+
+				single += RESULT_SEP;
+			}
+
+			if (single.size() > 0) {
+				single = single.substr(0, single.size() - RESULT_SEP.size());
+			}
+			else {
+				single = "None";
+			}
+
+			string prefix = exit.first;
+			prefix += " is valid for: ";
+
+			out.push_back(prefix + single);
+		}
+	}
+
+	if (!all_of(b.begin(), b.end(), [](bool v) { return !v; })) {
+		string single = "";
+
+		for (size_t i = 0; i < b.size(); i++) {
+			if (b[i]) {
+				string temp = config[origin_int]["sids"][i]["point"].GetString();
+
+				if (temp == "") {
+					single += "No SID";
+				}
+				else {
+					single += temp;
+				}
+				single += RESULT_SEP;
+			}
+		}
+
+		if (single.size() > 0) {
+			single = single.substr(0, single.size() - RESULT_SEP.size());
+		}
+		else {
+			single = "None";
+		}
+
+		string prefix = "";
+		if (out.size()) {
+			prefix += "Additionally, t";
+		}
+		else {
+			prefix += "T";
+		}
+
+		prefix += "he following SIDs may perhaps be valid: ";
+
+		out.push_back(prefix + single);
+	}
+
+	string outstring = "";
+	for (string each : out) {
+		outstring += each + ". ";
+	}
+
+	if (!outstring.size()) {
+		outstring = "Not Found. ";
+	}
+
+	return "Exit Point. " + outstring.substr(0, outstring.size() - 1);
 }
 
 //Outputs valid destinations (from Constraints array) as string
