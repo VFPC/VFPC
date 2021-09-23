@@ -372,11 +372,11 @@ bool CVFPCPlugin::versionCall() {
 		sendMessage("Failed to read date/time from API.");
 	}
 
-	if (version.HasMember("VFPC_Version") && version["VFPC_Version"].IsString()) {
+	if (version.HasMember("vfpc_version") && version["vfpc_version"].IsString() && version.HasMember("min_version") && version["min_version"].IsString()) {
 		bufLog("Version Call: Version Data Found");
-		vector<string> minver = split(version["Min_Version"].GetString(), '.');
+		vector<string> minver = split(version["min_version"].GetString(), '.');
 		bool minchange = false;
-		vector<string> curver = split(version["VFPC_Version"].GetString(), '.');
+		vector<string> curver = split(version["vfpc_version"].GetString(), '.');
 		bool curchange = false;
 		bool check = true;
 
