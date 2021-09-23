@@ -543,7 +543,108 @@ void CVFPCPlugin::getSids() {
 	}
 }
 
-vector<bool> CVFPCPlugin::checkRestrictions(CFlightPlan flightPlan, string sid_suffix, const Value& restrictions, bool *sidfails, bool *constfails) {
+vector<bool> CVFPCPlugin::checkDestination(const Value& conditions, string destination, vector<bool> in) {
+	vector<bool> out{};
+
+	for (size_t i = 0; i < conditions.Size(); i++) {
+		if (!in[i]) {
+			out.push_back(false);
+			continue;
+		}
+
+		bool res = true;
+
+		if (conditions[i]["nodests"].IsArray() && conditions[i]["nodests"].Size()) {
+			string dest;
+			if (destArrayContains(conditions[i]["nodests"], destination.c_str()).size()) {
+				res = false;
+			}
+		}
+
+		if (conditions[i]["dests"].IsArray() && conditions[i]["dests"].Size()) {
+			string dest;
+			if (!destArrayContains(conditions[i]["dests"], destination.c_str()).size()) {
+				res = false;
+			}
+		}
+
+		out.push_back(res);
+	}
+
+	return out;
+}
+
+vector<bool> CVFPCPlugin::checkExitPoint(const Value& conditions, vector<string> points, vector<bool> in) {
+	vector<bool> out{};
+
+	for (size_t i = 0; i < conditions.Size(); i++) {
+		if (!in[i]) {
+			out.push_back(false);
+			continue;
+		}
+
+		bool res = true;
+
+		if (conditions[i].HasMember("points") && conditions[i]["points"].IsArray() && conditions[i]["points"].Size()) {
+			bool temp = false;
+
+			for (string each : points) {
+				if (arrayContains(conditions[i]["points"], each)) {
+					temp = true;
+				}
+			}
+
+			if (!temp) {
+				res = false;
+			}
+		}
+
+		if (conditions[i].HasMember("nopoints") && conditions[i]["nopoints"].IsArray() && conditions[i]["nopoints"].Size()) {
+			bool temp = false;
+
+			for (string each : points) {
+				if (arrayContains(conditions[i]["nopoints"], each)) {
+					temp = true;
+				}
+			}
+
+			if (temp) {
+				res = false;
+			}
+		}
+
+		out.push_back(res);
+	}
+
+	return out;
+}
+
+vector<bool> CVFPCPlugin::checkRoute(const Value& conditions, vector<string> route, vector<bool> in) {
+	vector<bool> out{};
+
+	for (size_t i = 0; i < conditions.Size(); i++) {
+		if (!in[i]) {
+			out.push_back(false);
+			continue;
+		}
+
+		bool res = true;
+
+		if (conditions[i].HasMember("route") && conditions[i]["route"].IsArray() && conditions[i]["route"].Size() && !routeContains(route, conditions[i]["route"])) {
+			res = false;
+		}
+
+		if (conditions[i].HasMember("noroute") && res && conditions[i]["noroute"].IsArray() && conditions[i]["noroute"].Size() && routeContains(route, conditions[i]["noroute"])) {
+			res = false;
+		}
+
+		out.push_back(res);
+	}
+
+	return out;
+}
+
+vector<bool> CVFPCPlugin::checkRestriction(CFlightPlan flightPlan, string sid_suffix, const Value& restrictions, bool *sidfails, bool *constfails) {
 	bufLog(string(flightPlan.GetCallsign()) + " Restrictions Check: " + " - SID Suffix: " + sid_suffix + ", SID Fails: " + BoolToString(*sidfails) + ", Const Fails" + BoolToString(*constfails));
 	vector<bool> res{ 0, 0 }; //0 = Constraint-Level Pass, 1 = SID-Level Pass
 	bool constExists = false;
@@ -702,17 +803,149 @@ vector<bool> CVFPCPlugin::checkRestrictions(CFlightPlan flightPlan, string sid_s
 	return res;
 }
 
+vector<bool> CVFPCPlugin::checkRestrictions(CFlightPlan flightPlan, const Value& conditions, string sid_suffix, bool *sidfails, bool *constfails, bool *sidwide, vector<bool> in) {
+	vector<bool> out{};
+
+	for (size_t i = 0; i < conditions.Size(); i++) {
+		if (!in[i]) {
+			out.push_back(false);
+			continue;
+		}
+
+		bool res = true;
+
+		vector<bool> temp = checkRestriction(flightPlan, sid_suffix, conditions[i]["restrictions"], sidfails, constfails);
+
+		res = temp[0];
+		if (temp[1]) {
+			*sidwide = true;
+		}
+
+		out.push_back(res);
+	}
+
+	return out;
+}
+
+vector<bool> CVFPCPlugin::checkMinMax(const Value& conditions, int RFL, vector<bool> in) {
+	vector<bool> out{};
+
+	for (size_t i = 0; i < conditions.Size(); i++) {
+		if (!in[i]) {
+			out.push_back(false);
+			continue;
+		}
+
+		bool res = true;
+
+		int Min, Max;
+
+		//Min Level
+		if (conditions[i].HasMember("min") && (Min = conditions[i]["min"].GetInt()) > 0 && (RFL / 100) < Min) {
+			res = false;
+		}
+
+		//Max Level
+		if (conditions[i].HasMember("max") && (Max = conditions[i]["max"].GetInt()) > 0 && (RFL / 100) > Max) {
+			res = false;
+		}
+
+		out.push_back(res);
+	}
+
+	return out;
+}
+
+vector<bool> CVFPCPlugin::checkDirection(const Value& conditions, int RFL, vector<bool> in) {
+	vector<bool> out{};
+
+	for (size_t i = 0; i < conditions.Size(); i++) {
+		if (!in[i]) {
+			out.push_back(false);
+			continue;
+		}
+
+		//Assume any level valid if no "EVEN" or "ODD" declaration
+		bool res = true;
+
+		if (conditions[i].HasMember("dir") && conditions[i]["dir"].IsString()) {
+			string direction = conditions[i]["dir"].GetString();
+			boost::to_upper(direction);
+
+			if (direction == EVEN_DIRECTION) {
+				//Assume invalid until condition matched
+				res = false;
+
+				//Non-RVSM (Above FL410)
+				if ((RFL > RVSM_UPPER && ((RFL - RVSM_UPPER) / 1000) % 4 == 2)) {
+					res = true;
+				}
+				//RVSM (FL290-410) or Below FL290
+				else if (RFL <= RVSM_UPPER && (RFL / 1000) % 2 == 0) {
+					res = true;
+				}
+			}
+			else if (direction == ODD_DIRECTION) {
+				//Assume invalid until condition matched
+				res = false;
+
+				//Non-RVSM (Above FL410)
+				if ((RFL > RVSM_UPPER && ((RFL - RVSM_UPPER) / 1000) % 4 == 0)) {
+					res = true;
+				}
+				//RVSM (FL290-410) or Below FL290
+				else if (RFL <= RVSM_UPPER && (RFL / 1000) % 2 == 1) {
+					res = true;
+				}
+			}
+		}
+
+		out.push_back(res);
+	}
+
+	return out;
+}
+
+vector<bool> CVFPCPlugin::checkAlerts(const Value& conditions, bool *warn, vector<bool> in) {
+	vector<bool> out{};
+
+	for (size_t i = 0; i < conditions.Size(); i++) {
+		if (!in[i]) {
+			out.push_back(false);
+			continue;
+		}
+
+		bool res = true;
+
+		if (conditions[i]["alerts"].IsArray() && conditions[i]["alerts"].Size()) {
+			for (size_t j = 0; j < conditions[i]["alerts"].Size(); i++) {
+				if (conditions[i]["alerts"][j].HasMember("ban") && conditions[i]["alerts"][j]["ban"].GetBool()) {
+					res = false;
+				}
+
+				if (conditions[i]["alerts"][j].HasMember("warn") && conditions[i]["alerts"][j]["warn"].GetBool()) {
+					*warn = true;
+				}
+			}
+		}
+
+		out.push_back(res);
+	}
+
+	return out;
+}
+
 //Checks flight plan
 vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 	string callsign = flightPlan.GetCallsign();
 	bufLog(callsign + string(" Validating..."));
 	//out[0] = Normal Output, out[1] = Debug Output
-	vector<vector<string>> returnOut = { vector<string>(), vector<string>() }; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Route, 4 = Nav Performance, 5 = Min/Max Flight Level, 6 = Even/Odd, 7 = Suffix, 8 = Aircraft Type, 9 = Date/Time, 10 = Syntax, 11 = Passed/Failed
+	vector<vector<string>> returnOut = { vector<string>(), vector<string>() }; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Exit Point, 4 = Route, 5 = Min/Max Flight Level, 6 = Even/Odd, 7 = Suffix, 8 = Restrictions, 9 = Warnings, 10 = Bans, 11 = Syntax, 12 = Passed/Failed
 
 	bufLog(callsign + string(" Validate: Outputs - Initialising..."));
 	returnOut[0].push_back(callsign);
 	returnOut[1].push_back(callsign);
-	for (int i = 1; i < 12; i++) {
+	for (int i = 1; i < 13; i++) {
 		returnOut[0].push_back("-");
 		returnOut[1].push_back("-");
 	}
@@ -968,7 +1201,6 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 		}
 	}
 
-
 	// Needed SID defined
 	if (pos == string::npos) {
 		bufLog(callsign + string(" Validate: SID - Definition Not Found..."));
@@ -998,12 +1230,11 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 		bool sidFails[4]{ 0 };
 		bool restFails[4]{ 0 }; // 0 = Suffix, 1 = Aircraft/Engines, 2 = Date/Time Restrictions
 		bool warn = false;
-		int Min, Max;
 
 		bufLog(callsign + string(" Validate: Checks - SID-Level Restrictions..."));
 		//SID-Level Restrictions Array
 		sidFails[0] = true;
-		vector<bool> temp = checkRestrictions(flightPlan, sid_suffix, sid_ele["restrictions"], sidFails, sidFails);
+		vector<bool> temp = checkRestriction(flightPlan, sid_suffix, sid_ele["restrictions"], sidFails, sidFails);
 		bool sidwide = false;
 		if (temp[0] || temp[1]) {
 			sidwide = true;
@@ -1015,179 +1246,54 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 			validity.push_back(true);
 		}
 			
-		//Constraints Array
-		while (round < 6) {
+		//Run Checks on Constraints Array
+		while (round < 7) {
 			bufLog(callsign + string(" Validate: Checks - Starting Round ") + to_string(round) + string("..."));
 			new_validity = {};
 
-			for (SizeType i = 0; i < conditions.Size(); i++) {
-				if (round == 0 || validity[i]) {
-					switch (round) {
-					case 0:
-					{
-						//Destinations
-						bool res = true;
-
-						if (conditions[i]["nodests"].IsArray() && conditions[i]["nodests"].Size()) {
-							string dest;
-							if (destArrayContains(conditions[i]["nodests"], destination.c_str()).size()) {
-								res = false;
-							}
-						}
-
-						if (conditions[i]["dests"].IsArray() && conditions[i]["dests"].Size()) {
-							string dest;
-							if (!destArrayContains(conditions[i]["dests"], destination.c_str()).size()) {
-								res = false;
-							}
-						}
-
-						new_validity.push_back(res);
-						break;
-					}
-					case 1:
-					{
-						//Route
-						bool res = true;
-
-						if (conditions[i].HasMember("route") && conditions[i]["route"].IsArray() && conditions[i]["route"].Size() && !routeContains(callsign, route, conditions[i]["route"])) {
-							res = false;
-						}
-
-						if (conditions[i].HasMember("points") && conditions[i]["points"].IsArray() && conditions[i]["points"].Size()) {
-							bool temp = false;
-
-							for (string each : points) {
-								if (arrayContains(conditions[i]["points"], each)) {
-									temp = true;
-								}
-							}
-
-							if (!temp) {
-								res = false;
-							}
-						}
-
-						if (conditions[i].HasMember("noroute") && res && conditions[i]["noroute"].IsArray() && conditions[i]["noroute"].Size() && routeContains(callsign, route, conditions[i]["noroute"])) {
-							res = false;
-						}
-
-						if (conditions[i].HasMember("nopoints") && conditions[i]["nopoints"].IsArray() && conditions[i]["nopoints"].Size()) {
-							bool temp = false;
-
-							for (string each : points) {
-								if (arrayContains(conditions[i]["nopoints"], each)) {
-									temp = true;
-								}
-							}
-
-							if (temp) {
-								res = false;
-							}
-						}
-
-						new_validity.push_back(res);
-						break;
-					}
-					case 2:
-					{
-						//Restrictions Array
-						bool res = false;
-
-						temp = checkRestrictions(flightPlan, sid_suffix, conditions[i]["restrictions"], sidFails, restFails);
-
-						res = temp[0];
-						if (temp[1]) {
-							sidwide = true;
-						}
-
-						new_validity.push_back(res);
-						break;
-					}
-					case 3:
-					{
-						bool res = true;
-
-						//Min Level
-						if (conditions[i].HasMember("min") && (Min = conditions[i]["min"].GetInt()) > 0 && (RFL / 100) < Min) {
-							res = false;
-						}
-
-						//Max Level
-						if (conditions[i].HasMember("max") && (Max = conditions[i]["max"].GetInt()) > 0 && (RFL / 100) > Max) {
-							res = false;
-						}
-
-						new_validity.push_back(res);
-						break;
-					}
-					case 4:
-					{
-						//Even/Odd Levels
-
-						//Assume any level valid if no "EVEN" or "ODD" declaration
-						bool res = true;
-
-						if (conditions[i].HasMember("dir") && conditions[i]["dir"].IsString()) {
-							string direction = conditions[i]["dir"].GetString();
-							boost::to_upper(direction);
-
-							if (direction == EVEN_DIRECTION) {
-								//Assume invalid until condition matched
-								res = false;
-
-								//Non-RVSM (Above FL410)
-								if ((RFL > 41000 && (RFL / 1000 - 41) % 4 == 2)) {
-									res = true;
-								}
-								//RVSM (FL290-410) or Below FL290
-								else if (RFL <= 41000 && (RFL / 1000) % 2 == 0) {
-									res = true;
-								}
-							}
-							else if (direction == ODD_DIRECTION) {
-								//Assume invalid until condition matched
-								res = false;
-
-								//Non-RVSM (Above FL410)
-								if ((RFL > 41000 && (RFL / 1000 - 41) % 4 == 0)) {
-									res = true;
-								}
-								//RVSM (FL290-410) or Below FL290
-								else if (RFL <= 41000 && (RFL / 1000) % 2 == 1) {
-									res = true;
-								}
-							}
-						}
-
-						new_validity.push_back(res);
-						break;
-					}
-					case 5:
-					{
-						//Alerts (Warn/Ban)
-						bool res = true;
-
-						if (conditions[i]["alerts"].IsArray() && conditions[i]["alerts"].Size()) {
-							for (size_t j = 0; j < conditions[i]["alerts"].Size(); i++) {
-								if (conditions[i]["alerts"][j].HasMember("ban") && conditions[i]["alerts"][j]["ban"].GetBool()) {
-									res = false;
-								}
-
-								if (conditions[i]["alerts"][j].HasMember("warn") && conditions[i]["alerts"][j]["warn"].GetBool()) {
-									warn = true;
-								}
-							}
-						}
-
-						new_validity.push_back(res);
-						break;
-					}
-					}
-				}
-				else {
-					new_validity.push_back(false);
-				}
+			switch (round) {
+			case 0:
+			{
+				//Destinations
+				new_validity = checkDestination(conditions, destination, validity);
+				break;
+			}
+			case 1:
+			{
+				//Exit Points
+				new_validity = checkExitPoint(conditions, points, validity);
+				break;
+			}
+			case 2:
+			{
+				//Route
+				new_validity = checkRoute(conditions, route, validity);
+				break;
+			}
+			case 3:
+			{
+				//Restrictions Array
+				new_validity = checkRestrictions(flightPlan, conditions, sid_suffix, sidFails, restFails, &sidwide, validity);
+				break;
+			}
+			case 4:
+			{
+				//Min & Max Levels
+				new_validity = checkMinMax(conditions, RFL, validity);
+				break;
+			}
+			case 5:
+			{
+				//Even/Odd Levels
+				new_validity = checkDirection(conditions, RFL, validity);
+				break;
+			}
+			case 6:
+			{
+				//Alerts (Warn/Ban)
+				new_validity = checkAlerts(conditions, &warn, validity);
+				break;
+			}
 			}
 
 			if (all_of(new_validity.begin(), new_validity.end(), [](bool v) { return !v; })) {
@@ -1222,68 +1328,78 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 
 			bufLog(callsign + string(" Validate: Result - Setting Type ") + to_string(round) + string("..."));
 
+			//Generate Output
 			switch (round) {
-			case 6:
+			case 7:
 			{
 				returnOut[1].back() = returnOut[0].back() = "Passed";
-				returnOut[1][9] = "No Route Ban.";
+				returnOut[1][10] = "No Route Ban.";
+			}
+			case 6:
+			{
+				if (warn) {
+					returnOut[1][9] = returnOut[0][9] = WarningsOutput(flightPlan, conditions, successes);
+				}
+				else {
+					returnOut[1][9] = "No Warnings.";
+				}
+        
+				if (round == 6) {
+					returnOut[1][10] = returnOut[0][10] = BansOutput(flightPlan, conditions, successes);
+				}
+
+				returnOut[0][6] = "Passed Odd-Even Rule.";
+				returnOut[1][6] = "Passed " + DirectionOutput(flightPlan, conditions, successes);
 			}
 			case 5:
 			{
-				if (warn) {
-					returnOut[1][8] = returnOut[0][8] = WarningsOutput(flightPlan, conditions, successes);
-				}
-				else {
-					returnOut[1][8] = "No Warnings.";
-				}
-        
 				if (round == 5) {
-					returnOut[1][9] = returnOut[0][9] = BansOutput(flightPlan, conditions, successes);
+					returnOut[1][6] = returnOut[0][6] = "Failed " + DirectionOutput(flightPlan, conditions, successes);
 				}
 
-				returnOut[0][5] = "Passed Odd-Even Rule.";
-				returnOut[1][5] = "Passed " + DirectionOutput(flightPlan, conditions, successes);
+				returnOut[0][5] = "Passed Min/Max Level.";
+				returnOut[1][5] = "Passed " + MinMaxOutput(flightPlan, conditions, successes);
 			}
 			case 4:
 			{
 				if (round == 4) {
-					returnOut[1][5] = returnOut[0][5] = "Failed " + DirectionOutput(flightPlan, conditions, successes);
+					returnOut[1][5] = returnOut[0][5] = "Failed " + MinMaxOutput(flightPlan, conditions, successes) + " Alternative " + RouteOutput(flightPlan, conditions, successes, points, destination, RFL, true);
 				}
 
-				returnOut[0][4] = "Passed Min/Max Level.";
-				returnOut[1][4] = "Passed " + MinMaxOutput(flightPlan, conditions, successes);
+				returnOut[0][8] = "Passed SID Restrictions.";
+				returnOut[1][8] = "Passed " + RestrictionsOutput(flightPlan, sid_ele, true, true, true, successes);
 			}
 			case 3:
 			{
+
+				returnOut[0][7] = "Valid Suffix.";
+				returnOut[1][7] = "Valid " + SuffixOutput(flightPlan, sid_ele, successes);
+
 				if (round == 3) {
-					returnOut[1][4] = returnOut[0][4] = "Failed " + MinMaxOutput(flightPlan, conditions, successes) + " Alternative " + RouteOutput(flightPlan, conditions, successes, points, destination, RFL, true);
+					if (restFails[0]) {
+						returnOut[1][7] = returnOut[0][7] = "Invalid " + SuffixOutput(flightPlan, sid_ele, successes);
+					}
+					else {
+						returnOut[1][8] = returnOut[0][8] = "Failed " + RestrictionsOutput(flightPlan, sid_ele, restFails[1], restFails[2], restFails[4], successes) + " " + AlternativesOutput(flightPlan, sid_ele, successes);
+					}
 				}
 
-				returnOut[0][7] = "Passed SID Restrictions.";
-				returnOut[1][7] = "Passed " + RestrictionsOutput(flightPlan, sid_ele, true, true, true, successes);
+				returnOut[0][4] = "Passed Route.";
+				returnOut[1][4] = "Passed Route. " + RouteOutput(flightPlan, conditions, successes, points, destination, RFL);
 			}
 			case 2:
 			{
-
-				returnOut[0][6] = "Valid Suffix.";
-				returnOut[1][6] = "Valid " + SuffixOutput(flightPlan, sid_ele, successes);
-
 				if (round == 2) {
-					if (restFails[0]) {
-						returnOut[1][6] = returnOut[0][6] = "Invalid " + SuffixOutput(flightPlan, sid_ele, successes);
-					}
-					else {
-						returnOut[1][7] = returnOut[0][7] = "Failed " + RestrictionsOutput(flightPlan, sid_ele, restFails[1], restFails[2], restFails[3], successes) + " " + AlternativesOutput(flightPlan, sid_ele, successes);
-					}
+					returnOut[1][4] = returnOut[0][4] = "Failed Route. " + RouteOutput(flightPlan, conditions, successes, points, destination, RFL);
 				}
 
-				returnOut[0][3] = "Passed Route.";
-				returnOut[1][3] = "Passed Route. " + RouteOutput(flightPlan, conditions, successes, points, destination, RFL);
+				returnOut[0][3] = "Passed Exit Point.";
+				returnOut[1][3] = "Passed " + ExitPointOutput(flightPlan, origin_int, points);
 			}
 			case 1:
 			{
 				if (round == 1) {
-					returnOut[1][3] = returnOut[0][3] = "Failed Route. " + RouteOutput(flightPlan, conditions, successes, points, destination, RFL);
+					returnOut[1][3] = returnOut[0][3] = "Failed " + ExitPointOutput(flightPlan, origin_int, points);
 				}
 
 				returnOut[0][2] = "Passed Destination.";
@@ -2076,6 +2192,123 @@ string CVFPCPlugin::RouteOutput(CFlightPlan flightPlan, const Value& constraints
 	return "Valid Initial Routes: " + outstring + ".";
 }
 
+//Outputs valid FIR exit points (from Constraints array) as string
+string CVFPCPlugin::ExitPointOutput(CFlightPlan flightPlan, size_t origin_int, vector<string> points) {
+	bufLog(flightPlan.GetCallsign() + string(" - Generating Exit Point Output..."));
+	map<string, vector<string>> a{}; //Key = Exit Point, Value = Explicitly Permitted SIDs
+	vector<bool> b{}; //Implicitly Permitted SIDs (Not Explicitly Prohibited)
+
+	for (size_t i = 0; i < config[origin_int]["sids"].Size(); i++) {
+		b.push_back(false);
+
+		if (config[origin_int]["sids"][i].HasMember("point") && config[origin_int]["sids"][i]["point"].IsString()) {
+			const Value& conditions = config[origin_int]["sids"][i]["constraints"];
+			for (size_t j = 0; j < conditions.Size(); j++) {
+				if (conditions[j]["points"].IsArray() && conditions[j]["points"].Size()) {
+					for (string each : points) {
+						if (arrayContains(conditions[j]["points"], each)) {
+							if (a.find(each) == a.end()) {
+								vector<string> temp{ config[origin_int]["sids"][i]["point"].GetString() };
+								a.insert(pair<string, vector<string>>(each, temp));
+							}
+							else {
+								a[each].push_back(config[origin_int]["sids"][i]["point"].GetString());
+							}
+						}
+					}
+				}
+				else if (conditions[j]["nopoints"].IsArray() && conditions[j]["nopoints"].Size()) {
+					b[i] = true;
+					for (string each : points) {
+						if (arrayContains(conditions[i]["nopoints"], each)) {
+							b[i] = false;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	vector<string> out = {};
+
+	if (a.size()) {
+		for (pair<string, vector<string>> exit : a) {
+			string single = "";
+
+			for (string each : exit.second) {
+				if (each == "") {
+					single += "No SID";
+				}
+				else {
+					single += each;
+				}
+
+				single += RESULT_SEP;
+			}
+
+			if (single.size() > 0) {
+				single = single.substr(0, single.size() - RESULT_SEP.size());
+			}
+			else {
+				single = "None";
+			}
+
+			string prefix = exit.first;
+			prefix += " is valid for: ";
+
+			out.push_back(prefix + single);
+		}
+	}
+
+	if (!all_of(b.begin(), b.end(), [](bool v) { return !v; })) {
+		string single = "";
+
+		for (size_t i = 0; i < b.size(); i++) {
+			if (b[i]) {
+				string temp = config[origin_int]["sids"][i]["point"].GetString();
+
+				if (temp == "") {
+					single += "No SID";
+				}
+				else {
+					single += temp;
+				}
+				single += RESULT_SEP;
+			}
+		}
+
+		if (single.size() > 0) {
+			single = single.substr(0, single.size() - RESULT_SEP.size());
+		}
+		else {
+			single = "None";
+		}
+
+		string prefix = "";
+		if (out.size()) {
+			prefix += "Additionally, t";
+		}
+		else {
+			prefix += "T";
+		}
+
+		prefix += "he following SIDs may perhaps be valid: ";
+
+		out.push_back(prefix + single);
+	}
+
+	string outstring = "";
+	for (string each : out) {
+		outstring += each + ". ";
+	}
+
+	if (!outstring.size()) {
+		outstring = "Not Found. ";
+	}
+
+	return "Exit Point. " + outstring.substr(0, outstring.size() - 1);
+}
+
 //Outputs valid destinations (from Constraints array) as string
 string CVFPCPlugin::DestinationOutput(CFlightPlan flightPlan, size_t origin_int, string dest) {
 	bufLog(flightPlan.GetCallsign() + string(" - Generating Destination Output..."));
@@ -2250,7 +2483,7 @@ void CVFPCPlugin::OnGetTagItem(CFlightPlan flightPlan, CRadarTarget RadarTarget,
 				}
 				else {
 					bufLog(flightPlan.GetCallsign() + string(": Tag Item - IFR, Launching Check..."));
-					vector<string> validize = validateSid(flightPlan)[0]; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Route, 4 = Min/Max Flight Level, 5 = Even/Odd, 6 = Suffix, 7 = Restrictions, 8 = Syntax, 9 = Passed/Failed
+					vector<string> validize = validateSid(flightPlan)[0]; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Exit Point, 4 = Route, 5 = Min/Max Flight Level, 6 = Even/Odd, 7 = Suffix, 8 = Restrictions, 9 = Warnings, 10 = Bans, 11 = Syntax, 12 = Passed/Failed
 
 					bufLog(flightPlan.GetCallsign() + string(": Tag Item - Check Complete, Setting Tag Alert..."));
 					strcpy_s(sItemString, 16, getFails(flightPlan, validize, pRGB).c_str());
@@ -2368,8 +2601,8 @@ void CVFPCPlugin::checkFPDetail() {
 				vector<vector<string>> validize = validateSid(flightPlan);
 
 				bufLog(flightPlan.GetCallsign() + string(": Show Checks - Check Complete, Preparing Output..."));
-				vector<string> messageBuffer{ validize[0] }; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Route, 4 = Nav Performance, 5 = Min/Max Flight Level, 6 = Even/Odd, 7 = Suffix, 8 = Aircraft Type, 9 = Date/Time, 10 = Syntax, 11 = Passed/Failed
-				vector<string> logBuffer{ validize[1] }; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Route, 4 = Nav Performance, 5 = Min/Max Flight Level, 6 = Even/Odd, 7 = Suffix, 8 = Aircraft Type, 9 = Date/Time, 10 = Syntax, 11 = Passed/Failed
+				vector<string> messageBuffer{ validize[0] }; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Exit Point, 4 = Route, 5 = Min/Max Flight Level, 6 = Even/Odd, 7 = Suffix, 8 = Restrictions, 9 = Warnings, 10 = Bans, 11 = Syntax, 12 = Passed/Failed
+				vector<string> logBuffer{ validize[1] }; // 0 = Callsign, 1 = SID, 2 = Destination, 3 = Exit Point, 4 = Route, 5 = Min/Max Flight Level, 6 = Even/Odd, 7 = Suffix, 8 = Restrictions, 9 = Warnings, 10 = Bans, 11 = Syntax, 12 = Passed/Failed
 				
 				string buffer{};
 				string logbuf{};
@@ -2434,30 +2667,34 @@ string CVFPCPlugin::getFails(CFlightPlan flightPlan, vector<string> messageBuffe
 			return "DST";
 		}
 		else if (!messageBuffer.at(3).find("Failed")) {
+			bufLog(flightPlan.GetCallsign() + string(": Fail - XPT"));
+			return "XPT";
+		}
+		else if (!messageBuffer.at(4).find("Failed")) {
 			bufLog(flightPlan.GetCallsign() + string(": Fail - RTE"));
 			return "RTE";
 		}
-		else if (!messageBuffer.at(4).find("Failed")) {
+		else if (!messageBuffer.at(5).find("Failed")) {
 			bufLog(flightPlan.GetCallsign() + string(": Fail - LVL"));
 			return "LVL";
 		}
-		else if (!messageBuffer.at(5).find("Failed")) {
+		else if (!messageBuffer.at(6).find("Failed")) {
 			bufLog(flightPlan.GetCallsign() + string(": Fail - OER"));
 			return "OER";
 		}
-		else if (!messageBuffer.at(6).find("Invalid")) {
+		else if (!messageBuffer.at(7).find("Invalid")) {
 			bufLog(flightPlan.GetCallsign() + string(": Fail - SUF"));
 			return "SUF";
 		}
-		else if (!messageBuffer.at(7).find("Failed")) {
+		else if (!messageBuffer.at(8).find("Failed")) {
 			bufLog(flightPlan.GetCallsign() + string(": Fail - RST"));
 			return "RST";
 		}
-		else if (!messageBuffer.at(8).find("Warnings")) {
+		else if (!messageBuffer.at(9).find("Warnings")) {
 			bufLog(flightPlan.GetCallsign() + string(": Fail - Warning"));
 			*pRGB = TAG_ORANGE;
 		}
-		else if (!messageBuffer.at(9).find("Route Banned")) {
+		else if (!messageBuffer.at(10).find("Route Banned")) {
 			bufLog(flightPlan.GetCallsign() + string(": Fail - BAN"));
 			return "BAN";
 		}
