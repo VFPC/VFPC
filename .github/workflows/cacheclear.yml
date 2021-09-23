@@ -8,6 +8,8 @@ jobs:
   cache_clear:
     runs-on: ubuntu-latest
     env:
+      CACHECLEAR_EMAIL: ${{ secrets.CACHECLEAR_EMAIL }}
       CACHECLEAR_PASS: ${{ secrets.CACHECLEAR_PASS }}
     steps:
-      - run: curl -X POST -F "cacheclearpass=$CACHECLEAR_PASS" https://vfpc.tomjmills.co.uk/admin/clearversioncache
+      - run: curl -X POST -F 'email=$CACHECLEAR_EMAIL' -F 'passw=$CACHECLEAR_PASS' -c cookie-jar.txt https://vfpc.tomjmills.co.uk/admin/signin/
+      - run: curl -X POST -b cookie-jar.txt https://vfpc.tomjmills.co.uk/admin/clearversioncache/
