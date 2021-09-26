@@ -5,7 +5,7 @@
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
-bool debugMode, validVersion, autoLoad, fileLoad;
+bool debugMode, validVersion, autoLoad, fileLoad, apiUpdated;
 
 vector<int> timedata;
 vector<int> lastupdate;
@@ -331,48 +331,7 @@ bool CVFPCPlugin::versionCall() {
 	bufLog("Version Call: Launching...");
 	APICall("version", version);
 
-	bool timefail = false;
-
-	if (version.HasMember("time") && version["time"].IsString() && version.HasMember("day") && version["day"].IsInt()) {
-		bufLog("Version Call: Day/Time Data Found");
-		bufLog("Version Call: Checking Weekday...");
-		int day = version["day"].GetInt();
-		bufLog("Version Call: Weekday Entry Exists");
-		day += 6;
-		day %= 7;
-		timedata[5] = day;
-		bufLog("Version Call: Weekday Data Read Successfully");
-
-		bufLog("Version Call: Checking Time...");
-		string time = version["time"].GetString();
-		bufLog("Version Call: Time Entry Exists");
-		if (time.size() == 5) {
-			try {
-				int hour = stoi(time.substr(0, 2));
-				int mins = stoi(time.substr(3, 2));
-
-				timedata[3] = hour;
-				timedata[4] = mins;
-				bufLog("Version Call: Time Data Read Successfully");
-			}
-			catch (...) {
-				bufLog("Version Call: Time Data Unreadable - String->Int Failed");
-				timefail = true;
-			}
-		}
-		else {
-			bufLog("Version Call: Time Data Unreadable - Wrong Size");
-			timefail = true;
-		}
-	}
-	else {
-		bufLog("Version Call: Time Data Not Found");
-		timefail = true;
-	}
-
-	if (timefail) {
-		sendMessage("Failed to read date/time from API.");
-	}
+	bool out = false;
 
 	if (version.HasMember("vfpc_version") && version["vfpc_version"].IsString() && version.HasMember("min_version") && version["min_version"].IsString()) {
 		bufLog("Version Call: Version Data Found");
@@ -435,11 +394,11 @@ bool CVFPCPlugin::versionCall() {
 			if (curchange) {
 				sendMessage("Update available - you may continue using the plugin, but please update as soon as possible.");
 			}
-			return true;
+			out = true;
 		}
 		else {
 			bufLog("Version Call: No New Version Since Last Check");
-			return true;
+			out = true;
 		}
 	}
 	else {
@@ -447,7 +406,161 @@ bool CVFPCPlugin::versionCall() {
 		sendMessage("Failed to check for updates - the plugin has been disabled. If no updates are available, please unload and reload the plugin to try again. (Note: .vfpc load will NOT work.)");
 	}
 
-	return false;
+	bool updatefail = false;
+	vector<int> newdate = { 0, 0, 0 };
+
+	if (version.HasMember("date") && version["date"].IsString() && version.HasMember("last_updated_date") && version["last_updated_date"].IsString() && version.HasMember("last_updated_time") && version["last_updated_time"].IsString()) {
+		bufLog("Version Call: Update Data Found");
+		bufLog("Version Call: Checking Last Updated Date...");
+		string lastdate = version["last_updated_date"].GetString();
+		bufLog("Version Call: Last Updated Date Entry Exists");
+		if (lastdate.size() == 10) {
+			try {
+				int lastday = stoi(lastdate.substr(0, 2));
+				int lastmonth = stoi(lastdate.substr(3, 2));
+				int lastyear = stoi(lastdate.substr(6, 4));
+
+				lastupdate[0] = lastyear;
+				lastupdate[1] = lastmonth;
+				lastupdate[2] = lastday;
+				bufLog("Version Call: Last Updated Date Data Read and Saved Successfully");
+			}
+			catch (...) {
+				bufLog("Version Call: Last Updated Date Data Unreadable - String->Int Failed");
+				updatefail = true;
+			}
+		}
+		else {
+			bufLog("Version Call: Last Updated Date Data Unreadable - Wrong Size");
+			updatefail = true;
+		}
+
+		bufLog("Version Call: Checking Last Updated Time...");
+		string lasttime = version["last_updated_time"].GetString();
+		bufLog("Version Call: Last Updated Time Entry Exists");
+		if (lasttime.size() == 5) {
+			try {
+				int lasthour = stoi(lasttime.substr(0, 2));
+				int lastmins = stoi(lasttime.substr(3, 2));
+
+				lastupdate[3] = lasthour;
+				lastupdate[4] = lastmins;
+				bufLog("Version Call: Last Updated Time Data Read and Saved Successfully");
+			}
+			catch (...) {
+				bufLog("Version Call: Last Updated Time Data Unreadable - String->Int Failed");
+				updatefail = true;
+			}
+		}
+		else {
+			bufLog("Version Call: Last Updated Time Data Unreadable - Wrong Size");
+			updatefail = true;
+		}
+
+		bufLog("Version Call: Checking Date...");
+		string date = version["date"].GetString();
+		bufLog("Version Call: Date Entry Exists");
+		if (date.size() == 10) {
+			try {
+				int day = stoi(date.substr(0, 2));
+				int month = stoi(date.substr(3, 2));
+				int year = stoi(date.substr(6, 4));
+
+				newdate[0] = year;
+				newdate[1] = month;
+				newdate[2] = day;
+				bufLog("Version Call: Date Data Read and Presaved Successfully");
+			}
+			catch (...) {
+				bufLog("Version Call: Date Data Unreadable - String->Int Failed");
+				updatefail = true;
+			}
+		}
+		else {
+			bufLog("Version Call: Date Data Unreadable - Wrong Size");
+			updatefail = true;
+		}
+	}
+	else {
+		bufLog("Version Call: Update Data Not Found");
+		updatefail = true;
+	}
+
+	if (updatefail) {
+		sendMessage("Failed to read date/last update record from API.");
+		apiUpdated = true;
+	}
+	else {
+		bufLog("Version Call: Checking Whether Update Has Occurred...");
+		bool stop = false;
+
+		for (size_t i = 0; i < lastupdate.size(); i++) {
+			if (!stop) {
+				if (lastupdate[i] > timedata[i]) {
+					apiUpdated = true;
+					bufLog("Version Call: Update Has Occurred - Pull From API Next Pass.");
+				}
+				else if (lastupdate[i] != timedata[i]) {
+					stop = true;
+					bufLog("Version Call: Update Has Not Occurred.");
+				}
+			}
+		}
+
+		bufLog("Version Call: Update Check Complete.");
+	}
+
+	for (size_t i = 0; i < newdate.size(); i++) {
+		timedata[i] = newdate[i];
+	}
+	bufLog("Version Call: Date Data Saved Successfully");
+
+	bool timefail = false;
+
+	if (version.HasMember("time") && version["time"].IsString() && version.HasMember("day") && version["day"].IsInt()) {
+		bufLog("Version Call: Day/Time Data Found");
+		bufLog("Version Call: Checking Weekday...");
+		int day = version["day"].GetInt();
+		bufLog("Version Call: Weekday Entry Exists");
+		day += 6;
+		day %= 7;
+		bufLog("Version Call: Weekday Data Read Successfully");
+
+		bufLog("Version Call: Checking Time...");
+		string time = version["time"].GetString();
+		bufLog("Version Call: Time Entry Exists");
+		if (time.size() == 5) {
+			try {
+				int hour = stoi(time.substr(0, 2));
+				int mins = stoi(time.substr(3, 2));
+
+				timedata[3] = hour;
+				timedata[4] = mins;
+				bufLog("Version Call: Time Data Read and Saved Successfully");
+
+				timedata[5] = day;
+				bufLog("Version Call: Weekday Data Saved Successfully");
+			}
+			catch (...) {
+				bufLog("Version Call: Time Data Unreadable - String->Int Failed");
+				timefail = true;
+			}
+		}
+		else {
+			bufLog("Version Call: Time Data Unreadable - Wrong Size");
+			timefail = true;
+		}
+	}
+	else {
+		bufLog("Version Call: Time Data Not Found");
+		timefail = true;
+	}
+	   
+	if (timefail) {
+		sendMessage("Failed to read day/time from API.");
+	}
+
+	return out;
 }
 
 //Loads data from file
@@ -495,27 +608,34 @@ void CVFPCPlugin::getSids() {
 	try {
 		//Load data from API
 		if (autoLoad) {
-			bufLog("SID Data: From API - Loading...");
-			if (activeAirports.size() > 0) {
-				bufLog("SID Data: From API - Active Airports Found");
-				string endpoint = "airport?icao=";
+			if (apiUpdated) {
+				bufLog("SID Data: From API - Loading...");
+				if (activeAirports.size() > 0) {
+					bufLog("SID Data: From API - Active Airports Found.");
+					string endpoint = "airport?icao=";
 
-				for (size_t i = 0; i < activeAirports.size(); i++) {
-					bufLog("SID Data: From API - Requesting For " + activeAirports[i]);
-					endpoint += activeAirports[i] + "+";
+					for (size_t i = 0; i < activeAirports.size(); i++) {
+						bufLog("SID Data: From API - Requesting For " + activeAirports[i] + ".");
+						endpoint += activeAirports[i] + "+";
+					}
+
+					endpoint = endpoint.substr(0, endpoint.size() - 1);
+
+					autoLoad = APICall(endpoint, config);
+					bufLog("SID Data: From API - Loaded.");
 				}
 
-				endpoint = endpoint.substr(0, endpoint.size() - 1);
-
-				autoLoad = APICall(endpoint, config);
-				bufLog("SID Data: From API - Loaded");
+				apiUpdated = false;
+			}
+			else {
+				bufLog("SID Data: From API - No Pull Required.");
 			}
 		}
 		//Load data from Sid.json file
 		else if (fileLoad) {
 			CVFPCPlugin::bufLog("SID Data: From File - Loading...");
 			fileLoad = fileCall(config);
-			CVFPCPlugin::bufLog("SID Data: From File - Loaded");
+			CVFPCPlugin::bufLog("SID Data: From File - Loaded.");
 		}
 
 		//Sort new data into airports
@@ -525,9 +645,9 @@ void CVFPCPlugin::getSids() {
 			const Value& airport = config[i];
 			if (airport.HasMember("icao") && airport["icao"].IsString()) {
 				string airport_icao = airport["icao"].GetString();
-				CVFPCPlugin::bufLog("SID Data: " + airport_icao + " - Found");
+				CVFPCPlugin::bufLog("SID Data: " + airport_icao + " - Found.");
 				airports.insert(pair<string, SizeType>(airport_icao, i));
-				CVFPCPlugin::bufLog("SID Data: " + airport_icao + " - Inserted");
+				CVFPCPlugin::bufLog("SID Data: " + airport_icao + " - Inserted.");
 			}
 		}
 	}
