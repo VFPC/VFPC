@@ -8,6 +8,7 @@ extern "C" IMAGE_DOS_HEADER __ImageBase;
 bool debugMode, validVersion, autoLoad, fileLoad;
 
 vector<int> timedata;
+vector<int> lastupdate;
 vector<string> logBuffer{};
 
 size_t failPos;
@@ -35,7 +36,8 @@ CVFPCPlugin::CVFPCPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_
 	relCount = 0;
 
 	bufLog("Plugin: Load - Initialising Time Data...");
-	timedata = { 0, 0, 0 };
+	timedata = { 0, 0, 0, 0, 0, 0 }; // 0 = Year, 1 = Month, 2 = Day, 3 = Hour, 4 = Minute, 5 = Day of Week
+	lastupdate = { 0, 0, 0, 0, 0 }; // 0 = Year, 1 = Month, 2 = Day, 3 = Hour, 4 = Minute
 
 	bufLog("Plugin: Load - Initialising Version Data...");
 	vector<string> installed = split(MY_PLUGIN_VERSION, '.');
@@ -338,7 +340,7 @@ bool CVFPCPlugin::versionCall() {
 		bufLog("Version Call: Weekday Entry Exists");
 		day += 6;
 		day %= 7;
-		timedata[0] = day;
+		timedata[5] = day;
 		bufLog("Version Call: Weekday Data Read Successfully");
 
 		bufLog("Version Call: Checking Time...");
@@ -349,8 +351,8 @@ bool CVFPCPlugin::versionCall() {
 				int hour = stoi(time.substr(0, 2));
 				int mins = stoi(time.substr(3, 2));
 
-				timedata[1] = hour;
-				timedata[2] = mins;
+				timedata[3] = hour;
+				timedata[4] = mins;
 				bufLog("Version Call: Time Data Read Successfully");
 			}
 			catch (...) {
@@ -724,12 +726,12 @@ vector<bool> CVFPCPlugin::checkRestriction(CFlightPlan flightPlan, string sid_su
 
 					if (!date && time) {
 						if (starttime[0] > endtime[0] || (starttime[0] == endtime[0] && starttime[1] >= endtime[1])) {
-							if (timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1]) || timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] <= endtime[1])) {
+							if (timedata[3] > starttime[0] || (timedata[3] == starttime[0] && timedata[4] >= starttime[1]) || timedata[3] < endtime[0] || (timedata[3] == endtime[0] && timedata[4] <= endtime[1])) {
 								valid = true;
 							}
 						}
 						else {
-							if ((timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1])) && (timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] <= endtime[1]))) {
+							if ((timedata[3] > starttime[0] || (timedata[3] == starttime[0] && timedata[4] >= starttime[1])) && (timedata[3] < endtime[0] || (timedata[3] == endtime[0] && timedata[4] <= endtime[1]))) {
 								valid = true;
 							}
 						}
@@ -738,36 +740,36 @@ vector<bool> CVFPCPlugin::checkRestriction(CFlightPlan flightPlan, string sid_su
 						if (!time) {
 							valid = true;
 						}
-						else if ((timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1])) && (timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] <= endtime[1]))) {
+						else if ((timedata[3] > starttime[0] || (timedata[3] == starttime[0] && timedata[4] >= starttime[1])) && (timedata[3] < endtime[0] || (timedata[3] == endtime[0] && timedata[4] <= endtime[1]))) {
 							valid = true;
 						}
 					}
 					else if (startdate < enddate) {
-						if (timedata[0] > startdate && timedata[0] < enddate) {
+						if (timedata[5] > startdate && timedata[5] < enddate) {
 							valid = true;
 						}
-						else if (timedata[0] == startdate) {
-							if (!time || timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1])) {
+						else if (timedata[5] == startdate) {
+							if (!time || timedata[3] > starttime[0] || (timedata[3] == starttime[0] && timedata[4] >= starttime[1])) {
 								valid = true;
 							}
 						}
-						else if (timedata[0] == enddate) {
-							if (!time || timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] < endtime[1])) {
+						else if (timedata[5] == enddate) {
+							if (!time || timedata[3] < endtime[0] || (timedata[3] == endtime[0] && timedata[4] < endtime[1])) {
 								valid = true;
 							}
 						}
 					}
 					else if (startdate > enddate) {
-						if (timedata[0] < startdate || timedata[0] > enddate) {
+						if (timedata[5] < startdate || timedata[5] > enddate) {
 							valid = true;
 						}
-						else if (timedata[0] == startdate) {
-							if (!time || timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1])) {
+						else if (timedata[5] == startdate) {
+							if (!time || timedata[3] > starttime[0] || (timedata[3] == starttime[0] && timedata[4] >= starttime[1])) {
 								valid = true;
 							}
 						}
-						else if (timedata[0] == enddate) {
-							if (!time || timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] < endtime[1])) {
+						else if (timedata[5] == enddate) {
+							if (!time || timedata[3] < endtime[0] || (timedata[3] == endtime[0] && timedata[4] < endtime[1])) {
 								valid = true;
 							}
 						}
