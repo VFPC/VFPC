@@ -5,10 +5,9 @@
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
-bool debugMode, validVersion, autoLoad, fileLoad, apiUpdated;
+bool debugMode, validVersion, autoLoad, fileLoad;
 
 vector<int> timedata;
-vector<int> lastupdate;
 vector<string> logBuffer{};
 
 size_t failPos;
@@ -36,8 +35,7 @@ CVFPCPlugin::CVFPCPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_
 	relCount = 0;
 
 	bufLog("Plugin: Load - Initialising Time Data...");
-	timedata = { 0, 0, 0, 0, 0, 0 }; // 0 = Year, 1 = Month, 2 = Day, 3 = Hour, 4 = Minute, 5 = Day of Week
-	lastupdate = { 0, 0, 0, 0, 0 }; // 0 = Year, 1 = Month, 2 = Day, 3 = Hour, 4 = Minute
+	timedata = { 0, 0, 0 };
 
 	bufLog("Plugin: Load - Initialising Version Data...");
 	vector<string> installed = split(MY_PLUGIN_VERSION, '.');
@@ -331,7 +329,48 @@ bool CVFPCPlugin::versionCall() {
 	bufLog("Version Call: Launching...");
 	APICall("version", version);
 
-	bool out = false;
+	bool timefail = false;
+
+	if (version.HasMember("time") && version["time"].IsString() && version.HasMember("day") && version["day"].IsInt()) {
+		bufLog("Version Call: Day/Time Data Found");
+		bufLog("Version Call: Checking Weekday...");
+		int day = version["day"].GetInt();
+		bufLog("Version Call: Weekday Entry Exists");
+		day += 6;
+		day %= 7;
+		timedata[0] = day;
+		bufLog("Version Call: Weekday Data Read Successfully");
+
+		bufLog("Version Call: Checking Time...");
+		string time = version["time"].GetString();
+		bufLog("Version Call: Time Entry Exists");
+		if (time.size() == 5) {
+			try {
+				int hour = stoi(time.substr(0, 2));
+				int mins = stoi(time.substr(3, 2));
+
+				timedata[1] = hour;
+				timedata[2] = mins;
+				bufLog("Version Call: Time Data Read Successfully");
+			}
+			catch (...) {
+				bufLog("Version Call: Time Data Unreadable - String->Int Failed");
+				timefail = true;
+			}
+		}
+		else {
+			bufLog("Version Call: Time Data Unreadable - Wrong Size");
+			timefail = true;
+		}
+	}
+	else {
+		bufLog("Version Call: Time Data Not Found");
+		timefail = true;
+	}
+
+	if (timefail) {
+		sendMessage("Failed to read date/time from API.");
+	}
 
 	if (version.HasMember("vfpc_version") && version["vfpc_version"].IsString() && version.HasMember("min_version") && version["min_version"].IsString()) {
 		bufLog("Version Call: Version Data Found");
@@ -394,11 +433,11 @@ bool CVFPCPlugin::versionCall() {
 			if (curchange) {
 				sendMessage("Update available - you may continue using the plugin, but please update as soon as possible.");
 			}
-			out = true;
+			return true;
 		}
 		else {
 			bufLog("Version Call: No New Version Since Last Check");
-			out = true;
+			return true;
 		}
 	}
 	else {
@@ -614,34 +653,27 @@ void CVFPCPlugin::getSids() {
 	try {
 		//Load data from API
 		if (autoLoad) {
-			if (apiUpdated) {
-				bufLog("SID Data: From API - Loading...");
-				if (activeAirports.size() > 0) {
-					bufLog("SID Data: From API - Active Airports Found.");
-					string endpoint = "airport?icao=";
+			bufLog("SID Data: From API - Loading...");
+			if (activeAirports.size() > 0) {
+				bufLog("SID Data: From API - Active Airports Found");
+				string endpoint = "airport?icao=";
 
-					for (size_t i = 0; i < activeAirports.size(); i++) {
-						bufLog("SID Data: From API - Requesting For " + activeAirports[i] + ".");
-						endpoint += activeAirports[i] + "+";
-					}
-
-					endpoint = endpoint.substr(0, endpoint.size() - 1);
-
-					autoLoad = APICall(endpoint, config);
-					bufLog("SID Data: From API - Loaded.");
+				for (size_t i = 0; i < activeAirports.size(); i++) {
+					bufLog("SID Data: From API - Requesting For " + activeAirports[i]);
+					endpoint += activeAirports[i] + "+";
 				}
 
-				apiUpdated = false;
-			}
-			else {
-				bufLog("SID Data: From API - No Pull Required.");
+				endpoint = endpoint.substr(0, endpoint.size() - 1);
+
+				autoLoad = APICall(endpoint, config);
+				bufLog("SID Data: From API - Loaded");
 			}
 		}
 		//Load data from Sid.json file
 		else if (fileLoad) {
 			CVFPCPlugin::bufLog("SID Data: From File - Loading...");
 			fileLoad = fileCall(config);
-			CVFPCPlugin::bufLog("SID Data: From File - Loaded.");
+			CVFPCPlugin::bufLog("SID Data: From File - Loaded");
 		}
 
 		//Sort new data into airports
@@ -651,9 +683,9 @@ void CVFPCPlugin::getSids() {
 			const Value& airport = config[i];
 			if (airport.HasMember("icao") && airport["icao"].IsString()) {
 				string airport_icao = airport["icao"].GetString();
-				CVFPCPlugin::bufLog("SID Data: " + airport_icao + " - Found.");
+				CVFPCPlugin::bufLog("SID Data: " + airport_icao + " - Found");
 				airports.insert(pair<string, SizeType>(airport_icao, i));
-				CVFPCPlugin::bufLog("SID Data: " + airport_icao + " - Inserted.");
+				CVFPCPlugin::bufLog("SID Data: " + airport_icao + " - Inserted");
 			}
 		}
 	}
@@ -852,12 +884,12 @@ vector<bool> CVFPCPlugin::checkRestriction(CFlightPlan flightPlan, string sid_su
 
 					if (!date && time) {
 						if (starttime[0] > endtime[0] || (starttime[0] == endtime[0] && starttime[1] >= endtime[1])) {
-							if (timedata[3] > starttime[0] || (timedata[3] == starttime[0] && timedata[4] >= starttime[1]) || timedata[3] < endtime[0] || (timedata[3] == endtime[0] && timedata[4] <= endtime[1])) {
+							if (timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1]) || timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] <= endtime[1])) {
 								valid = true;
 							}
 						}
 						else {
-							if ((timedata[3] > starttime[0] || (timedata[3] == starttime[0] && timedata[4] >= starttime[1])) && (timedata[3] < endtime[0] || (timedata[3] == endtime[0] && timedata[4] <= endtime[1]))) {
+							if ((timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1])) && (timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] <= endtime[1]))) {
 								valid = true;
 							}
 						}
@@ -866,36 +898,36 @@ vector<bool> CVFPCPlugin::checkRestriction(CFlightPlan flightPlan, string sid_su
 						if (!time) {
 							valid = true;
 						}
-						else if ((timedata[3] > starttime[0] || (timedata[3] == starttime[0] && timedata[4] >= starttime[1])) && (timedata[3] < endtime[0] || (timedata[3] == endtime[0] && timedata[4] <= endtime[1]))) {
+						else if ((timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1])) && (timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] <= endtime[1]))) {
 							valid = true;
 						}
 					}
 					else if (startdate < enddate) {
-						if (timedata[5] > startdate && timedata[5] < enddate) {
+						if (timedata[0] > startdate && timedata[0] < enddate) {
 							valid = true;
 						}
-						else if (timedata[5] == startdate) {
-							if (!time || timedata[3] > starttime[0] || (timedata[3] == starttime[0] && timedata[4] >= starttime[1])) {
+						else if (timedata[0] == startdate) {
+							if (!time || timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1])) {
 								valid = true;
 							}
 						}
-						else if (timedata[5] == enddate) {
-							if (!time || timedata[3] < endtime[0] || (timedata[3] == endtime[0] && timedata[4] < endtime[1])) {
+						else if (timedata[0] == enddate) {
+							if (!time || timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] < endtime[1])) {
 								valid = true;
 							}
 						}
 					}
 					else if (startdate > enddate) {
-						if (timedata[5] < startdate || timedata[5] > enddate) {
+						if (timedata[0] < startdate || timedata[0] > enddate) {
 							valid = true;
 						}
-						else if (timedata[5] == startdate) {
-							if (!time || timedata[3] > starttime[0] || (timedata[3] == starttime[0] && timedata[4] >= starttime[1])) {
+						else if (timedata[0] == startdate) {
+							if (!time || timedata[1] > starttime[0] || (timedata[1] == starttime[0] && timedata[2] >= starttime[1])) {
 								valid = true;
 							}
 						}
-						else if (timedata[5] == enddate) {
-							if (!time || timedata[3] < endtime[0] || (timedata[3] == endtime[0] && timedata[4] < endtime[1])) {
+						else if (timedata[0] == enddate) {
+							if (!time || timedata[1] < endtime[0] || (timedata[1] == endtime[0] && timedata[2] < endtime[1])) {
 								valid = true;
 							}
 						}
