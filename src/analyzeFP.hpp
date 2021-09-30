@@ -250,6 +250,7 @@ public:
 
 protected:
 	Document config;
+	vector<string> loadedAirports;
 	vector<string> activeAirports;
 	int *thisVersion;
 	vector<int> curVersion;

@@ -406,6 +406,11 @@ bool CVFPCPlugin::versionCall() {
 		sendMessage("Failed to check for updates - the plugin has been disabled. If no updates are available, please unload and reload the plugin to try again. (Note: .vfpc load will NOT work.)");
 	}
 
+	if (loadedAirports != activeAirports) {
+		bufLog("Version Call: Active Airports Changed - Forcing Update...");
+		apiUpdated = true;
+	}
+
 	bool updatefail = false;
 	vector<int> newdate = { 0, 0, 0 };
 
@@ -498,6 +503,7 @@ bool CVFPCPlugin::versionCall() {
 			if (!stop) {
 				if (lastupdate[i] > timedata[i]) {
 					apiUpdated = true;
+					stop = true;
 					bufLog("Version Call: Update Has Occurred - Pull From API Next Pass.");
 				}
 				else if (lastupdate[i] != timedata[i]) {
@@ -2876,6 +2882,8 @@ void CVFPCPlugin::OnTimer(int Counter) {
 				bufLog("Timer: API Calls Returned - Resetting...");
 				fut.get();
 				bufLog("Timer: API Calls Returned - Future Reset");
+				loadedAirports = activeAirports;
+				bufLog("Timer: API Calls Returned - Loaded Airports Stored");
 				activeAirports.clear();
 				bufLog("Timer: API Calls Returned - Active Airports Cleared");
 				relCount = API_REFRESH_TIME;
