@@ -1571,8 +1571,13 @@ string CVFPCPlugin::BansOutput(CFlightPlan flightPlan, const Value& constraints,
 	for (int each : successes) {
 		if (constraints[each]["alerts"].IsArray() && constraints[each]["alerts"].Size()) {
 			for (size_t i = 0; i < constraints[each]["alerts"].Size(); i++) {
-				if (constraints[each]["alerts"][i].HasMember("ban") && constraints[each]["alerts"][i]["ban"].GetBool() && constraints[each]["alerts"][i].HasMember("note")) {
-					bans.push_back(constraints[each]["alerts"][i]["note"].GetString());
+				if (constraints[each]["alerts"][i].HasMember("ban") && constraints[each]["alerts"][i]["ban"].IsBool() && constraints[each]["alerts"][i]["ban"].GetBool()) {
+					if (constraints[each]["alerts"][i].HasMember("srd") && constraints[each]["alerts"][i]["srd"].IsInt()) {
+						bans.push_back("SRD Note " + to_string(constraints[each]["alerts"][i]["srd"].GetInt()));
+					}
+					if (constraints[each]["alerts"][i].HasMember("note") && constraints[each]["alerts"][i]["note"].IsString()) {
+						bans.push_back(constraints[each]["alerts"][i]["note"].GetString());
+					}
 				}
 			}
 		}
@@ -1605,8 +1610,13 @@ string CVFPCPlugin::WarningsOutput(CFlightPlan flightPlan, const Value& constrai
 	for (int each : successes) {
 		if (constraints[each]["alerts"].IsArray() && constraints[each]["alerts"].Size()) {
 			for (size_t i = 0; i < constraints[each]["alerts"].Size(); i++) {
-				if (constraints[each]["alerts"][i].HasMember("warn") && constraints[each]["alerts"][i]["warn"].GetBool() && constraints[each]["alerts"][i].HasMember("note")) {
-					warnings.push_back(constraints[each]["alerts"][i]["note"].GetString());
+				if (constraints[each]["alerts"][i].HasMember("warn") && constraints[each]["alerts"][i]["warn"].IsBool() && constraints[each]["alerts"][i]["warn"].GetBool()) {
+					if (constraints[each]["alerts"][i].HasMember("srd") && constraints[each]["alerts"][i]["srd"].IsInt()) {
+						warnings.push_back("SRD Note " + to_string(constraints[each]["alerts"][i]["srd"].GetInt()));
+					}
+					if (constraints[each]["alerts"][i].HasMember("note") && constraints[each]["alerts"][i]["note"].IsString()) {
+						warnings.push_back(constraints[each]["alerts"][i]["note"].GetString());
+					}
 				}
 			}
 		}
