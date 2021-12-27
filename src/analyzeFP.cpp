@@ -1116,6 +1116,9 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 
 	bufLog(callsign + string(" Validate: Route - Splitting..."));
 	vector<string> route = split(rawroute, ' ');
+	bufLog(callsign + string(" Validate: Route - Removing Extra Whitespace..."));
+	vector<string>::iterator itr = remove_if(route.begin(), route.end(), mem_fun_ref(&string::empty));
+	route.erase(itr, route.end());
 	bufLog(callsign + string(" Validate: Route - Converting To Upper Case..."));
 	for (size_t i = 0; i < route.size(); i++) {
 		boost::to_upper(route[i]);
@@ -1267,13 +1270,16 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 					route = new_route;
 					break;
 				case 4:
-					if (sid.length() && strcmp(route.front().c_str(), first_wp.c_str())) {
-						outchk = "Route Not From First Waypoint";
-						success = false;
+					if (sid.length()) {
+						if (strcmp(route.front().c_str(), first_wp.c_str())) {
+							outchk = "Route Not From First Waypoint";
+							success = false;
+						}
+						else {
+							route.erase(route.begin());
+						}
 					}
-					else {
-						route.erase(route.begin());
-					}
+
 					break;
 				}
 			}
