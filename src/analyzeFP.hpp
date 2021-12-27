@@ -53,10 +53,10 @@ public:
 
 	virtual vector<vector<string>> validateSid(CFlightPlan flightPlan);
 
-	virtual string BansOutput(CFlightPlan flightPlan, const Value& constraints, vector<size_t> successes);
+	virtual string BansOutput(CFlightPlan flightPlan, const Value& constraints, vector<size_t> successes, vector<string> extracted_route, string dest, int rfl);
 
-	virtual string WarningsOutput(CFlightPlan flightPlan, const Value& constraints, vector<size_t> successes);
-
+	virtual string WarningsOutput(CFlightPlan flightPlan, const Value& constraints, vector<size_t> successes, vector<string> extracted_route, string dest, int rfl);
+	
 	virtual string AlternativesOutput(CFlightPlan flightPlan, const Value& sid_ele, vector<size_t> successes = {});
 
 	virtual vector<string> AlternativesSingle(const Value& sid_ele);

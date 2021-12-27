@@ -1046,7 +1046,7 @@ vector<bool> CVFPCPlugin::checkAlerts(const Value& conditions, bool *warn, vecto
 		bool res = true;
 
 		if (conditions[i]["alerts"].IsArray() && conditions[i]["alerts"].Size()) {
-			for (size_t j = 0; j < conditions[i]["alerts"].Size(); i++) {
+			for (size_t j = 0; j < conditions[i]["alerts"].Size(); j++) {
 				if (conditions[i]["alerts"][j].HasMember("ban") && conditions[i]["alerts"][j]["ban"].GetBool()) {
 					res = false;
 				}
@@ -1466,14 +1466,14 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 			case 6:
 			{
 				if (warn) {
-					returnOut[1][9] = returnOut[0][9] = WarningsOutput(flightPlan, conditions, successes);
+					returnOut[1][9] = returnOut[0][9] = WarningsOutput(flightPlan, conditions, successes, points, destination, RFL);
 				}
 				else {
 					returnOut[1][9] = "No Warnings.";
 				}
         
 				if (round == 6) {
-					returnOut[1][10] = returnOut[0][10] = BansOutput(flightPlan, conditions, successes);
+					returnOut[1][10] = returnOut[0][10] = BansOutput(flightPlan, conditions, successes, points, destination, RFL);
 				}
 
 				returnOut[0][6] = "Passed Odd-Even Rule.";
@@ -1565,14 +1565,22 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 }
 
 //Outputs route bans as string
-string CVFPCPlugin::BansOutput(CFlightPlan flightPlan, const Value& constraints, vector<size_t> successes) {
+string CVFPCPlugin::BansOutput(CFlightPlan flightPlan, const Value& constraints, vector<size_t> successes, vector<string> extracted_route, string dest, int rfl) {
 	bufLog(flightPlan.GetCallsign() + string(" - Generating Bans Output..."));
 	vector<string> bans{};
 	for (int each : successes) {
 		if (constraints[each]["alerts"].IsArray() && constraints[each]["alerts"].Size()) {
 			for (size_t i = 0; i < constraints[each]["alerts"].Size(); i++) {
-				if (constraints[each]["alerts"][i].HasMember("ban") && constraints[each]["alerts"][i]["ban"].GetBool() && constraints[each]["alerts"][i].HasMember("note")) {
-					bans.push_back(constraints[each]["alerts"][i]["note"].GetString());
+				if (constraints[each]["alerts"][i].HasMember("ban") && constraints[each]["alerts"][i]["ban"].IsBool() && constraints[each]["alerts"][i]["ban"].GetBool()) {
+					if (constraints[each]["alerts"][i].HasMember("srd") && constraints[each]["alerts"][i]["srd"].IsInt()) {
+						bans.push_back("SRD Note " + to_string(constraints[each]["alerts"][i]["srd"].GetInt()));
+					}
+					if (constraints[each]["alerts"][i].HasMember("note") && constraints[each]["alerts"][i]["note"].IsString()) {
+						bans.push_back(constraints[each]["alerts"][i]["note"].GetString());
+					}
+					else {
+						bans.push_back("Alternative Route: " + RouteOutput(flightPlan, constraints, successes, extracted_route, dest, rfl));
+					}
 				}
 			}
 		}
@@ -1599,14 +1607,22 @@ string CVFPCPlugin::BansOutput(CFlightPlan flightPlan, const Value& constraints,
 }
 
 //Outputs route warnings as string
-string CVFPCPlugin::WarningsOutput(CFlightPlan flightPlan, const Value& constraints, vector<size_t> successes) {
+string CVFPCPlugin::WarningsOutput(CFlightPlan flightPlan, const Value& constraints, vector<size_t> successes, vector<string> extracted_route, string dest, int rfl) {
 	bufLog(flightPlan.GetCallsign() + string(" - Generating Warnings Output..."));
 	vector<string> warnings{};
 	for (int each : successes) {
 		if (constraints[each]["alerts"].IsArray() && constraints[each]["alerts"].Size()) {
 			for (size_t i = 0; i < constraints[each]["alerts"].Size(); i++) {
-				if (constraints[each]["alerts"][i].HasMember("warn") && constraints[each]["alerts"][i]["warn"].GetBool() && constraints[each]["alerts"][i].HasMember("note")) {
-					warnings.push_back(constraints[each]["alerts"][i]["note"].GetString());
+				if (constraints[each]["alerts"][i].HasMember("warn") && constraints[each]["alerts"][i]["warn"].IsBool() && constraints[each]["alerts"][i]["warn"].GetBool()) {
+					if (constraints[each]["alerts"][i].HasMember("srd") && constraints[each]["alerts"][i]["srd"].IsInt()) {
+						warnings.push_back("SRD Note " + to_string(constraints[each]["alerts"][i]["srd"].GetInt()	));
+					}
+					if (constraints[each]["alerts"][i].HasMember("note") && constraints[each]["alerts"][i]["note"].IsString()) {
+						warnings.push_back(constraints[each]["alerts"][i]["note"].GetString());
+					}
+					else {
+						warnings.push_back("Alternative Route: " + RouteOutput(flightPlan, constraints, successes, extracted_route, dest, rfl));
+					}
 				}
 			}
 		}
