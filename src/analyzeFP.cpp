@@ -1270,13 +1270,16 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 					route = new_route;
 					break;
 				case 4:
-					if (sid.length() && strcmp(route.front().c_str(), first_wp.c_str())) {
-						outchk = "Route Not From First Waypoint";
-						success = false;
+					if (sid.length()) {
+						if (strcmp(route.front().c_str(), first_wp.c_str())) {
+							outchk = "Route Not From First Waypoint";
+							success = false;
+						}
+						else {
+							route.erase(route.begin());
+						}
 					}
-					else {
-						route.erase(route.begin());
-					}
+
 					break;
 				}
 			}
