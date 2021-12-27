@@ -1046,7 +1046,7 @@ vector<bool> CVFPCPlugin::checkAlerts(const Value& conditions, bool *warn, vecto
 		bool res = true;
 
 		if (conditions[i]["alerts"].IsArray() && conditions[i]["alerts"].Size()) {
-			for (size_t j = 0; j < conditions[i]["alerts"].Size(); i++) {
+			for (size_t j = 0; j < conditions[i]["alerts"].Size(); j++) {
 				if (conditions[i]["alerts"][j].HasMember("ban") && conditions[i]["alerts"][j]["ban"].GetBool()) {
 					res = false;
 				}
