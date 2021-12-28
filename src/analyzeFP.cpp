@@ -1328,9 +1328,9 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 				bufLog(callsign + string(" Validate: SID - Found Definition"));
 				pos = i;
 			}
-			else if (config[origin_int]["sids"][i]["alias"].IsArray() && config[origin_int]["sids"][i]["alias"].Size()) {
-				for (size_t j = 0; j < config[origin_int]["sids"][i]["alias"].Size(); j++) {
-					if (!first_wp.compare(config[origin_int]["sids"][i]["alias"][j].GetString()) && config[origin_int]["sids"][i].HasMember("constraints") && config[origin_int]["sids"][i]["constraints"].IsArray()) {
+			else if (config[origin_int]["sids"][i]["aliases"].IsArray() && config[origin_int]["sids"][i]["aliases"].Size()) {
+				for (size_t j = 0; j < config[origin_int]["sids"][i]["aliases"].Size(); j++) {
+					if (!first_wp.compare(config[origin_int]["sids"][i]["aliases"][j].GetString()) && config[origin_int]["sids"][i].HasMember("constraints") && config[origin_int]["sids"][i]["constraints"].IsArray()) {
 						bufLog(callsign + string(" Validate: SID - Found Alias"));
 						pos = i;
 					}
