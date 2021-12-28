@@ -513,6 +513,10 @@ bool CVFPCPlugin::versionCall() {
 			}
 		}
 
+		if (!stop) {
+			apiUpdated = true;
+		}
+
 		bufLog("Version Call: Update Check Complete.");
 	}
 
