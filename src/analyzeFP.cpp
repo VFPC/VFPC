@@ -2931,6 +2931,7 @@ void CVFPCPlugin::OnTimer(int Counter) {
 				bufLog("Timer: API Calls Launched - Counter Disabled");
 			}
 			else if (GetConnectionType() == CONNECTION_TYPE_NO) {
+				apiUpdated = true;
 				bufLog("Timer: Connection Closed - Clearing Collections...");
 				airports.clear();
 				bufLog("Timer: Connection Closed - Airports Cleared");
