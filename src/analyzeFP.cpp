@@ -1566,7 +1566,7 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 				returnOut[1][6] = "Valid " + SuffixOutput(flightPlan, sid_ele);
 
 				//sidFails[1], [2], or [3] must be false to get here
-				returnOut[1][7] = returnOut[0][7] = "Failed " + RestrictionsOutput(flightPlan, sid_ele, sidFails[1], sidFails[2], sidFails[3]) + " " + AlternativesOutput(flightPlan, sid_ele);
+				returnOut[1][8] = returnOut[0][8] = "Failed " + RestrictionsOutput(flightPlan, sid_ele, sidFails[1], sidFails[2], sidFails[3]) + " " + AlternativesOutput(flightPlan, sid_ele);
 			}
 		}
 
