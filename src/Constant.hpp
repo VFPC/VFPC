@@ -2,7 +2,7 @@
 #include "stdafx.h"
 
 #define MY_PLUGIN_NAME      "VFPC (UK)"
-#define MY_PLUGIN_VERSION   "3.6.2"
+#define MY_PLUGIN_VERSION   "3.6.3"
 #define MY_PLUGIN_DEVELOPER "Lenny Colton, Jan Fries, Hendrik Peter, Sven Czarnian"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO  "VATSIM (UK) Flight Plan Checker"
