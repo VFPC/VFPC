@@ -412,9 +412,8 @@ bool CVFPCPlugin::versionCall() {
 	}
 
 	bool updatefail = false;
-	vector<int> newdate = { 0, 0, 0 };
 
-	if (version.HasMember("date") && version["date"].IsString() && version.HasMember("last_updated_date") && version["last_updated_date"].IsString() && version.HasMember("last_updated_time") && version["last_updated_time"].IsString()) {
+	if (version.HasMember("last_updated_date") && version["last_updated_date"].IsString() && version.HasMember("last_updated_time") && version["last_updated_time"].IsString()) {
 		bufLog("Version Call: Update Data Found");
 		bufLog("Version Call: Checking Last Updated Date...");
 		string lastdate = version["last_updated_date"].GetString();
@@ -461,30 +460,6 @@ bool CVFPCPlugin::versionCall() {
 			bufLog("Version Call: Last Updated Time Data Unreadable - Wrong Size");
 			updatefail = true;
 		}
-
-		bufLog("Version Call: Checking Date...");
-		string date = version["date"].GetString();
-		bufLog("Version Call: Date Entry Exists");
-		if (date.size() == 10) {
-			try {
-				int day = stoi(date.substr(0, 2));
-				int month = stoi(date.substr(3, 2));
-				int year = stoi(date.substr(6, 4));
-
-				newdate[0] = year;
-				newdate[1] = month;
-				newdate[2] = day;
-				bufLog("Version Call: Date Data Read and Presaved Successfully");
-			}
-			catch (...) {
-				bufLog("Version Call: Date Data Unreadable - String->Int Failed");
-				updatefail = true;
-			}
-		}
-		else {
-			bufLog("Version Call: Date Data Unreadable - Wrong Size");
-			updatefail = true;
-		}
 	}
 	else {
 		bufLog("Version Call: Update Data Not Found");
@@ -499,7 +474,7 @@ bool CVFPCPlugin::versionCall() {
 		bufLog("Version Call: Checking Whether Update Has Occurred...");
 		bool stop = false;
 
-		for (size_t i = 0; i < lastupdate.size(); i++) {
+		for (size_t i = 0; i < timedata.size(); i++) {
 			if (!stop) {
 				if (lastupdate[i] > timedata[i]) {
 					apiUpdated = true;
@@ -520,15 +495,35 @@ bool CVFPCPlugin::versionCall() {
 		bufLog("Version Call: Update Check Complete.");
 	}
 
-	for (size_t i = 0; i < newdate.size(); i++) {
-		timedata[i] = newdate[i];
-	}
-	bufLog("Version Call: Date Data Saved Successfully");
-
 	bool timefail = false;
 
-	if (version.HasMember("time") && version["time"].IsString() && version.HasMember("day") && version["day"].IsInt()) {
-		bufLog("Version Call: Day/Time Data Found");
+	if (version.HasMember("date") && version["date"].IsString() && version.HasMember("time") && version["time"].IsString() && version.HasMember("day") && version["day"].IsInt()) {
+		bufLog("Version Call: Date/Time Data Found");	
+		bufLog("Version Call: Checking Date...");
+		string date = version["date"].GetString();
+		bufLog("Version Call: Date Entry Exists");
+		if (date.size() == 10) {
+			try {
+				int day = stoi(date.substr(0, 2));
+				int month = stoi(date.substr(3, 2));
+				int year = stoi(date.substr(6, 4));
+
+				timedata[0] = year;
+				timedata[1] = month;
+				timedata[2] = day;
+				bufLog("Version Call: Date Data Read and Saved Successfully");
+			}
+			catch (...) {
+				bufLog("Version Call: Date Data Unreadable - String->Int Failed");
+				timefail = true;
+			}
+		}
+		else {
+			bufLog("Version Call: Date Data Unreadable - Wrong Size");
+			updatefail = true;
+		
+		}
+
 		bufLog("Version Call: Checking Weekday...");
 		int day = version["day"].GetInt();
 		bufLog("Version Call: Weekday Entry Exists");
@@ -562,7 +557,7 @@ bool CVFPCPlugin::versionCall() {
 		}
 	}
 	else {
-		bufLog("Version Call: Time Data Not Found");
+		bufLog("Version Call: Date/Time Data Not Found");
 		timefail = true;
 	}
 	   
