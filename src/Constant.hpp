@@ -41,6 +41,7 @@ const string DCT_ENTRY = "DCT";
 const string SPDLVL_SEP = "/";
 const string OUTDATED_SID = "#";
 
+const string RESULT_END = ".";
 const string RESULT_SEP = ", ";
 const string ROUTE_RESULT_SEP = " / ";
 const string NO_RESULTS = "None";

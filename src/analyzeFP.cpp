@@ -50,7 +50,7 @@ CVFPCPlugin::CVFPCPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_
 	bufLog("Plugin: Load - Sending Load Message...");
 	string loadingMessage = "Loading complete. Version: ";
 	loadingMessage += MY_PLUGIN_VERSION;
-	loadingMessage += ".";
+	loadingMessage += RESULT_END;
 	sendMessage(loadingMessage);
 
 	// Register Tag Item "VFPC"
@@ -620,7 +620,7 @@ void CVFPCPlugin::getSids() {
 					string endpoint = "airport?icao=";
 
 					for (size_t i = 0; i < activeAirports.size(); i++) {
-						bufLog("SID Data: From API - Requesting For " + activeAirports[i] + ".");
+						bufLog("SID Data: From API - Requesting For " + activeAirports[i] + RESULT_END);
 						endpoint += activeAirports[i] + "+";
 					}
 
@@ -1291,7 +1291,7 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 
 	if (!success) {
 		bufLog(callsign + string(" Validate: Route Syntax - Failed"));
-		returnOut[0][returnOut[0].size() - 2] = returnOut[1][returnOut[1].size() - 2] = "Invalid Syntax - " + outchk + ".";
+		returnOut[0][returnOut[0].size() - 2] = returnOut[1][returnOut[1].size() - 2] = "Invalid Syntax - " + outchk + RESULT_END;
 		returnOut[0].back() = returnOut[1].back() = "Failed";
 		return returnOut;
 	}
@@ -1444,7 +1444,7 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 
 		bufLog(callsign + string(" Validate: Setting SID/Non-SID Output..."));
 		if (sid.length()) {
-			returnOut[1][1] = returnOut[0][1] = "SID - " + sid + ".";
+			returnOut[1][1] = returnOut[0][1] = "SID - " + sid + RESULT_END;
 		}
 		else {
 			returnOut[1][1] = returnOut[0][1] = "Non-SID Route.";
@@ -1610,7 +1610,7 @@ string CVFPCPlugin::BansOutput(CFlightPlan flightPlan, const Value& constraints,
 		out = out.substr(0, out.length() - 2);
 	}
 
-	return "Route Banned: " + out + ".";
+	return "Route Banned: " + out + RESULT_END;
 }
 
 //Outputs route warnings as string
@@ -1652,7 +1652,7 @@ string CVFPCPlugin::WarningsOutput(CFlightPlan flightPlan, const Value& constrai
 		out = out.substr(0, out.length() - 2);
 	}
 
-	return "Warnings: " + out + ".";
+	return "Warnings: " + out + RESULT_END;
 }
 
 //Outputs recommended alternatives (from Restrictions arrays for a SID) as string
@@ -1682,9 +1682,11 @@ string CVFPCPlugin::AlternativesOutput(CFlightPlan flightPlan, const Value& sid_
 		for (string each : alts) {
 			out += each + RESULT_SEP;
 		}
+
+		out = out.substr(0, out.size() - 2);
 	}
 
-	return out.substr(0, out.size() - 2) + ".";
+	return out + RESULT_END;
 }
 
 //Outputs recommended alternatives (from a single Restrictions array) as string
@@ -1768,7 +1770,7 @@ string CVFPCPlugin::RestrictionsOutput(CFlightPlan flightPlan, const Value& sid_
 		out = out.substr(0, out.size() - 2);
 	}
 
-	return "SID Restrictions: " + out + ".";
+	return "SID Restrictions: " + out + RESULT_END;
 }
 
 vector<vector<string>> CVFPCPlugin::RestrictionsSingle(const Value& restrictions, bool check_type, bool check_time, bool check_ban) {
@@ -1905,7 +1907,7 @@ string CVFPCPlugin::SuffixOutput(CFlightPlan flightPlan, const Value& sid_eles, 
 			out += each + RESULT_SEP;
 		}
 
-		out = out.substr(0, out.size() - 2) + ".";
+		out = out.substr(0, out.size() - 2) + RESULT_END;
 	}
 
 	return out;
@@ -2045,7 +2047,7 @@ string CVFPCPlugin::MinMaxOutput(CFlightPlan flightPlan, const Value& constraint
 		}
 	}
 
-	out = out.substr(0, out.size() - 2) + ".";
+	out = out.substr(0, out.size() - 2) + RESULT_END;
 
 	return out;
 }
@@ -2340,7 +2342,7 @@ string CVFPCPlugin::RouteOutput(CFlightPlan flightPlan, const Value& constraints
 		outstring = outstring.substr(0, outstring.length() - 3);
 	}
 
-	return "Valid Initial Routes: " + outstring + ".";
+	return "Valid Initial Routes: " + outstring + RESULT_END;
 }
 
 //Outputs valid FIR exit points (from Constraints array) as string
@@ -2509,7 +2511,7 @@ string CVFPCPlugin::DestinationOutput(CFlightPlan flightPlan, size_t origin_int,
 			out += RESULT_SEP;
 		}
 
-		out = out.substr(0, out.size() - 2) + ".";
+		out = out.substr(0, out.size() - 2) + RESULT_END;
 	}
 
 	if (b.size()) {
@@ -2524,7 +2526,7 @@ string CVFPCPlugin::DestinationOutput(CFlightPlan flightPlan, size_t origin_int,
 			out += RESULT_SEP;
 		}
 
-		out = out.substr(0, out.size() - 2) + ".";
+		out = out.substr(0, out.size() - 2) + RESULT_END;
 	}
 
 	if (out == "") {
