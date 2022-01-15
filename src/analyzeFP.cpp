@@ -1313,8 +1313,10 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 	bufLog(callsign + string(" Validate: SID - Finding Definition..."));
 	//Find routes for selected SID
 	size_t pos = string::npos;
-	if (config[origin_int]["sids"].Size() == 1 && config[origin_int]["sids"].HasMember("point") && config[origin_int]["sids"]["point"].IsString() && config[origin_int]["sids"]["point"].GetString() == "") {
+	if (config[origin_int]["sids"].Size() == 1 && config[origin_int]["sids"][(size_t)0].HasMember("point") && config[origin_int]["sids"][(size_t)0]["point"].IsString() && !strcmp(config[origin_int]["sids"][(size_t)0]["point"].GetString(), "")) {
 		bufLog(callsign + string(" Validate: SID - Bypassing Definition, Non-SID Airport"));
+		route.insert(route.begin(), first_wp);
+		first_wp = "";
 		pos = 0;
 	}
 	else {
