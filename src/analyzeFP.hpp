@@ -165,14 +165,18 @@ public:
 		return s;
 	}
 
-	bool routeContains(vector<string> rte, const Value& valid) {
-		for (SizeType i = 0; i < valid.Size(); i++) {
+	//Check if supplied route matches any valid initial route options
+	bool routeContains(vector<string> rte, size_t lvl, const Value& valid, const Value& fra) {
+		for (size_t i = 0; i < valid.Size(); i++) {
 			string r = valid[i].GetString();
 
+
 			if (!strcmp(r.c_str(), WILDCARD.c_str())) {
+				//This valid initial route is a wildcard (will match any flight plan)
 				return true;
 			}
 
+			//Split valid initial route into elements
 			vector<string> current = split(r, ' ');
 			for (std::size_t j = 0; j < current.size(); j++) {
 				boost::to_upper(current[j]);
@@ -181,10 +185,12 @@ public:
 			bool admissible = true;
 
 			if (current.size() > rte.size()) {
+				//Valid initial route is longer than supplied route so not useable
 				admissible = false;
 			}
 			else {
-				for (SizeType j = 0; j < current.size(); j++) {
+				//Check that each element of supplied route matches corresponding element in valid initial route
+				for (size_t j = 0; j < current.size(); j++) {
 					if (current[j] != rte[j] && strcmp(current[j].c_str(), WILDCARD.c_str())) {
 						admissible = false;
 					}
@@ -196,6 +202,48 @@ public:
 			}
 		}
 		return false;
+	}
+
+	size_t checkFRA(vector<string> rte, size_t lvl, const Value& fra) {
+		size_t ret_err; //Sum of Errors - 1 = Too High, 2 = Too Low, 4 = Invalid Points, 8 = Forbidden Areas, 16 = Outside Boundaries
+
+		//Remove DCTs from FRA segment of route
+		rte.erase(remove(rte.begin(), rte.end(), "DCT"), rte.end());
+
+		//Check each FRA area separately
+		for (size_t i = 0; i < fra.Size(); i++) {
+			vector<bool> err = { false, false, false, false, false };  //Errors - 0 = Too High, 1 = Too Low, 2 = Invalid Points, 3 = Forbidden Areas, 4 = Outside Boundaries
+			//Check points
+			if (fra[i]["points"].IsArray() && fra[i]["points"].Size()) {
+				bool pass = true;
+				size_t j = 0;
+
+				while (pass && j < rte.size()) {
+					size_t ptr = find(fra[i]["points"].Begin(), fra[i]["points"].End(), rte[j].c_str()) - fra[i]["points"].Begin();
+					if (ptr == fra[i]["points"].Size()) {
+						pass = false;
+						err[2] = true;
+						continue;
+					}
+					else if (fra[i]["points"][ptr].HasMember("max") && fra[i]["points"][ptr]["max"].IsInt() && fra[i]["points"][ptr]["max"].GetInt() < lvl) {
+						pass = false;
+						err[1] = true;
+						continue;
+					}
+					else if (fra[i]["points"][ptr].HasMember("min") && fra[i]["points"][ptr]["min"].IsInt() && fra[i]["points"][ptr]["min"].GetInt() > lvl) {
+						pass = false;
+						err[0] = true;
+						continue;
+					}
+					j++;
+				}
+			}
+			else if (!rte.size()) {
+				err[2] = true;
+			}
+		}
+
+		return ret_err; 
 	}
 
 	string dayIntToString(int day) {
