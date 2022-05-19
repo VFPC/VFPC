@@ -205,35 +205,30 @@ public:
 	}
 
 	size_t checkFRA(vector<string> rte, size_t lvl, const Value& fra) {
-		size_t ret_err; //Sum of Errors - 1 = Too High, 2 = Too Low, 4 = Invalid Points, 8 = Forbidden Areas, 16 = Outside Boundaries
+		size_t ret_err; //Sum of Errors - 1 = Invalid Points, 2 = Too Low, 4 = Too High, 8 = Forbidden Areas, 16 = Outside Boundaries
 
 		//Remove DCTs from FRA segment of route
 		rte.erase(remove(rte.begin(), rte.end(), "DCT"), rte.end());
 
 		//Check each FRA area separately
 		for (size_t i = 0; i < fra.Size(); i++) {
-			vector<bool> err = { false, false, false, false, false };  //Errors - 0 = Too High, 1 = Too Low, 2 = Invalid Points, 3 = Forbidden Areas, 4 = Outside Boundaries
+			vector<bool> err = { false, false, false, false, false };  //Errors - 0 = Invalid Points, 1 = Too Low, 2 = Too High, 3 = Forbidden Areas, 4 = Outside Boundaries
+			vector<int> ptrs = {};
+			bool pass = true;
+
 			//Check points
 			if (fra[i]["points"].IsArray() && fra[i]["points"].Size()) {
-				bool pass = true;
 				size_t j = 0;
 
 				while (pass && j < rte.size()) {
 					size_t ptr = find(fra[i]["points"].Begin(), fra[i]["points"].End(), rte[j].c_str()) - fra[i]["points"].Begin();
 					if (ptr == fra[i]["points"].Size()) {
 						pass = false;
-						err[2] = true;
-						continue;
-					}
-					else if (fra[i]["points"][ptr].HasMember("max") && fra[i]["points"][ptr]["max"].IsInt() && fra[i]["points"][ptr]["max"].GetInt() < lvl) {
-						pass = false;
-						err[1] = true;
-						continue;
-					}
-					else if (fra[i]["points"][ptr].HasMember("min") && fra[i]["points"][ptr]["min"].IsInt() && fra[i]["points"][ptr]["min"].GetInt() > lvl) {
-						pass = false;
 						err[0] = true;
 						continue;
+					}
+					else {
+						ptrs.push_back(ptr);
 					}
 					j++;
 				}
@@ -241,9 +236,76 @@ public:
 			else if (!rte.size()) {
 				err[2] = true;
 			}
+
+			if (pass) {
+				//Check for segments leaving FRA
+				size_t max;
+				if (fra[i]["vertices"].IsArray() && (max = fra[i]["vertices"].Size()) > 0) {
+					size_t i1 = 0;
+					size_t i2;
+					bool inside = true;
+					bool cross_border = false;
+
+					while (inside != cross_border) { //XOR Comparison
+						i2 = i1 + 1;
+						if (i2 == max) {
+							if (pass) {
+								break;
+							}
+
+							i2 = 0;
+							pass = true;
+						}
+
+						for (size_t j = 0; j < rte.size(); j++) {
+							if (intersect()) {
+
+							}
+						}
+
+						i1++;
+					}
+				}
+
+				//Check Level Restrictions
+				for (int j = 0; j < ptrs.size(); j++) {
+					if (fra[i]["points"][j].HasMember("max") && fra[i]["points"][j]["max"].IsInt() && fra[i]["points"][j]["max"].GetInt() < lvl) {
+						err[1] = true;
+					}
+					if (fra[i]["points"][j].HasMember("min") && fra[i]["points"][j]["min"].IsInt() && fra[i]["points"][j]["min"].GetInt() > lvl) {
+						err[2] = true;
+					}
+				}
+			}
+
+			size_t num_err = 0;
+			for (size_t j = 0; j < err.size(); j++) {
+				if (err[j]) {
+					num_err += (size_t)pow(2, j);
+				}
+			}
+
+			if (num_err < ret_err) {
+				ret_err = num_err;
+			}
 		}
 
 		return ret_err; 
+	}
+
+	void ccw(double a_lon, double a_lat, double b_lon, double b_lat, double c_lon, double c_lat, bool *res) {
+		*res = (c_lat - a_lat) * (b_lon - a_lon) > (b_lat - a_lat) * (c_lon - a_lon);
+	}
+
+	void intersect(double a_lon, double a_lat, double b_lon, double b_lat, double c_lon, double c_lat, double d_lon, double d_lat, bool *res) {
+		bool res1, res2, res3, res4;
+
+		ccw(a_lon, a_lat, c_lon, c_lat, d_lon, d_lat, &res1);
+		ccw(b_lon, b_lat, c_lon, c_lat, d_lon, d_lat, &res2);
+		ccw(a_lon, a_lat, b_lon, b_lat, c_lon, c_lat, &res3);
+		ccw(a_lon, a_lat, b_lon, b_lat, d_lon, d_lat, &res4);
+
+		*res = res1 != res2 && res3 != res4;
 	}
 
 	string dayIntToString(int day) {
