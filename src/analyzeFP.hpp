@@ -165,7 +165,7 @@ public:
 		return s;
 	}
 
-	bool routeContains(vector<string> rte, const Value& valid, const Value& fradata, CFlightPlanExtractedRoute extracted) {
+	bool routeContains(vector<string> rte, const Value& valid) {
 		for (SizeType i = 0; i < valid.Size(); i++) {
 			string r = valid[i].GetString();
 
@@ -184,48 +184,9 @@ public:
 				admissible = false;
 			}
 			else {
-				size_t j = 0;
-				bool fra = false;
-				int off = 0;
-				while (j < current.size()) {
-					if (current[j] == "<>") {
-						fra = true;
-						off--;
-					}
-
-					if (fra) {
-						if (current[j + 1] == rte[j + off + 1]) {
-							fra = false;
-							j++;
-						}
-						else {
-							if (!fradata["points"].IsArray() || !fradata["points"].Size())
-							{
-								admissible = false;
-								break;
-							}
-
-							bool frafound = false;
-							for (size_t k = 0; k < fradata["points"].Size(); k++) {
-								if (fradata["points"][k].IsString() && rte[j + off + 1] == fradata["points"][k].GetString()) {
-									frafound = FRAValid(extracted, rte[j + off], rte[j + off + 1]);
-								}
-							}
-
-							if (!frafound) {
-								admissible = false;
-								break;
-							}
-
-							off++;
-						}
-					}
-					else if (current[j] != rte[j+off] && strcmp(current[j].c_str(), WILDCARD.c_str())) {
+				for (SizeType j = 0; j < current.size(); j++) {
+					if (current[j] != rte[j] && strcmp(current[j].c_str(), WILDCARD.c_str())) {
 						admissible = false;
-						break;
-					}
-					else {
-						j++;
 					}
 				}
 			}
@@ -235,10 +196,6 @@ public:
 			}
 		}
 		return false;
-	}
-
-	bool FRAValid(CFlightPlanExtractedRoute rte, string from, string to, Value& vertices, Value& npzs) {
-
 	}
 
 	string dayIntToString(int day) {
