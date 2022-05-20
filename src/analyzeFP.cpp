@@ -2799,7 +2799,6 @@ void CVFPCPlugin::checkFPDetail() {
 		sendMessage("Error", "An unexpected error occured");
 		debugMessage("Error", "An unexpected error occured");
 	}
-
 }
 
 //Compiles list of failed elements in flight plan, in preparation for adding to departure list

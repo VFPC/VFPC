@@ -243,6 +243,7 @@ public:
 				if (fra[i]["vertices"].IsArray() && (max = fra[i]["vertices"].Size()) > 0) {
 					size_t i1 = 0;
 					size_t i2;
+					pass = false;
 					bool inside = true;
 					bool cross_border = false;
 
@@ -257,9 +258,33 @@ public:
 							pass = true;
 						}
 
-						for (size_t j = 0; j < rte.size(); j++) {
-							if (intersect()) {
+						//Add type checking
+						double i1lon = fra[i]["vertices"][i1]["lon"].GetDouble();
+						double i1lat = fra[i]["vertices"][i1]["lat"].GetDouble();
+						double i2lon = fra[i]["vertices"][i2]["lon"].GetDouble();
+						double i2lat = fra[i]["vertices"][i2]["lat"].GetDouble();
 
+
+						for (size_t j = 0; j < ptrs.size() - 1; j++) {
+							//Add type checking
+							double r1lon = fra[i]["points"][j]["lon"].GetDouble();
+							double r1lat = fra[i]["points"][j]["lat"].GetDouble();
+							double r2lon = fra[i]["points"][j+1]["lon"].GetDouble();
+							double r2lat = fra[i]["points"][j + 1]["lat"].GetDouble();
+
+							bool res = false;
+							intersect(i1lon, i1lat, i2lon, i2lat, r1lon, r1lat, r2lon, r2lat, &res);
+
+							if (res) {
+								if (cross_border) {
+									cross_border = false;
+								}
+								else if (inside) {
+									inside = false;
+									if (fra[i]["vertices"][i1].HasMember("cross") && fra[i]["vertices"][i1]["cross"].IsBool() && fra[i]["vertices"][i1]["cross"].GetBool() && fra[i]["vertices"][i2].HasMember("cross") && fra[i]["vertices"][i2]["cross"].IsBool() && fra[i]["vertices"][i2]["cross"].GetBool()) {
+										cross_border = true;
+									}
+								}
 							}
 						}
 
