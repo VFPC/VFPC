@@ -238,24 +238,24 @@ public:
 			}
 
 			if (pass) {
+				//Check for segments entering forbidden areas
+				pass = true;
+				NEED TO IMPLEMENT THIS STILL
+			}
+
+			if (pass) {
 				//Check for segments leaving FRA
 				size_t max;
 				if (fra[i]["vertices"].IsArray() && (max = fra[i]["vertices"].Size()) > 0) {
 					size_t i1 = 0;
 					size_t i2;
-					pass = false;
 					bool inside = true;
 					bool cross_border = false;
 
-					while (inside != cross_border) { //XOR Comparison
+					while (i1 < max && inside != cross_border) { //XOR Comparison
 						i2 = i1 + 1;
 						if (i2 == max) {
-							if (pass) {
-								break;
-							}
-
 							i2 = 0;
-							pass = true;
 						}
 
 						//Add type checking
@@ -289,6 +289,10 @@ public:
 						}
 
 						i1++;
+					}
+
+					if (inside == cross_border) {
+						err[4] = true;
 					}
 				}
 
