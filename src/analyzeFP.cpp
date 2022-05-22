@@ -574,7 +574,7 @@ bool CVFPCPlugin::versionCall() {
 }
 
 //Loads data from file
-bool CVFPCPlugin::fileCall(Document &out) {
+bool CVFPCPlugin::fileCall(Value &sids, Value &fra) {
 	bufLog("File Load Requested");
 	string path = getPath();
 	path += DATA_FILE;
@@ -583,6 +583,7 @@ bool CVFPCPlugin::fileCall(Document &out) {
 	stringstream ss;
 	ifstream ifs;
 	ifs.open(path.c_str(), ios::binary);
+	Document out;
 
 	if (ifs.is_open()) {
 		bufLog(DATA_FILE + " File Opened");
@@ -609,6 +610,17 @@ bool CVFPCPlugin::fileCall(Document &out) {
 	}
 
 	bufLog("File Read Successful");
+
+	if (out["airports"].IsArray() && out["fra"].IsArray()) {
+		sids = out["airports"];
+		fra = out["fra"];
+		bufLog("Found and Saved Airports & FRA Data");
+	}
+	else {
+		bufLog("Data Sections Not Found.");
+		return false;
+	}
+
 	return true;
 }
 
@@ -647,7 +659,7 @@ void CVFPCPlugin::getSids() {
 		//Load data from Sid.json file
 		else if (fileLoad) {
 			CVFPCPlugin::bufLog("SID Data: From File - Loading...");
-			fileLoad = fileCall(sid_config);
+			fileLoad = fileCall(sid_config, fra_config);
 			CVFPCPlugin::bufLog("SID Data: From File - Loaded.");
 		}
 
@@ -766,7 +778,8 @@ size_t CVFPCPlugin::checkFRA(vector<string> rte, size_t lvl, const Value& fra) {
 			size_t max;
 			if (fra[i]["noplan"].IsArray() && fra[i]["noplan"].Size()) {
 				for (size_t i = 0; i < fra[i]["noplan"].Size(); i++) {
-					if (fra[i]["noplan"][i]["vertices"].IsArray() && (max = fra[i]["noplan"][i]["vertices"].Size()) > 0) {
+					max = fra[i]["noplan"][i]["vertices"].Size();
+					if (fra[i]["noplan"][i]["vertices"].IsArray() && max > 0) {
 						//Check whether flight is exempt from planning restrictions
 						bool active = true;
 						if (fra[i]["noplan"][i]["points"].IsArray() && fra[i]["noplan"][i]["points"].Size()) {
@@ -827,7 +840,8 @@ size_t CVFPCPlugin::checkFRA(vector<string> rte, size_t lvl, const Value& fra) {
 
 			if (pass) {
 				//Check for segments leaving FRA
-				if (fra[i]["vertices"].IsArray() && (max = fra[i]["vertices"].Size()) > 0) {
+				max = fra[i]["vertices"].Size();
+				if (fra[i]["vertices"].IsArray() && max > 0) {
 					size_t i1 = 0;
 					size_t i2;
 					bool inside = true;

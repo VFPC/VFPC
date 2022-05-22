@@ -31,7 +31,7 @@ public:
 
 	virtual bool versionCall();
 
-	virtual bool fileCall(Document &out);
+	virtual bool fileCall(Value &sids, Value &fra);
 
 	virtual void getSids();
 
