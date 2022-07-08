@@ -2,7 +2,7 @@
 #include "stdafx.h"
 
 #define MY_PLUGIN_NAME      "VFPC (UK)"
-#define MY_PLUGIN_VERSION   "3.6.2"
+#define MY_PLUGIN_VERSION   "3.6.4"
 #define MY_PLUGIN_DEVELOPER "Lenny Colton, Jan Fries, Hendrik Peter, Sven Czarnian"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO  "VATSIM (UK) Flight Plan Checker"
@@ -41,6 +41,7 @@ const string DCT_ENTRY = "DCT";
 const string SPDLVL_SEP = "/";
 const string OUTDATED_SID = "#";
 
+const string RESULT_END = ".";
 const string RESULT_SEP = ", ";
 const string ROUTE_RESULT_SEP = " / ";
 const string NO_RESULTS = "None";

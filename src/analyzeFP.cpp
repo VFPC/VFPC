@@ -50,7 +50,7 @@ CVFPCPlugin::CVFPCPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_
 	bufLog("Plugin: Load - Sending Load Message...");
 	string loadingMessage = "Loading complete. Version: ";
 	loadingMessage += MY_PLUGIN_VERSION;
-	loadingMessage += ".";
+	loadingMessage += RESULT_END;
 	sendMessage(loadingMessage);
 
 	// Register Tag Item "VFPC"
@@ -412,9 +412,8 @@ bool CVFPCPlugin::versionCall() {
 	}
 
 	bool updatefail = false;
-	vector<int> newdate = { 0, 0, 0 };
 
-	if (version.HasMember("date") && version["date"].IsString() && version.HasMember("last_updated_date") && version["last_updated_date"].IsString() && version.HasMember("last_updated_time") && version["last_updated_time"].IsString()) {
+	if (version.HasMember("last_updated_date") && version["last_updated_date"].IsString() && version.HasMember("last_updated_time") && version["last_updated_time"].IsString()) {
 		bufLog("Version Call: Update Data Found");
 		bufLog("Version Call: Checking Last Updated Date...");
 		string lastdate = version["last_updated_date"].GetString();
@@ -461,30 +460,6 @@ bool CVFPCPlugin::versionCall() {
 			bufLog("Version Call: Last Updated Time Data Unreadable - Wrong Size");
 			updatefail = true;
 		}
-
-		bufLog("Version Call: Checking Date...");
-		string date = version["date"].GetString();
-		bufLog("Version Call: Date Entry Exists");
-		if (date.size() == 10) {
-			try {
-				int day = stoi(date.substr(0, 2));
-				int month = stoi(date.substr(3, 2));
-				int year = stoi(date.substr(6, 4));
-
-				newdate[0] = year;
-				newdate[1] = month;
-				newdate[2] = day;
-				bufLog("Version Call: Date Data Read and Presaved Successfully");
-			}
-			catch (...) {
-				bufLog("Version Call: Date Data Unreadable - String->Int Failed");
-				updatefail = true;
-			}
-		}
-		else {
-			bufLog("Version Call: Date Data Unreadable - Wrong Size");
-			updatefail = true;
-		}
 	}
 	else {
 		bufLog("Version Call: Update Data Not Found");
@@ -499,7 +474,7 @@ bool CVFPCPlugin::versionCall() {
 		bufLog("Version Call: Checking Whether Update Has Occurred...");
 		bool stop = false;
 
-		for (size_t i = 0; i < lastupdate.size(); i++) {
+		for (size_t i = 0; i < timedata.size(); i++) {
 			if (!stop) {
 				if (lastupdate[i] > timedata[i]) {
 					apiUpdated = true;
@@ -520,15 +495,35 @@ bool CVFPCPlugin::versionCall() {
 		bufLog("Version Call: Update Check Complete.");
 	}
 
-	for (size_t i = 0; i < newdate.size(); i++) {
-		timedata[i] = newdate[i];
-	}
-	bufLog("Version Call: Date Data Saved Successfully");
-
 	bool timefail = false;
 
-	if (version.HasMember("time") && version["time"].IsString() && version.HasMember("day") && version["day"].IsInt()) {
-		bufLog("Version Call: Day/Time Data Found");
+	if (version.HasMember("date") && version["date"].IsString() && version.HasMember("time") && version["time"].IsString() && version.HasMember("day") && version["day"].IsInt()) {
+		bufLog("Version Call: Date/Time Data Found");	
+		bufLog("Version Call: Checking Date...");
+		string date = version["date"].GetString();
+		bufLog("Version Call: Date Entry Exists");
+		if (date.size() == 10) {
+			try {
+				int day = stoi(date.substr(0, 2));
+				int month = stoi(date.substr(3, 2));
+				int year = stoi(date.substr(6, 4));
+
+				timedata[0] = year;
+				timedata[1] = month;
+				timedata[2] = day;
+				bufLog("Version Call: Date Data Read and Saved Successfully");
+			}
+			catch (...) {
+				bufLog("Version Call: Date Data Unreadable - String->Int Failed");
+				timefail = true;
+			}
+		}
+		else {
+			bufLog("Version Call: Date Data Unreadable - Wrong Size");
+			updatefail = true;
+		
+		}
+
 		bufLog("Version Call: Checking Weekday...");
 		int day = version["day"].GetInt();
 		bufLog("Version Call: Weekday Entry Exists");
@@ -562,7 +557,7 @@ bool CVFPCPlugin::versionCall() {
 		}
 	}
 	else {
-		bufLog("Version Call: Time Data Not Found");
+		bufLog("Version Call: Date/Time Data Not Found");
 		timefail = true;
 	}
 	   
@@ -637,7 +632,7 @@ void CVFPCPlugin::getSids() {
 					string endpoint = "airport?icao=";
 
 					for (size_t i = 0; i < activeAirports.size(); i++) {
-						bufLog("SID Data: From API - Requesting For " + activeAirports[i] + ".");
+						bufLog("SID Data: From API - Requesting For " + activeAirports[i] + RESULT_END);
 						endpoint += activeAirports[i] + "+";
 					}
 
@@ -1539,7 +1534,7 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 
 	if (!success) {
 		bufLog(callsign + string(" Validate: Route Syntax - Failed"));
-		returnOut[0][returnOut[0].size() - 2] = returnOut[1][returnOut[1].size() - 2] = "Invalid Syntax - " + outchk + ".";
+		returnOut[0][returnOut[0].size() - 2] = returnOut[1][returnOut[1].size() - 2] = "Invalid Syntax - " + outchk + RESULT_END;
 		returnOut[0].back() = returnOut[1].back() = "Failed";
 		return returnOut;
 	}
@@ -1561,8 +1556,10 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 	bufLog(callsign + string(" Validate: SID - Finding Definition..."));
 	//Find routes for selected SID
 	size_t pos = string::npos;
-	if (sid_config[origin_int]["sids"].Size() == 1 && sid_config[origin_int]["sids"].HasMember("point") && sid_config[origin_int]["sids"]["point"].IsString() && sid_config[origin_int]["sids"]["point"].GetString() == "") {
+	if (sid_config[origin_int]["sids"].Size() == 1 && sid_config[origin_int]["sids"][(size_t)0].HasMember("point") && sid_config[origin_int]["sids"][(size_t)0]["point"].IsString() && !strcmp(sid_config[origin_int]["sids"][(size_t)0]["point"].GetString(), "")) {
 		bufLog(callsign + string(" Validate: SID - Bypassing Definition, Non-SID Airport"));
+		route.insert(route.begin(), first_wp);
+		first_wp = "";
 		pos = 0;
 	}
 	else {
@@ -1690,7 +1687,7 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 
 		bufLog(callsign + string(" Validate: Setting SID/Non-SID Output..."));
 		if (sid.length()) {
-			returnOut[1][1] = returnOut[0][1] = "SID - " + sid + ".";
+			returnOut[1][1] = returnOut[0][1] = "SID - " + sid + RESULT_END;
 		}
 		else {
 			returnOut[1][1] = returnOut[0][1] = "Non-SID Route.";
@@ -1856,7 +1853,7 @@ string CVFPCPlugin::BansOutput(CFlightPlan flightPlan, const Value& constraints,
 		out = out.substr(0, out.length() - 2);
 	}
 
-	return "Route Banned: " + out + ".";
+	return "Route Banned: " + out + RESULT_END;
 }
 
 //Outputs route warnings as string
@@ -1898,7 +1895,7 @@ string CVFPCPlugin::WarningsOutput(CFlightPlan flightPlan, const Value& constrai
 		out = out.substr(0, out.length() - 2);
 	}
 
-	return "Warnings: " + out + ".";
+	return "Warnings: " + out + RESULT_END;
 }
 
 //Outputs recommended alternatives (from Restrictions arrays for a SID) as string
@@ -1928,9 +1925,11 @@ string CVFPCPlugin::AlternativesOutput(CFlightPlan flightPlan, const Value& sid_
 		for (string each : alts) {
 			out += each + RESULT_SEP;
 		}
+
+		out = out.substr(0, out.size() - 2);
 	}
 
-	return out.substr(0, out.size() - 2) + ".";
+	return out + RESULT_END;
 }
 
 //Outputs recommended alternatives (from a single Restrictions array) as string
@@ -2014,7 +2013,7 @@ string CVFPCPlugin::RestrictionsOutput(CFlightPlan flightPlan, const Value& sid_
 		out = out.substr(0, out.size() - 2);
 	}
 
-	return "SID Restrictions: " + out + ".";
+	return "SID Restrictions: " + out + RESULT_END;
 }
 
 vector<vector<string>> CVFPCPlugin::RestrictionsSingle(const Value& restrictions, bool check_type, bool check_time, bool check_ban) {
@@ -2151,7 +2150,7 @@ string CVFPCPlugin::SuffixOutput(CFlightPlan flightPlan, const Value& sid_eles, 
 			out += each + RESULT_SEP;
 		}
 
-		out = out.substr(0, out.size() - 2) + ".";
+		out = out.substr(0, out.size() - 2) + RESULT_END;
 	}
 
 	return out;
@@ -2291,7 +2290,7 @@ string CVFPCPlugin::MinMaxOutput(CFlightPlan flightPlan, const Value& constraint
 		}
 	}
 
-	out = out.substr(0, out.size() - 2) + ".";
+	out = out.substr(0, out.size() - 2) + RESULT_END;
 
 	return out;
 }
@@ -2586,7 +2585,7 @@ string CVFPCPlugin::RouteOutput(CFlightPlan flightPlan, const Value& constraints
 		outstring = outstring.substr(0, outstring.length() - 3);
 	}
 
-	return "Valid Initial Routes: " + outstring + ".";
+	return "Valid Initial Routes: " + outstring + RESULT_END;
 }
 
 //Outputs valid FIR exit points (from Constraints array) as string
@@ -2755,7 +2754,7 @@ string CVFPCPlugin::DestinationOutput(CFlightPlan flightPlan, size_t origin_int,
 			out += RESULT_SEP;
 		}
 
-		out = out.substr(0, out.size() - 2) + ".";
+		out = out.substr(0, out.size() - 2) + RESULT_END;
 	}
 
 	if (b.size()) {
@@ -2770,7 +2769,7 @@ string CVFPCPlugin::DestinationOutput(CFlightPlan flightPlan, size_t origin_int,
 			out += RESULT_SEP;
 		}
 
-		out = out.substr(0, out.size() - 2) + ".";
+		out = out.substr(0, out.size() - 2) + RESULT_END;
 	}
 
 	if (out == "") {
