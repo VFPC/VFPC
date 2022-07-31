@@ -443,7 +443,7 @@ bool CVFPCPlugin::versionCall() {
 		bufLog("Version Call: Checking Last Updated Time...");
 		string lasttime = version["last_updated_time"].GetString();
 		bufLog("Version Call: Last Updated Time Entry Exists");
-		if (lasttime.size() == 5) {
+		if (lasttime.size() == 8) {
 			try {
 				int lasthour = stoi(lasttime.substr(0, 2));
 				int lastmins = stoi(lasttime.substr(3, 2));
@@ -539,7 +539,7 @@ bool CVFPCPlugin::versionCall() {
 		bufLog("Version Call: Checking Time...");
 		string time = version["time"].GetString();
 		bufLog("Version Call: Time Entry Exists");
-		if (time.size() == 5) {
+		if (time.size() == 8) {
 			try {
 				int hour = stoi(time.substr(0, 2));
 				int mins = stoi(time.substr(3, 2));
