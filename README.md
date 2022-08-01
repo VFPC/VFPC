@@ -47,7 +47,9 @@ After updating your sector files or navigation data, please remember to restart 
 ### Yellow - Warning
 - `OK!` - All checks passed but one or more warnings were generated. This generally occurs in cases where the SRD contains ambiguous notes, which can't be coded for automatic interpretation.
 
-### Red - Fail
+### Red - 
+- `XPT` - Flight lands outside the UK but no valid FIR exit point was found.
+  - A route may not leave UK airspace on a DCT or a FRA route that does not include a waypoint on the FIR boundary.
 - `SID` - Assigned SID is invalid for some reason. (Not Found, Bad Suffix, Mismatch with Route, etc.)
 - `ENG` - Engine type is invalid for this SID/route.
 - `DST` - Filed destination is invalid for this SID.
@@ -76,7 +78,7 @@ After updating your sector files or navigation data, please remember to restart 
 **N.B.** Disabling automatic data loading (or choosing to load from a file) will only last until the plugin is unloaded (including when EuroScope is closed). When the plugin is next loaded, it will always attempt to load from the API.
 
 ## Disclaimer
-The plugin is currently in active development and you may encounter **unforseen bugs or other issues**. Please report them - we'll fix them as soon as we can. You run this plugin at your own risk - the developers are all volunteers and accept no liability for any problems encountered or damage to your system.
+The plugin is currently in active development; you may encounter **unforseen bugs or other issues**. Please report them - we'll fix them as soon as we can. You run this plugin at your own risk - the developers are all volunteers and accept no liability for any problems encountered or damage to your system.
 
 ## Acknowledgements
 This plugin was originally created by **@DrFreas** and significantly expanded by **@hpeter2** and **@svengcz**. **@lennycolton** took over development in January 2021 and has rewritten almost all of the plugin's code. However, a few elements of the original code base (most notably, part of the UI) are still in use.
