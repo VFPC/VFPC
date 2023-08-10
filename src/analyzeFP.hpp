@@ -31,19 +31,15 @@ public:
 
 	virtual bool versionCall();
 
-	virtual bool fileCall(Value &sids, Value &fra);
+	virtual bool fileCall(Document &out);
 
 	virtual void getSids();
-
-	virtual bool routeContains(vector<string> rte, size_t lvl, const Value& valid, const Value& fra);
-
-	virtual size_t checkFRA(vector<string> rte, size_t lvl, const Value& fra);
 
 	virtual vector<bool> checkDestination(const Value& constraints, string destination, vector<bool> in);
 
 	virtual vector<bool> checkExitPoint(const Value& constraints, vector<string> extracted_route, vector<bool> in);
 
-	virtual vector<bool> checkRoute(const Value& constraints, const Value& fra, vector<string> extracted_route, size_t lvl, vector<bool> in);
+	virtual vector<bool> checkRoute(const Value& constraints, vector<string> extracted_route, vector<bool> in);
 
 	virtual vector<bool> checkRestriction(CFlightPlan flightPlan, string sid_suffix, const Value& restrictions, bool *sidfails, bool* fails);
 
@@ -169,19 +165,37 @@ public:
 		return s;
 	}
 
-	void ccw(double a_lon, double a_lat, double b_lon, double b_lat, double c_lon, double c_lat, bool *res) {
-		*res = (c_lat - a_lat) * (b_lon - a_lon) > (b_lat - a_lat) * (c_lon - a_lon);
-	}
+	bool routeContains(vector<string> rte, const Value& valid) {
+		for (SizeType i = 0; i < valid.Size(); i++) {
+			string r = valid[i].GetString();
 
-	void intersect(double a_lon, double a_lat, double b_lon, double b_lat, double c_lon, double c_lat, double d_lon, double d_lat, bool *res) {
-		bool res1, res2, res3, res4;
+			if (!strcmp(r.c_str(), WILDCARD.c_str())) {
+				return true;
+			}
 
-		ccw(a_lon, a_lat, c_lon, c_lat, d_lon, d_lat, &res1);
-		ccw(b_lon, b_lat, c_lon, c_lat, d_lon, d_lat, &res2);
-		ccw(a_lon, a_lat, b_lon, b_lat, c_lon, c_lat, &res3);
-		ccw(a_lon, a_lat, b_lon, b_lat, d_lon, d_lat, &res4);
+			vector<string> current = split(r, ' ');
+			for (std::size_t j = 0; j < current.size(); j++) {
+				boost::to_upper(current[j]);
+			}
 
-		*res = res1 != res2 && res3 != res4;
+			bool admissible = true;
+
+			if (current.size() > rte.size()) {
+				admissible = false;
+			}
+			else {
+				for (SizeType j = 0; j < current.size(); j++) {
+					if (current[j] != rte[j] && strcmp(current[j].c_str(), WILDCARD.c_str())) {
+						admissible = false;
+					}
+				}
+			}
+
+			if (admissible) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	string dayIntToString(int day) {
@@ -235,8 +249,7 @@ public:
 	virtual void OnTimer(int Count);
 
 protected:
-	Document sid_config;
-	Document fra_config;
+	Document config;
 	vector<string> loadedAirports;
 	vector<string> activeAirports;
 	int *thisVersion;

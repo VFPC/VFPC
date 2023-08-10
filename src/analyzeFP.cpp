@@ -50,7 +50,7 @@ CVFPCPlugin::CVFPCPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_
 	bufLog("Plugin: Load - Sending Load Message...");
 	string loadingMessage = "Loading complete. Version: ";
 	loadingMessage += MY_PLUGIN_VERSION;
-	loadingMessage += RESULT_END;
+	loadingMessage += ".";
 	sendMessage(loadingMessage);
 
 	// Register Tag Item "VFPC"
@@ -412,8 +412,9 @@ bool CVFPCPlugin::versionCall() {
 	}
 
 	bool updatefail = false;
+	vector<int> newdate = { 0, 0, 0 };
 
-	if (version.HasMember("last_updated_date") && version["last_updated_date"].IsString() && version.HasMember("last_updated_time") && version["last_updated_time"].IsString()) {
+	if (version.HasMember("date") && version["date"].IsString() && version.HasMember("last_updated_date") && version["last_updated_date"].IsString() && version.HasMember("last_updated_time") && version["last_updated_time"].IsString()) {
 		bufLog("Version Call: Update Data Found");
 		bufLog("Version Call: Checking Last Updated Date...");
 		string lastdate = version["last_updated_date"].GetString();
@@ -460,6 +461,30 @@ bool CVFPCPlugin::versionCall() {
 			bufLog("Version Call: Last Updated Time Data Unreadable - Wrong Size");
 			updatefail = true;
 		}
+
+		bufLog("Version Call: Checking Date...");
+		string date = version["date"].GetString();
+		bufLog("Version Call: Date Entry Exists");
+		if (date.size() == 10) {
+			try {
+				int day = stoi(date.substr(0, 2));
+				int month = stoi(date.substr(3, 2));
+				int year = stoi(date.substr(6, 4));
+
+				newdate[0] = year;
+				newdate[1] = month;
+				newdate[2] = day;
+				bufLog("Version Call: Date Data Read and Presaved Successfully");
+			}
+			catch (...) {
+				bufLog("Version Call: Date Data Unreadable - String->Int Failed");
+				updatefail = true;
+			}
+		}
+		else {
+			bufLog("Version Call: Date Data Unreadable - Wrong Size");
+			updatefail = true;
+		}
 	}
 	else {
 		bufLog("Version Call: Update Data Not Found");
@@ -474,7 +499,7 @@ bool CVFPCPlugin::versionCall() {
 		bufLog("Version Call: Checking Whether Update Has Occurred...");
 		bool stop = false;
 
-		for (size_t i = 0; i < timedata.size(); i++) {
+		for (size_t i = 0; i < lastupdate.size(); i++) {
 			if (!stop) {
 				if (lastupdate[i] > timedata[i]) {
 					apiUpdated = true;
@@ -495,35 +520,15 @@ bool CVFPCPlugin::versionCall() {
 		bufLog("Version Call: Update Check Complete.");
 	}
 
+	for (size_t i = 0; i < newdate.size(); i++) {
+		timedata[i] = newdate[i];
+	}
+	bufLog("Version Call: Date Data Saved Successfully");
+
 	bool timefail = false;
 
-	if (version.HasMember("date") && version["date"].IsString() && version.HasMember("time") && version["time"].IsString() && version.HasMember("day") && version["day"].IsInt()) {
-		bufLog("Version Call: Date/Time Data Found");	
-		bufLog("Version Call: Checking Date...");
-		string date = version["date"].GetString();
-		bufLog("Version Call: Date Entry Exists");
-		if (date.size() == 10) {
-			try {
-				int day = stoi(date.substr(0, 2));
-				int month = stoi(date.substr(3, 2));
-				int year = stoi(date.substr(6, 4));
-
-				timedata[0] = year;
-				timedata[1] = month;
-				timedata[2] = day;
-				bufLog("Version Call: Date Data Read and Saved Successfully");
-			}
-			catch (...) {
-				bufLog("Version Call: Date Data Unreadable - String->Int Failed");
-				timefail = true;
-			}
-		}
-		else {
-			bufLog("Version Call: Date Data Unreadable - Wrong Size");
-			updatefail = true;
-		
-		}
-
+	if (version.HasMember("time") && version["time"].IsString() && version.HasMember("day") && version["day"].IsInt()) {
+		bufLog("Version Call: Day/Time Data Found");
 		bufLog("Version Call: Checking Weekday...");
 		int day = version["day"].GetInt();
 		bufLog("Version Call: Weekday Entry Exists");
@@ -557,7 +562,7 @@ bool CVFPCPlugin::versionCall() {
 		}
 	}
 	else {
-		bufLog("Version Call: Date/Time Data Not Found");
+		bufLog("Version Call: Time Data Not Found");
 		timefail = true;
 	}
 	   
@@ -569,7 +574,7 @@ bool CVFPCPlugin::versionCall() {
 }
 
 //Loads data from file
-bool CVFPCPlugin::fileCall(Value &sids, Value &fra) {
+bool CVFPCPlugin::fileCall(Document &out) {
 	bufLog("File Load Requested");
 	string path = getPath();
 	path += DATA_FILE;
@@ -578,7 +583,6 @@ bool CVFPCPlugin::fileCall(Value &sids, Value &fra) {
 	stringstream ss;
 	ifstream ifs;
 	ifs.open(path.c_str(), ios::binary);
-	Document out;
 
 	if (ifs.is_open()) {
 		bufLog(DATA_FILE + " File Opened");
@@ -605,17 +609,6 @@ bool CVFPCPlugin::fileCall(Value &sids, Value &fra) {
 	}
 
 	bufLog("File Read Successful");
-
-	if (out["airports"].IsArray() && out["fra"].IsArray()) {
-		sids = out["airports"];
-		fra = out["fra"];
-		bufLog("Found and Saved Airports & FRA Data");
-	}
-	else {
-		bufLog("Data Sections Not Found.");
-		return false;
-	}
-
 	return true;
 }
 
@@ -632,17 +625,14 @@ void CVFPCPlugin::getSids() {
 					string endpoint = "airport?icao=";
 
 					for (size_t i = 0; i < activeAirports.size(); i++) {
-						bufLog("SID Data: From API - Requesting For " + activeAirports[i] + RESULT_END);
+						bufLog("SID Data: From API - Requesting For " + activeAirports[i] + ".");
 						endpoint += activeAirports[i] + "+";
 					}
 
 					endpoint = endpoint.substr(0, endpoint.size() - 1);
 
-					autoLoad = APICall(endpoint, sid_config);
+					autoLoad = APICall(endpoint, config);
 					bufLog("SID Data: From API - Loaded.");
-
-					autoLoad = APICall("fra", fra_config);
-					bufLog("FRA Data: From API - Loaded.");
 				}
 
 				apiUpdated = false;
@@ -654,15 +644,15 @@ void CVFPCPlugin::getSids() {
 		//Load data from Sid.json file
 		else if (fileLoad) {
 			CVFPCPlugin::bufLog("SID Data: From File - Loading...");
-			fileLoad = fileCall(sid_config, fra_config);
+			fileLoad = fileCall(config);
 			CVFPCPlugin::bufLog("SID Data: From File - Loaded.");
 		}
 
 		//Sort new data into airports
 		CVFPCPlugin::bufLog("SID Data: Sorting...");
 		airports.clear();
-		for (SizeType i = 0; i < sid_config.Size(); i++) {
-			const Value& airport = sid_config[i];
+		for (SizeType i = 0; i < config.Size(); i++) {
+			const Value& airport = config[i];
 			if (airport.HasMember("icao") && airport["icao"].IsString()) {
 				string airport_icao = airport["icao"].GetString();
 				CVFPCPlugin::bufLog("SID Data: " + airport_icao + " - Found.");
@@ -683,234 +673,6 @@ void CVFPCPlugin::getSids() {
 		sendMessage("Error", "An unexpected error occured");
 		debugMessage("Error", "An unexpected error occured");
 	}
-}
-
-
-//Check if supplied route matches any valid initial route options
-bool CVFPCPlugin::routeContains(vector<string> rte, size_t lvl, const Value& valid, const Value& fra) {
-	for (size_t i = 0; i < valid.Size(); i++) {
-		string r = valid[i].GetString();
-
-
-		if (!strcmp(r.c_str(), WILDCARD.c_str())) {
-			//This valid initial route is a wildcard (will match any flight plan)
-			return true;
-		}
-
-		//Split valid initial route into elements
-		vector<string> current = split(r, ' ');
-		for (std::size_t j = 0; j < current.size(); j++) {
-			boost::to_upper(current[j]);
-		}
-
-		bool admissible = true;
-
-		if (current.size() > rte.size()) {
-			//Valid initial route is longer than supplied route so not useable
-			admissible = false;
-		}
-		else {
-			//Check that each element of supplied route matches corresponding element in valid initial route
-			size_t offset = 0;
-			for (size_t j = 0; j < current.size(); j++) {
-				//Allow route offset for FRA and check FRA data separately
-				if (current[j] == "<FRA>") {
-					while (j + 1 + offset < rte.size() && current[j + 1] != rte[j + 1 + offset]) offset++;
-
-					if (j + 1 + offset < rte.size()) {
-						if (checkFRA(vector<string> { rte.begin() + j + 1, rte.begin() + j + offset }, lvl, fra)) admissible = false;
-					}
-					else admissible = false;
-				}
-				else if (current[j] != rte[j + offset] && strcmp(current[j].c_str(), WILDCARD.c_str())) {
-					admissible = false;
-				}
-			}
-		}
-
-		if (admissible) {
-			return true;
-		}
-	}
-	return false;
-}
-
-size_t CVFPCPlugin::checkFRA(vector<string> rte, size_t lvl, const Value& fra) {
-	size_t ret_err; //Sum of Errors - 1 = Invalid Points, 2 = Too Low, 4 = Too High, 8 = Forbidden Areas, 16 = Outside Boundaries
-
-	//Remove DCTs from FRA segment of route
-	rte.erase(remove(rte.begin(), rte.end(), "DCT"), rte.end());
-
-	//Check each FRA area separately
-	for (size_t i = 0; i < fra.Size(); i++) {
-		vector<bool> err = { false, false, false, false, false };  //Errors - 0 = Invalid Points, 1 = Too Low, 2 = Too High, 3 = Forbidden Areas, 4 = Outside Boundaries
-		vector<int> ptrs = {};
-		bool pass = true;
-
-		//Check points
-		if (fra[i]["points"].IsArray() && fra[i]["points"].Size()) {
-			size_t j = 0;
-
-			while (pass && j < rte.size()) {
-				size_t ptr = find(fra[i]["points"].Begin(), fra[i]["points"].End(), rte[j].c_str()) - fra[i]["points"].Begin();
-				if (ptr == fra[i]["points"].Size()) {
-					pass = false;
-					err[0] = true;
-					continue;
-				}
-				else {
-					ptrs.push_back(ptr);
-				}
-				j++;
-			}
-		}
-		else if (!rte.size()) {
-			err[2] = true;
-		}
-
-		if (pass) {
-			//Check for segments entering forbidden areas
-			size_t max;
-			if (fra[i]["noplan"].IsArray() && fra[i]["noplan"].Size()) {
-				for (size_t i = 0; i < fra[i]["noplan"].Size(); i++) {
-					max = fra[i]["noplan"][i]["vertices"].Size();
-					if (fra[i]["noplan"][i]["vertices"].IsArray() && max > 0) {
-						//Check whether flight is exempt from planning restrictions
-						bool active = true;
-						if (fra[i]["noplan"][i]["points"].IsArray() && fra[i]["noplan"][i]["points"].Size()) {
-							for (size_t j = 0; j < ptrs.size() - 1; j++) {
-								for (size_t k = 0; k < fra[i]["noplan"][i]["points"].Size(); k++) {
-									if (fra[i]["points"][j].IsString() && fra[i]["noplan"][i]["points"][k].IsString() && !strcmp(fra[i]["points"][j].GetString(), fra[i]["noplan"][i]["points"][k].GetString())) {
-										active = false;
-									}
-								}
-							}
-						}
-
-						if (!active) {
-							continue;
-						}
-
-						//Check if entering restricted area
-						size_t i1 = 0;
-						size_t i2;
-						bool inside = false;
-
-						while (i1 < max && !inside) { //XOR Comparison
-							i2 = i1 + 1;
-							if (i2 == max) {
-								i2 = 0;
-							}
-
-							//Add type checking
-							double i1lon = fra[i]["noplan"][i]["vertices"][i1]["lon"].GetDouble();
-							double i1lat = fra[i]["noplan"][i]["vertices"][i1]["lat"].GetDouble();
-							double i2lon = fra[i]["noplan"][i]["vertices"][i2]["lon"].GetDouble();
-							double i2lat = fra[i]["noplan"][i]["vertices"][i2]["lat"].GetDouble();
-
-							for (size_t j = 0; j < ptrs.size() - 1; j++) {
-								//Add type checking
-								double r1lon = fra[i]["points"][j]["lon"].GetDouble();
-								double r1lat = fra[i]["points"][j]["lat"].GetDouble();
-								double r2lon = fra[i]["points"][j + 1]["lon"].GetDouble();
-								double r2lat = fra[i]["points"][j + 1]["lat"].GetDouble();
-
-								bool res = false;
-								intersect(i1lon, i1lat, i2lon, i2lat, r1lon, r1lat, r2lon, r2lat, &res);
-
-								if (res) {
-									inside = true;
-								}
-							}
-
-							i1++;
-						}
-
-						if (inside) {
-							err[3] = true;
-						}
-					}
-				}
-			}
-
-			if (pass) {
-				//Check for segments leaving FRA
-				max = fra[i]["vertices"].Size();
-				if (fra[i]["vertices"].IsArray() && max > 0) {
-					size_t i1 = 0;
-					size_t i2;
-					bool inside = true;
-					bool cross_border = false;
-
-					while (i1 < max && inside != cross_border) { //XOR Comparison
-						i2 = i1 + 1;
-						if (i2 == max) {
-							i2 = 0;
-						}
-
-						//Add type checking
-						double i1lon = fra[i]["vertices"][i1]["lon"].GetDouble();
-						double i1lat = fra[i]["vertices"][i1]["lat"].GetDouble();
-						double i2lon = fra[i]["vertices"][i2]["lon"].GetDouble();
-						double i2lat = fra[i]["vertices"][i2]["lat"].GetDouble();
-
-
-						for (size_t j = 0; j < ptrs.size() - 1; j++) {
-							//Add type checking
-							double r1lon = fra[i]["points"][j]["lon"].GetDouble();
-							double r1lat = fra[i]["points"][j]["lat"].GetDouble();
-							double r2lon = fra[i]["points"][j + 1]["lon"].GetDouble();
-							double r2lat = fra[i]["points"][j + 1]["lat"].GetDouble();
-
-							bool res = false;
-							intersect(i1lon, i1lat, i2lon, i2lat, r1lon, r1lat, r2lon, r2lat, &res);
-
-							if (res) {
-								if (cross_border) {
-									cross_border = false;
-								}
-								else if (inside) {
-									inside = false;
-									if (fra[i]["vertices"][i1].HasMember("cross") && fra[i]["vertices"][i1]["cross"].IsBool() && fra[i]["vertices"][i1]["cross"].GetBool() && fra[i]["vertices"][i2].HasMember("cross") && fra[i]["vertices"][i2]["cross"].IsBool() && fra[i]["vertices"][i2]["cross"].GetBool()) {
-										cross_border = true;
-									}
-								}
-							}
-						}
-
-						i1++;
-					}
-
-					if (inside == cross_border) {
-						err[4] = true;
-					}
-				}
-
-				//Check Level Restrictions
-				for (int j = 0; j < ptrs.size(); j++) {
-					if (fra[i]["points"][j].HasMember("max") && fra[i]["points"][j]["max"].IsInt() && fra[i]["points"][j]["max"].GetInt() < lvl) {
-						err[1] = true;
-					}
-					if (fra[i]["points"][j].HasMember("min") && fra[i]["points"][j]["min"].IsInt() && fra[i]["points"][j]["min"].GetInt() > lvl) {
-						err[2] = true;
-					}
-				}
-			}
-		}
-
-		size_t num_err = 0;
-		for (size_t j = 0; j < err.size(); j++) {
-			if (err[j]) {
-				num_err += (size_t)pow(2, j);
-			}
-		}
-
-		if (num_err < ret_err) {
-			ret_err = num_err;
-		}
-	}
-
-	return ret_err;
 }
 
 vector<bool> CVFPCPlugin::checkDestination(const Value& conditions, string destination, vector<bool> in) {
@@ -989,7 +751,7 @@ vector<bool> CVFPCPlugin::checkExitPoint(const Value& conditions, vector<string>
 	return out;
 }
 
-vector<bool> CVFPCPlugin::checkRoute(const Value& conditions, const Value& fra, vector<string> route, size_t lvl, vector<bool> in) {
+vector<bool> CVFPCPlugin::checkRoute(const Value& conditions, vector<string> route, vector<bool> in) {
 	vector<bool> out{};
 
 	for (size_t i = 0; i < conditions.Size(); i++) {
@@ -1000,11 +762,11 @@ vector<bool> CVFPCPlugin::checkRoute(const Value& conditions, const Value& fra, 
 
 		bool res = true;
 
-		if (conditions[i].HasMember("route") && conditions[i]["route"].IsArray() && conditions[i]["route"].Size() && !routeContains(route, lvl, conditions[i]["route"], fra)) {
+		if (conditions[i].HasMember("route") && conditions[i]["route"].IsArray() && conditions[i]["route"].Size() && !routeContains(route, conditions[i]["route"])) {
 			res = false;
 		}
 
-		if (conditions[i].HasMember("noroute") && res && conditions[i]["noroute"].IsArray() && conditions[i]["noroute"].Size() && routeContains(route, lvl, conditions[i]["noroute"], fra)) {
+		if (conditions[i].HasMember("noroute") && res && conditions[i]["noroute"].IsArray() && conditions[i]["noroute"].Size() && routeContains(route, conditions[i]["noroute"])) {
 			res = false;
 		}
 
@@ -1534,7 +1296,7 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 
 	if (!success) {
 		bufLog(callsign + string(" Validate: Route Syntax - Failed"));
-		returnOut[0][returnOut[0].size() - 2] = returnOut[1][returnOut[1].size() - 2] = "Invalid Syntax - " + outchk + RESULT_END;
+		returnOut[0][returnOut[0].size() - 2] = returnOut[1][returnOut[1].size() - 2] = "Invalid Syntax - " + outchk + ".";
 		returnOut[0].back() = returnOut[1].back() = "Failed";
 		return returnOut;
 	}
@@ -1543,7 +1305,7 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 
 	bufLog(callsign + string(" Validate: SID - Checking Definitions..."));
 	// Any SIDs defined
-	if (!sid_config[origin_int].HasMember("sids") || !sid_config[origin_int]["sids"].IsArray() || !sid_config[origin_int]["sids"].Size()) {
+	if (!config[origin_int].HasMember("sids") || !config[origin_int]["sids"].IsArray() || !config[origin_int]["sids"].Size()) {
 		bufLog(callsign + string(" Validate: SID - None Defined..."));
 		returnOut[0][1] = "No SIDs or Non-SID Routes Defined";
 		returnOut[0].back() = "Failed";
@@ -1556,21 +1318,19 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 	bufLog(callsign + string(" Validate: SID - Finding Definition..."));
 	//Find routes for selected SID
 	size_t pos = string::npos;
-	if (sid_config[origin_int]["sids"].Size() == 1 && sid_config[origin_int]["sids"][(size_t)0].HasMember("point") && sid_config[origin_int]["sids"][(size_t)0]["point"].IsString() && !strcmp(sid_config[origin_int]["sids"][(size_t)0]["point"].GetString(), "")) {
+	if (config[origin_int]["sids"].Size() == 1 && config[origin_int]["sids"].HasMember("point") && config[origin_int]["sids"]["point"].IsString() && config[origin_int]["sids"]["point"].GetString() == "") {
 		bufLog(callsign + string(" Validate: SID - Bypassing Definition, Non-SID Airport"));
-		route.insert(route.begin(), first_wp);
-		first_wp = "";
 		pos = 0;
 	}
 	else {
-		for (size_t i = 0; i < sid_config[origin_int]["sids"].Size(); i++) {
-			if (sid_config[origin_int]["sids"][i].HasMember("point") && !first_wp.compare(sid_config[origin_int]["sids"][i]["point"].GetString()) && sid_config[origin_int]["sids"][i].HasMember("constraints") && sid_config[origin_int]["sids"][i]["constraints"].IsArray()) {
+		for (size_t i = 0; i < config[origin_int]["sids"].Size(); i++) {
+			if (config[origin_int]["sids"][i].HasMember("point") && !first_wp.compare(config[origin_int]["sids"][i]["point"].GetString()) && config[origin_int]["sids"][i].HasMember("constraints") && config[origin_int]["sids"][i]["constraints"].IsArray()) {
 				bufLog(callsign + string(" Validate: SID - Found Definition"));
 				pos = i;
 			}
-			else if (sid_config[origin_int]["sids"][i]["aliases"].IsArray() && sid_config[origin_int]["sids"][i]["aliases"].Size()) {
-				for (size_t j = 0; j < sid_config[origin_int]["sids"][i]["aliases"].Size(); j++) {
-					if (!first_wp.compare(sid_config[origin_int]["sids"][i]["aliases"][j].GetString()) && sid_config[origin_int]["sids"][i].HasMember("constraints") && sid_config[origin_int]["sids"][i]["constraints"].IsArray()) {
+			else if (config[origin_int]["sids"][i]["aliases"].IsArray() && config[origin_int]["sids"][i]["aliases"].Size()) {
+				for (size_t j = 0; j < config[origin_int]["sids"][i]["aliases"].Size(); j++) {
+					if (!first_wp.compare(config[origin_int]["sids"][i]["aliases"][j].GetString()) && config[origin_int]["sids"][i].HasMember("constraints") && config[origin_int]["sids"][i]["constraints"].IsArray()) {
 						bufLog(callsign + string(" Validate: SID - Found Alias"));
 						pos = i;
 					}
@@ -1597,7 +1357,7 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 	} 
 	else {
 		bufLog(callsign + string(" Validate: SID - " + sid + " Definition Found, Saving..."));
-		const Value& sid_ele = sid_config[origin_int]["sids"][pos];
+		const Value& sid_ele = config[origin_int]["sids"][pos];
 		const Value& conditions = sid_ele["constraints"];
 
 		int round = 0;
@@ -1645,7 +1405,7 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 			case 2:
 			{
 				//Route
-				new_validity = checkRoute(conditions, fra_config, route, RFL, validity);
+				new_validity = checkRoute(conditions, route, validity);
 				break;
 			}
 			case 3:
@@ -1687,7 +1447,7 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 
 		bufLog(callsign + string(" Validate: Setting SID/Non-SID Output..."));
 		if (sid.length()) {
-			returnOut[1][1] = returnOut[0][1] = "SID - " + sid + RESULT_END;
+			returnOut[1][1] = returnOut[0][1] = "SID - " + sid + ".";
 		}
 		else {
 			returnOut[1][1] = returnOut[0][1] = "Non-SID Route.";
@@ -1853,7 +1613,7 @@ string CVFPCPlugin::BansOutput(CFlightPlan flightPlan, const Value& constraints,
 		out = out.substr(0, out.length() - 2);
 	}
 
-	return "Route Banned: " + out + RESULT_END;
+	return "Route Banned: " + out + ".";
 }
 
 //Outputs route warnings as string
@@ -1895,7 +1655,7 @@ string CVFPCPlugin::WarningsOutput(CFlightPlan flightPlan, const Value& constrai
 		out = out.substr(0, out.length() - 2);
 	}
 
-	return "Warnings: " + out + RESULT_END;
+	return "Warnings: " + out + ".";
 }
 
 //Outputs recommended alternatives (from Restrictions arrays for a SID) as string
@@ -1925,11 +1685,9 @@ string CVFPCPlugin::AlternativesOutput(CFlightPlan flightPlan, const Value& sid_
 		for (string each : alts) {
 			out += each + RESULT_SEP;
 		}
-
-		out = out.substr(0, out.size() - 2);
 	}
 
-	return out + RESULT_END;
+	return out.substr(0, out.size() - 2) + ".";
 }
 
 //Outputs recommended alternatives (from a single Restrictions array) as string
@@ -2013,7 +1771,7 @@ string CVFPCPlugin::RestrictionsOutput(CFlightPlan flightPlan, const Value& sid_
 		out = out.substr(0, out.size() - 2);
 	}
 
-	return "SID Restrictions: " + out + RESULT_END;
+	return "SID Restrictions: " + out + ".";
 }
 
 vector<vector<string>> CVFPCPlugin::RestrictionsSingle(const Value& restrictions, bool check_type, bool check_time, bool check_ban) {
@@ -2112,8 +1870,9 @@ vector<vector<string>> CVFPCPlugin::RestrictionsSingle(const Value& restrictions
 			if (restrictions[i].HasMember("banned") && restrictions[i]["banned"].GetBool()) {
 				this_rest[2] = "Banned";
 			}
-
-			if (!all_of(this_rest[0].begin(), this_rest[0].end(), isspace) || !all_of(this_rest[1].begin(), this_rest[1].end(), isspace) || !all_of(this_rest[2].begin(), this_rest[2].end(), isspace)) {
+			if (!std::all_of(this_rest[0].begin(), this_rest[0].end(), [](unsigned char c) { return std::isspace(c); })
+				|| !std::all_of(this_rest[1].begin(), this_rest[1].end(), [](unsigned char c) { return std::isspace(c); })
+				|| !std::all_of(this_rest[2].begin(), this_rest[2].end(), [](unsigned char c) { return std::isspace(c); })) {
 				rests.push_back(this_rest);
 			}
 		}
@@ -2150,7 +1909,7 @@ string CVFPCPlugin::SuffixOutput(CFlightPlan flightPlan, const Value& sid_eles, 
 			out += each + RESULT_SEP;
 		}
 
-		out = out.substr(0, out.size() - 2) + RESULT_END;
+		out = out.substr(0, out.size() - 2) + ".";
 	}
 
 	return out;
@@ -2290,7 +2049,7 @@ string CVFPCPlugin::MinMaxOutput(CFlightPlan flightPlan, const Value& constraint
 		}
 	}
 
-	out = out.substr(0, out.size() - 2) + RESULT_END;
+	out = out.substr(0, out.size() - 2) + ".";
 
 	return out;
 }
@@ -2585,7 +2344,7 @@ string CVFPCPlugin::RouteOutput(CFlightPlan flightPlan, const Value& constraints
 		outstring = outstring.substr(0, outstring.length() - 3);
 	}
 
-	return "Valid Initial Routes: " + outstring + RESULT_END;
+	return "Valid Initial Routes: " + outstring + ".";
 }
 
 //Outputs valid FIR exit points (from Constraints array) as string
@@ -2594,21 +2353,21 @@ string CVFPCPlugin::ExitPointOutput(CFlightPlan flightPlan, size_t origin_int, v
 	map<string, vector<string>> a{}; //Key = Exit Point, Value = Explicitly Permitted SIDs
 	vector<bool> b{}; //Implicitly Permitted SIDs (Not Explicitly Prohibited)
 
-	for (size_t i = 0; i < sid_config[origin_int]["sids"].Size(); i++) {
+	for (size_t i = 0; i < config[origin_int]["sids"].Size(); i++) {
 		b.push_back(false);
 
-		if (sid_config[origin_int]["sids"][i].HasMember("point") && sid_config[origin_int]["sids"][i]["point"].IsString()) {
-			const Value& conditions = sid_config[origin_int]["sids"][i]["constraints"];
+		if (config[origin_int]["sids"][i].HasMember("point") && config[origin_int]["sids"][i]["point"].IsString()) {
+			const Value& conditions = config[origin_int]["sids"][i]["constraints"];
 			for (size_t j = 0; j < conditions.Size(); j++) {
 				if (conditions[j]["points"].IsArray() && conditions[j]["points"].Size()) {
 					for (string each : points) {
 						if (arrayContains(conditions[j]["points"], each)) {
 							if (a.find(each) == a.end()) {
-								vector<string> temp{ sid_config[origin_int]["sids"][i]["point"].GetString() };
+								vector<string> temp{ config[origin_int]["sids"][i]["point"].GetString() };
 								a.insert(pair<string, vector<string>>(each, temp));
 							}
 							else {
-								a[each].push_back(sid_config[origin_int]["sids"][i]["point"].GetString());
+								a[each].push_back(config[origin_int]["sids"][i]["point"].GetString());
 							}
 						}
 					}
@@ -2661,7 +2420,7 @@ string CVFPCPlugin::ExitPointOutput(CFlightPlan flightPlan, size_t origin_int, v
 
 		for (size_t i = 0; i < b.size(); i++) {
 			if (b[i]) {
-				string temp = sid_config[origin_int]["sids"][i]["point"].GetString();
+				string temp = config[origin_int]["sids"][i]["point"].GetString();
 
 				if (temp == "") {
 					single += "No SID";
@@ -2711,12 +2470,12 @@ string CVFPCPlugin::DestinationOutput(CFlightPlan flightPlan, size_t origin_int,
 	vector<string> a{}; //Explicitly Permitted
 	vector<string> b{}; //Implicitly Permitted (Not Explicitly Prohibited)
 
-	for (size_t i = 0; i < sid_config[origin_int]["sids"].Size(); i++) {
-		if (sid_config[origin_int]["sids"][i].HasMember("point") && sid_config[origin_int]["sids"][i]["point"].IsString()) {
+	for (size_t i = 0; i < config[origin_int]["sids"].Size(); i++) {
+		if (config[origin_int]["sids"][i].HasMember("point") && config[origin_int]["sids"][i]["point"].IsString()) {
 			bool push_a = false;
 			bool push_b = false;
 
-			const Value& conditions = sid_config[origin_int]["sids"][i]["constraints"];
+			const Value& conditions = config[origin_int]["sids"][i]["constraints"];
 			for (size_t j = 0; j < conditions.Size(); j++) {
 				if (conditions[j]["dests"].IsArray() && conditions[j]["dests"].Size()) {
 					if (destArrayContains(conditions[j]["dests"], dest) != "") {
@@ -2730,7 +2489,7 @@ string CVFPCPlugin::DestinationOutput(CFlightPlan flightPlan, size_t origin_int,
 				}
 			}
 
-			string sidstr = sid_config[origin_int]["sids"][i]["point"].GetString();
+			string sidstr = config[origin_int]["sids"][i]["point"].GetString();
 			if (sidstr == "") {
 				sidstr = "No SID";
 			}
@@ -2754,7 +2513,7 @@ string CVFPCPlugin::DestinationOutput(CFlightPlan flightPlan, size_t origin_int,
 			out += RESULT_SEP;
 		}
 
-		out = out.substr(0, out.size() - 2) + RESULT_END;
+		out = out.substr(0, out.size() - 2) + ".";
 	}
 
 	if (b.size()) {
@@ -2769,7 +2528,7 @@ string CVFPCPlugin::DestinationOutput(CFlightPlan flightPlan, size_t origin_int,
 			out += RESULT_SEP;
 		}
 
-		out = out.substr(0, out.size() - 2) + RESULT_END;
+		out = out.substr(0, out.size() - 2) + ".";
 	}
 
 	if (out == "") {
@@ -3041,6 +2800,7 @@ void CVFPCPlugin::checkFPDetail() {
 		sendMessage("Error", "An unexpected error occured");
 		debugMessage("Error", "An unexpected error occured");
 	}
+
 }
 
 //Compiles list of failed elements in flight plan, in preparation for adding to departure list
@@ -3176,7 +2936,7 @@ void CVFPCPlugin::OnTimer(int Counter) {
 				bufLog("Timer: Connection Closed - Clearing Collections...");
 				airports.clear();
 				bufLog("Timer: Connection Closed - Airports Cleared");
-				sid_config.Clear();
+				config.Clear();
 				bufLog("Timer: Connection Closed - JSON Cleared");
 			}
 
