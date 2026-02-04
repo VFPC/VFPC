@@ -13,6 +13,9 @@ This plugin only works with the latest sector files and navigation data. Please 
 Additionally, please regularly update your navigation data (`EuroScope/DataFiles` and `EuroScope/UK/Data/DataFiles`) to the latest AIRAC, found in the `NavData` folder of the `EDGG EDGG_FULL` profile at: http://files.aero-nav.com/EDXX.
 
 After updating your sector files or navigation data, please remember to restart EuroScope before using the plugin.
+## Installation
+- Create a folder called VFPC within the plugins folder (%APPDATA%\Euroscope\UK\Data\Plugins).
+- Copy the downloaded DLL (vfpc.dll) to this folder.
 
 ## Initial Setup
 - Load up the plugin
