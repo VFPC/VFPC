@@ -75,6 +75,23 @@ After updating your sector files or navigation data, please remember to restart 
 
 **N.B.** Disabling automatic data loading (or choosing to load from a file) will only last until the plugin is unloaded (including when EuroScope is closed). When the plugin is next loaded, it will always attempt to load from the API.
 
+## Configuration File
+- Certain data required by the plugin is now held within a file `vfpc_config.json`.
+- The plugin will create this file the first time it is loaded after being downloaded.  Thereafter a default will be created if it cannot be located within the same folder
+as the plugin.
+- Currently this file specifies the Data Server URL used by the plugin, and the RGB values for the RED, GREEN and YELLOW colours as used by the results of checks (see above).
+- The Data Server URL should not be amended by the user, unless instructed to do so by a member of the VFPC team, as this is likely to cause the plugin to be disabled.
+- The format of the JSON file must be maintained if amended by the user to avoid unexpected behaviour.
+- The configuration file default values are as follows;
+  
+| Key | Value |
+| --- | --- |
+| `base_url` | https://vfpcplugin.org |
+| `red` | R = 190 G = 0 B = 0 |
+| `green` | R = 0 G = 190 B = 0 |
+| `yellow` | R = 255 G = 165 B = 0 |
+
+
 ## Disclaimer
 The plugin is currently in active development and you may encounter **unforseen bugs or other issues**. Please report them - we'll fix them as soon as we can. You run this plugin at your own risk - the developers are all volunteers and accept no liability for any problems encountered or damage to your system.
 
