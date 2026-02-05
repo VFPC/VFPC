@@ -14,7 +14,7 @@ Additionally, please regularly update your navigation data (`EuroScope/DataFiles
 
 After updating your sector files or navigation data, please remember to restart EuroScope before using the plugin.
 ## Installation
-- Create a folder called VFPC within the plugins folder (%APPDATA%\Euroscope\UK\Data\Plugins).
+- Create a folder called VFPC within the plugins folder (%APPDATA%\Euroscope\UK\Data\Plugin).
 - Copy the downloaded DLL (vfpc.dll) to this folder.
 
 ## Initial Setup
