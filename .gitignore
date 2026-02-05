@@ -1,3 +1,10 @@
+# Visual Studio user-specific files (do not commit)
+*.user
+*.vcxproj.user
+*.suo
+.vs/
+
+
 # Local include headers
 lib/include/
 
@@ -35,3 +42,4 @@ lib/include/
 *.app
 .vs/
 bin/
+
