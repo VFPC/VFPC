@@ -2,12 +2,12 @@
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LocalDebuggerCommand>C:\Program Files %28x86%29\EuroScope\EuroScope.exe</LocalDebuggerCommand>
-    <LocalDebuggerWorkingDirectory>C:\Users\Lenny\OneDrive\EuroScope</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerWorkingDirectory>..\..\AppData\Roaming\EuroScope</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LocalDebuggerCommand>C:\Program Files %28x86%29\EuroScope\EuroScope.exe</LocalDebuggerCommand>
-    <LocalDebuggerWorkingDirectory>C:\Users\Lenny\OneDrive\EuroScope</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerWorkingDirectory>..\..\AppData\Roaming\EuroScope</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -19,8 +19,5 @@
     <LocalDebuggerCommand>C:\Program Files %28x86%29\EuroScope\EuroScope.exe</LocalDebuggerCommand>
     <LocalDebuggerWorkingDirectory>C:\Users\Lenny\OneDrive\EuroScope</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-  </PropertyGroup>
-  <PropertyGroup>
-    <ShowAllFiles>true</ShowAllFiles>
   </PropertyGroup>
 </Project>
