@@ -1,3 +1,13 @@
+# Visual Studio user-specific files (do not commit)
+*.user
+*.vcxproj.user
+*.suo
+.vs/
+
+
+# Local include headers
+lib/include/
+
 # Prerequisites
 *.d
 
@@ -21,17 +31,15 @@
 *.smod
 
 # Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
+#*.lai
+#*.la
+#*.a
+#*.lib
 
 # Executables
 *.exe
 *.out
 *.app
-
-bin/
 .vs/
-.idea/
-out/
+bin/
+

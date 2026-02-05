@@ -11,6 +11,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 #include "rapidjson/document.h"
+#include "rapidjson/prettywriter.h"
 #include "rapidjson/stringbuffer.h"
 
 using namespace std;
@@ -82,6 +83,9 @@ public:
 	virtual void OnFunctionCall(int FunctionId, const char * ItemString, POINT Pt, RECT Area);
 
 	virtual bool Enabled(CFlightPlan flightPlan);
+
+	//File name used for settings.
+	static constexpr const char* kConfigFileName = "vfpc_config.json";
 
 	//Define OnGetTagItem function
 	virtual void OnGetTagItem(CFlightPlan FlightPlan,
@@ -234,6 +238,8 @@ public:
 
 	virtual bool writeLog();
 
+	virtual bool LoadSettingsFromJson(const std::string& filename);
+
 	virtual void debugMessage(string type, string message);
 
 	virtual void sendMessage(string type, string message);
@@ -247,6 +253,11 @@ public:
 	virtual void runWebCalls();
 
 	virtual void OnTimer(int Count);
+
+	virtual bool WriteDefaultSettingsJson(const std::string& filename);
+private:
+	std::string base_url_ = "https://vfpc_config.json/";
+	int last_update = -1;
 
 protected:
 	Document config;
