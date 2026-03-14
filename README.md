@@ -122,8 +122,8 @@ A few elements of the original code base (most notably, part of the UI) remain i
 Built from scratch by **@GeekPro101** for use with v3 of UK VFPC.
 
 **SRD Parser (`New-SRDParser`):**
-Concept and original closed-source parser by **@lennycolton**. The open-source
+Concept and original closed-source parser by **@lennycolton**. The current
 `New-SRDParser` was written by **@oldenough** with AI assistance (Claude/Cursor and ChatGPT),
-building on the original concept and data structures.
+building on the original concept and data structures. This project is private.
 
 All projects are maintained within the [VFPC GitHub organisation](https://github.com/VFPC).
