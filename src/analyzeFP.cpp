@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "analyzeFP.hpp"
+#include "TimeWindow.hpp"
 #include <curl/curl.h>
 #include <future>
 #include <chrono> // Ensure this is included
@@ -980,98 +981,8 @@ vector<bool> CVFPCPlugin::checkRestriction(CFlightPlan flightPlan, string sid_su
 			}
 
 			if (restrictions[j].HasMember("start") && restrictions[j].HasMember("end")) {
-				bool date = false;
-				bool time = false;
-
-				int startdate;
-				int enddate;
-				int starttime[2] = { 0,0 };
-				int endtime[2] = { 0,0 };
-
-				if (restrictions[j]["start"].HasMember("date")
-					&& restrictions[j]["start"]["date"].IsInt()
-					&& restrictions[j]["end"].HasMember("date")
-					&& restrictions[j]["end"]["date"].IsInt()) {
-					date = true;
-
-					startdate = restrictions[j]["start"]["date"].GetInt();
-					enddate = restrictions[j]["end"]["date"].GetInt();
-				}
-
-				if (restrictions[j]["start"].HasMember("time")
-					&& restrictions[j]["start"]["time"].IsString()
-					&& restrictions[j]["end"].HasMember("time")
-					&& restrictions[j]["end"]["time"].IsString()) {
-					time = true;
-
-					string startstring = restrictions[j]["start"]["time"].GetString();
-					string endstring = restrictions[j]["end"]["time"].GetString();
-
-					starttime[0] = stoi(startstring.substr(0, 2));
-					starttime[1] = stoi(startstring.substr(2, 2));
-					endtime[0] = stoi(endstring.substr(0, 2));
-					endtime[1] = stoi(endstring.substr(2, 2));
-				}
-
-				bool valid = true;
-
-				if (date || time) {
-					fails[2] = true;
-					valid = false;
-
-					if (!date && time) {
-						if (starttime[0] > endtime[0] || (starttime[0] == endtime[0] && starttime[1] >= endtime[1])) {
-							if (timedata[3] > starttime[0] || (timedata[3] == starttime[0] && timedata[4] >= starttime[1]) || timedata[3] < endtime[0] || (timedata[3] == endtime[0] && timedata[4] <= endtime[1])) {
-								valid = true;
-							}
-						}
-						else {
-							if ((timedata[3] > starttime[0] || (timedata[3] == starttime[0] && timedata[4] >= starttime[1])) && (timedata[3] < endtime[0] || (timedata[3] == endtime[0] && timedata[4] <= endtime[1]))) {
-								valid = true;
-							}
-						}
-					}
-					else if (startdate == enddate) {
-						if (!time) {
-							valid = true;
-						}
-						else if ((timedata[3] > starttime[0] || (timedata[3] == starttime[0] && timedata[4] >= starttime[1])) && (timedata[3] < endtime[0] || (timedata[3] == endtime[0] && timedata[4] <= endtime[1]))) {
-							valid = true;
-						}
-					}
-					else if (startdate < enddate) {
-						if (timedata[5] > startdate && timedata[5] < enddate) {
-							valid = true;
-						}
-						else if (timedata[5] == startdate) {
-							if (!time || timedata[3] > starttime[0] || (timedata[3] == starttime[0] && timedata[4] >= starttime[1])) {
-								valid = true;
-							}
-						}
-						else if (timedata[5] == enddate) {
-							if (!time || timedata[3] < endtime[0] || (timedata[3] == endtime[0] && timedata[4] < endtime[1])) {
-								valid = true;
-							}
-						}
-					}
-					else if (startdate > enddate) {
-						if (timedata[5] < startdate || timedata[5] > enddate) {
-							valid = true;
-						}
-						else if (timedata[5] == startdate) {
-							if (!time || timedata[3] > starttime[0] || (timedata[3] == starttime[0] && timedata[4] >= starttime[1])) {
-								valid = true;
-							}
-						}
-						else if (timedata[5] == enddate) {
-							if (!time || timedata[3] < endtime[0] || (timedata[3] == endtime[0] && timedata[4] < endtime[1])) {
-								valid = true;
-							}
-						}
-					}
-				}
-
-				if (!valid) {
+				fails[2] = true;
+				if (!checkTimeWindow(timedata[5], timedata[3], timedata[4], restrictions[j])) {
 					temp = false;
 				}
 			}
@@ -2995,7 +2906,7 @@ void CVFPCPlugin::OnTimer(int Counter)
 			return;
 		}
 
-		// Optional: you can add the “logged in” transition later if you want
+		// Optional: you can add the logged in transition later if you want
 		// if (session_state_ == SessionState::Disconnected) { ... }
 
 		// ---------- APPLY COMPLETED ASYNC WORK ----------
@@ -3016,7 +2927,7 @@ void CVFPCPlugin::OnTimer(int Counter)
 		// ---------- CONNECTED HANDLING ----------
 		if (relCount == 0) {
 			fut = std::async(std::launch::async, &CVFPCPlugin::runWebCalls, this);
-			relCount = -1; // “disabled until future completes” reads clearer than relCount--
+			relCount = -1; // disabled until future completes reads clearer than relCount--
 		}
 
 		writeLog();

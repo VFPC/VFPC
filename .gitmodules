@@ -1,0 +1,3 @@
+[submodule "VFPC_Tests/third_party/googletest"]
+	path = VFPC_Tests/third_party/googletest
+	url = https://github.com/google/googletest.git

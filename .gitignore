@@ -3,10 +3,14 @@
 *.vcxproj.user
 *.suo
 .vs/
+UpgradeLog.htm
+
+# JetBrains / Rider IDE files
+.idea/
 
 
-# Local include headers
-lib/include/
+# Boost headers (large, not committed — install locally if needed)
+lib/include/boost/
 
 # Prerequisites
 *.d
