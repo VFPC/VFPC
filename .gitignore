@@ -8,6 +8,9 @@ UpgradeLog.htm
 # JetBrains / Rider IDE files
 .idea/
 
+# Cursor / VS Code IDE files (machine-specific)
+.vscode/
+
 
 # Boost headers (large, not committed — install locally if needed)
 lib/include/boost/
