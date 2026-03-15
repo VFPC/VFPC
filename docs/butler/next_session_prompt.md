@@ -37,11 +37,13 @@ Before starting work, read the project-wide butler:
    - `VFPC_Tests/VFPC_Tests.vcxproj`
 
 2. **Verify tests still pass** before committing:
+
    ```powershell
    $msbuild = "D:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe"
    & $msbuild "VFPC_Tests\VFPC_Tests.vcxproj" /p:Configuration=Release /p:Platform=x64 /p:SolutionDir="C:\Users\jkino\Documents\GitHub\VFPC\" /t:Rebuild
    & "bin\Release\tests\VFPC_Tests.exe"
    ```
+
    Expected: `[  PASSED  ] 87 tests.`
 
 3. **Raise the PR** for `time-handling-v2` → main on `VFPC/VFPC`.
