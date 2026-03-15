@@ -1,6 +1,6 @@
 # Next Session Prompt — VFPC
 
-_Generated: 2026-03-14 (time-handling patch session)_
+_Generated: 2026-03-15 (build fixes + version bump session)_
 
 ## Read the Project Hub First
 
@@ -17,10 +17,12 @@ Before starting work, read the project-wide butler:
 
 ## Current State
 
-- **Branch:** `time-handling`
-- **Status:** Ready to PR — 52/52 tests passing, commit `01da6ef8`
+- **Branch:** `time-handling-v2`
+- **Version:** `3.7.1.0` (Constant.hpp + Resource.rc)
+- **Status:** DLL given to Peter for integration testing — awaiting result before committing + PR
 - **5 bug fixes** in `src/TimeWindow.hpp` (Changes 1–5)
-- **0 build warnings** in VFPC_Tests
+- **87/87 tests passing**
+- **All changes uncommitted** (boost removal, curl headers, version bump, ParseError fix)
 
 ---
 
@@ -28,15 +30,21 @@ Before starting work, read the project-wide butler:
 
 ### Immediate (this session)
 
-1. **Raise the PR** for `time-handling` → main (or upstream default branch).
-   Check if you have push permissions; if not, ask the user.
+1. **Await Peter's test result.** If he confirms the DLL works, commit all pending changes:
+   - `src/analyzeFP.cpp`, `src/analyzeFP.hpp`, `src/Constant.hpp`, `Resource.rc`
+   - `lib/include/curl/` (untracked — `git add lib/include/curl/`)
+   - `vcpkg` submodule + `.gitmodules` (already staged)
+   - `VFPC_Tests/VFPC_Tests.vcxproj`
 
-2. **Verify tests still pass** before raising the PR:
-   ```bat
-   msbuild VFPC.sln /t:VFPC_Tests /p:Configuration=Debug /p:Platform=x64
-   VFPC_Tests\x64\Debug\VFPC_Tests.exe
+2. **Verify tests still pass** before committing:
+   ```powershell
+   $msbuild = "D:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe"
+   & $msbuild "VFPC_Tests\VFPC_Tests.vcxproj" /p:Configuration=Release /p:Platform=x64 /p:SolutionDir="C:\Users\jkino\Documents\GitHub\VFPC\" /t:Rebuild
+   & "bin\Release\tests\VFPC_Tests.exe"
    ```
-   Expected: `[  PASSED  ] 52 tests.`
+   Expected: `[  PASSED  ] 87 tests.`
+
+3. **Raise the PR** for `time-handling-v2` → main on `VFPC/VFPC`.
 
 ### Soon (tracked as GitHub issues)
 
@@ -60,8 +68,9 @@ Before starting work, read the project-wide butler:
 3. **End-boundary:** Inclusive (`<=`). Production rules end at XX:59.
 4. **`checkTimeWindow()`** — the testable entry point. Add new tests to `TimeWindowTests.cpp`
    whenever logic changes. Run via `VFPC_Tests.exe`.
-5. **Building:** `msbuild VFPC.sln` (not `.vcxproj` directly). Target `VFPC_Tests` for
-   tests only, or no target for both.
+5. **Building DLL:** Release Win32 via `msbuild VFPC.vcxproj /p:Configuration=Release /p:Platform=Win32`.
+   Output goes to `%APPDATA%\EuroScope\UK\Data\Plugin\VFPC\VFPC.dll` (live install location).
+   **Building tests:** must pass `/p:SolutionDir` when building `.vcxproj` directly (see above).
 6. **Override field** — three-repo dependency. VFPC cannot consume it until UKVFPCAPI#68 lands.
 7. **Never recursively list Go/C# repo directories** — use `Glob` + `Grep` (see performance rules).
 8. **PowerShell heredocs don't work** — write multi-line content to a file, use `--body-file`.

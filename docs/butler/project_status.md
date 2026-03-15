@@ -1,6 +1,6 @@
 # VFPC Project Status
 
-_Last Updated: 2026-03-14 (time-handling patch session)_
+_Last Updated: 2026-03-15 (time-handling-v2 build session)_
 
 > **Active task tracking is on GitHub Issues.**
 > See: https://github.com/VFPC/VFPC/issues
@@ -10,8 +10,9 @@ _Last Updated: 2026-03-14 (time-handling patch session)_
 
 ## Current State
 
-**Branch:** `time-handling`  
-**Status:** Ready to PR — awaiting upstream permissions
+**Branch:** `time-handling-v2`  
+**Version:** `3.7.1.0`  
+**Status:** DLL built and given to Peter (tester) — awaiting integration test result before PR
 
 ### What's Working ✅
 
@@ -24,8 +25,10 @@ _Last Updated: 2026-03-14 (time-handling patch session)_
   - Adjacent overnight windows (e.g. Mon night → Tue morning) now handled (Change 3)
   - Day-only restrictions (no time fields) now match all times on specified days (Change 4)
   - End-boundary changed from exclusive (`<`) to inclusive (`<=`) for all window types (Change 5)
-- **Test project** (`VFPC_Tests`) — 52 parameterized Google Test cases, all passing.
-  Build via `msbuild VFPC.sln /t:VFPC_Tests /p:Configuration=Debug /p:Platform=x64`
+- **Boost removed** — all `boost::` calls replaced with std equivalents; no external dependency
+- **Curl headers** — `lib/include/curl/` added (matching boost/rapidjson pattern); `libcurl_a.lib` was always present
+- **Test project** (`VFPC_Tests`) — 87 parameterized Google Test cases, all passing.
+  Build via `msbuild VFPC_Tests\VFPC_Tests.vcxproj /p:SolutionDir="C:\Users\jkino\Documents\GitHub\VFPC\"`
 
 ### What Needs Work
 
@@ -56,10 +59,12 @@ environment.
 | Item | Value |
 |------|-------|
 | Language standard | C++17 (VFPC_Tests), C++14 (VFPC.dll) |
-| Target platform | x64 |
+| DLL target platform | Win32 (32-bit) |
+| Test target platform | x64 |
 | Toolset | v143 (VS 2022) |
 | Test framework | Google Test v1.15.2 (submodule at `VFPC_Tests/third_party/googletest`) |
-| Tests | 52 passing, 0 failing |
+| Tests | 87 passing, 0 failing |
+| Version | 3.7.1.0 (Constant.hpp + Resource.rc) |
 
 ---
 

@@ -1,6 +1,50 @@
 # VFPC Session Status Summary
 
-**Last Updated:** 2026-03-14
+**Last Updated:** 2026-03-15
+
+---
+
+## Session 2026-03-15: Build Fixes, Version Bump, DLL to Peter
+
+**Branch:** `time-handling-v2`
+
+### What Was Completed
+
+**Build unblocked — VFPC.dll now compiles cleanly:**
+
+- **Boost removed** (3 remaining usages replaced with std):
+  - `analyzeFP.hpp:181` — `boost::to_upper` → `std::transform` with `::toupper`
+  - `analyzeFP.cpp:1028` — `boost::trim` → `string::erase` + `find_first/last_not_of`
+  - `analyzeFP.cpp:1054` — `boost::erase_all` → erase-remove idiom on single char `'#'`
+- **Curl headers added** — `lib/include/curl/` (12 headers, curl 8.11.0 from GitHub),
+  matching the existing `lib/include/boost/` and `lib/include/rapidjson/` pattern.
+  `lib/libcurl_a.lib` was already present; only headers were missing.
+- **Pre-existing bug fixed** (uncovered when curl stopped masking it):
+  `std::to_string(out.GetParseError())` — this rapidjson version returns `const char*`,
+  not an enum. Fixed at lines 367 and 639 by concatenating directly as a string.
+
+**Version bumped to 3.7.1.0:**
+- `src/Constant.hpp` — `MY_PLUGIN_VERSION` `"3.7.0.0"` → `"3.7.1.0"`
+- `Resource.rc` — `FILEVERSION`/`PRODUCTVERSION` `1,0,0,1` → `3,7,1,0`;
+  `FileVersion` string → `"3.7.1.0"`; `ProductVersion` string → `"3.7.1"`
+  (resource file version was placeholder `1,0,0,1` — now correct)
+
+**Tests verified: 87/87 passing** (up from 52 — additional constraint + runtime tests
+added in the previous session on `time-handling-v2`).
+
+**DLL delivered** to Peter (tester) at:
+`C:\Users\jkino\AppData\Roaming\EuroScope\UK\Data\Plugin\VFPC\VFPC.dll`
+
+**Uncommitted in repo:**
+- `src/analyzeFP.cpp`, `src/analyzeFP.hpp`, `src/Constant.hpp`, `Resource.rc` — all modified
+- `lib/include/curl/` — untracked (12 headers)
+- `vcpkg` submodule staged, `.gitmodules` staged
+- `VFPC_Tests/VFPC_Tests.vcxproj` — modified
+
+### What's Next
+
+- Await Peter's integration test result
+- Commit all changes and raise PR once Peter confirms the DLL works
 
 ---
 
