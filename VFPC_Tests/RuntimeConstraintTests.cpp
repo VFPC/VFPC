@@ -206,7 +206,7 @@ TEST_F(RuntimeConstraintTest, ExitPoint_AllConstraints) {
                 if (!con.HasMember("points") || !con["points"].IsArray() || con["points"].Size() == 0) continue;
 
                 // First listed point should pass
-                std::string firstPoint = con["points"][0].GetString();
+                std::string firstPoint = con["points"][SizeType(0)].GetString();
                 EXPECT_TRUE(checkOneExitPoint(con, {firstPoint})) << id << " listed point should pass";
 
                 // Synthetic miss should fail
@@ -231,7 +231,7 @@ TEST_F(RuntimeConstraintTest, Route_AllConstraints) {
                 std::string id = constraint_id(icao, s, c);
                 if (!con.HasMember("route") || !con["route"].IsArray() || con["route"].Size() == 0) continue;
 
-                std::string firstVariant = con["route"][0].GetString();
+                std::string firstVariant = con["route"][SizeType(0)].GetString();
                 if (firstVariant == "*") continue; // wildcard always passes — skip
 
                 auto tokens = split_tokens(firstVariant);
