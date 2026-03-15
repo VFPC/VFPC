@@ -1,5 +1,6 @@
 #pragma once
-#include "stdafx.h"
+#include <string>
+#include <cstring>
 
 #define MY_PLUGIN_NAME			"VFPC (UK)"
 #define MY_PLUGIN_VERSION		"3.7.1.0"
