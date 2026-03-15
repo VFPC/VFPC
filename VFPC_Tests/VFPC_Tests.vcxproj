@@ -105,11 +105,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Hand-written tests — built via VS as normal -->
-    <!-- Generated tests (153k cases) are run via scripts\run-generated-tests.ps1 -->
-    <!-- which compiles one checker group at a time to avoid MSVC heap exhaustion -->
     <ClCompile Include="TimeWindowTests.cpp" />
     <ClCompile Include="ApiConstraintTests.cpp" />
+    <ClCompile Include="RuntimeConstraintTests.cpp" />
 
     <!-- Google Test compiled directly — no separate gtest project needed -->
     <ClCompile Include="third_party\googletest\googletest\src\gtest-all.cc">
