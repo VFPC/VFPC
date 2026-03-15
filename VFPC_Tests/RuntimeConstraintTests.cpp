@@ -22,9 +22,8 @@
 #include <gtest/gtest.h>
 #include "ConstraintChecks.hpp"
 #include "rapidjson/document.h"
-#include "rapidjson/filereadstream.h"
-#include <cstdio>
 #include <cstdlib>
+#include <fstream>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -39,14 +38,13 @@ static bool     g_loaded = false;
 static int      g_constraintCount = 0;
 static int      g_deadComboCount  = 0;
 
-// Call once from SetUpTestSuite or main.
 static bool LoadOutJson(const std::string& path) {
-    FILE* fp = fopen(path.c_str(), "rb");
-    if (!fp) return false;
-    char buf[65536];
-    FileReadStream is(fp, buf, sizeof(buf));
-    g_outJson.ParseStream(is);
-    fclose(fp);
+    std::ifstream ifs(path, std::ios::binary);
+    if (!ifs.is_open()) return false;
+    std::ostringstream ss;
+    ss << ifs.rdbuf();
+    std::string content = ss.str();
+    g_outJson.Parse<kParseDefaultFlags>(content.c_str());
     return !g_outJson.HasParseError() && g_outJson.IsArray();
 }
 
