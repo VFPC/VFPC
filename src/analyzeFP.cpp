@@ -364,7 +364,7 @@ bool CVFPCPlugin::APICall(string endpoint, Document& out) {
 		if (out.Parse<0>(buf.c_str()).HasParseError())
 		{
 			sendMessage("An error occurred whilst reading data. The plugin will not automatically attempt to reload from the API. To restart data fetching, type \".vfpc load\".");
-			debugMessage("Error", str(boost::format("Config Download: %s (Offset: %i)\n'") % out.GetParseError() % out.GetErrorOffset()));
+			debugMessage("Error", string("Config Download parse error ") + out.GetParseError() + " (Offset: " + std::to_string(out.GetErrorOffset()) + ")\n'");
 			bufLog("API Call To " + url + ": Failed - Data Returned But Unreadable");
 			return false;
 
@@ -636,7 +636,7 @@ bool CVFPCPlugin::fileCall(Document &out) {
 
 		if (out.Parse<0>(ss.str().c_str()).HasParseError()) {
 			sendMessage("An error occurred whilst reading data. The plugin will not automatically attempt to reload. To restart data fetching from the API, type \"" + COMMAND_PREFIX + LOAD_COMMAND + "\". To reattempt loading data from the Sid.json file, type \"" + COMMAND_PREFIX + FILE_COMMAND + "\".");
-			debugMessage("Error", str(boost::format("Config Parse: %s (Offset: %i)\n'") % out.GetParseError() % out.GetErrorOffset()));
+			debugMessage("Error", string("Config Parse error ") + out.GetParseError() + " (Offset: " + std::to_string(out.GetErrorOffset()) + ")\n'");
 			bufLog("File Read Failed - Data Found But Unreadable");
 
 			out.Parse<0>("[]");
@@ -1003,8 +1003,8 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 
 	returnOut[0].back() = returnOut[1].back() = "Failed";
 
-	string origin = flightPlan.GetFlightPlanData().GetOrigin(); boost::to_upper(origin);
-	string destination = flightPlan.GetFlightPlanData().GetDestination(); boost::to_upper(destination);
+	string origin = flightPlan.GetFlightPlanData().GetOrigin(); std::transform(origin.begin(), origin.end(), origin.begin(), ::toupper);
+	string destination = flightPlan.GetFlightPlanData().GetDestination(); std::transform(destination.begin(), destination.end(), destination.begin(), ::toupper);
 	SizeType origin_int;
 
 	// Airport defined
@@ -1025,7 +1025,8 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 
 	string rawroute = flightPlan.GetFlightPlanData().GetRoute();
 	bufLog(callsign + string(" Validate: Route - ") + rawroute);
-	boost::trim(rawroute);
+	rawroute.erase(0, rawroute.find_first_not_of(" \t\r\n"));
+	rawroute.erase(rawroute.find_last_not_of(" \t\r\n") + 1);
 
 	vector<string> route = split(rawroute, ' ');
 
@@ -1033,7 +1034,7 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 	route.erase(itr, route.end());
 
 	for (size_t i = 0; i < route.size(); i++) {
-		boost::to_upper(route[i]);
+		std::transform(route[i].begin(), route[i].end(), route[i].begin(), ::toupper);
 	}
 
 	vector<string> points{};
@@ -1044,14 +1045,14 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 	}
 
 
-	string sid = flightPlan.GetFlightPlanData().GetSidName(); boost::to_upper(sid);
+	string sid = flightPlan.GetFlightPlanData().GetSidName(); std::transform(sid.begin(), sid.end(), sid.begin(), ::toupper);
 	string first_wp = "";
 	string sid_suffix = "";
 
 	//Route with SID
 	if (sid.length()) {
 		// Remove any # characters from SID name
-		boost::erase_all(sid, OUTDATED_SID);
+		sid.erase(std::remove(sid.begin(), sid.end(), '#'), sid.end());
 
 		if (origin == "EGLL" && sid == "CHK") {
 			bufLog(callsign + string(" Validate: First Waypoint - EGLL CPT Easterly Procedure In Use"));
@@ -1062,7 +1063,7 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 			first_wp = sid.substr(0, sid.find_first_of("0123456789"));
 			sid_suffix = sid.back();
 			if (0 != first_wp.length())
-				boost::to_upper(first_wp);
+				std::transform(first_wp.begin(), first_wp.end(), first_wp.begin(), ::toupper);
 		}
 	}
 
@@ -2754,7 +2755,7 @@ void CVFPCPlugin::OnTimer(int Counter)
 			return;
 		}
 
-		// Optional: you can add the ùlogged inù transition later if you want
+		// Optional: you can add the ÔøΩlogged inÔøΩ transition later if you want
 		// if (session_state_ == SessionState::Disconnected) { ... }
 
 		// ---------- APPLY COMPLETED ASYNC WORK ----------
@@ -2775,7 +2776,7 @@ void CVFPCPlugin::OnTimer(int Counter)
 		// ---------- CONNECTED HANDLING ----------
 		if (relCount == 0) {
 			fut = std::async(std::launch::async, &CVFPCPlugin::runWebCalls, this);
-			relCount = -1; // ùdisabled until future completesù reads clearer than relCount--
+			relCount = -1; // ÔøΩdisabled until future completesÔøΩ reads clearer than relCount--
 		}
 
 		writeLog();
