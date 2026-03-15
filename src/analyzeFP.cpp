@@ -1,6 +1,9 @@
 #include "stdafx.h"
 #include "analyzeFP.hpp"
 #include "TimeWindow.hpp"
+#include "ConstraintChecks.hpp"
+
+using namespace ConstraintChecks;
 #include <curl/curl.h>
 #include <future>
 #include <chrono> // Ensure this is included
@@ -843,102 +846,28 @@ void CVFPCPlugin::getSids() {
 
 vector<bool> CVFPCPlugin::checkDestination(const Value& conditions, string destination, vector<bool> in) {
 	vector<bool> out{};
-
 	for (size_t i = 0; i < conditions.Size(); i++) {
-		if (!in[i]) {
-			out.push_back(false);
-			continue;
-		}
-
-		bool res = true;
-
-		if (conditions[i]["nodests"].IsArray() && conditions[i]["nodests"].Size()) {
-			string dest;
-			if (destArrayContains(conditions[i]["nodests"], destination.c_str()).size()) {
-				res = false;
-			}
-		}
-
-		if (conditions[i]["dests"].IsArray() && conditions[i]["dests"].Size()) {
-			string dest;
-			if (!destArrayContains(conditions[i]["dests"], destination.c_str()).size()) {
-				res = false;
-			}
-		}
-
-		out.push_back(res);
+		if (!in[i]) { out.push_back(false); continue; }
+		out.push_back(checkOneDestination(conditions[i], destination));
 	}
-
 	return out;
 }
 
 vector<bool> CVFPCPlugin::checkExitPoint(const Value& conditions, vector<string> points, vector<bool> in) {
 	vector<bool> out{};
-
 	for (size_t i = 0; i < conditions.Size(); i++) {
-		if (!in[i]) {
-			out.push_back(false);
-			continue;
-		}
-
-		bool res = true;
-
-		if (conditions[i].HasMember("points") && conditions[i]["points"].IsArray() && conditions[i]["points"].Size()) {
-			bool temp = false;
-
-			for (string each : points) {
-				if (arrayContains(conditions[i]["points"], each)) {
-					temp = true;
-				}
-			}
-
-			if (!temp) {
-				res = false;
-			}
-		}
-
-		if (conditions[i].HasMember("nopoints") && conditions[i]["nopoints"].IsArray() && conditions[i]["nopoints"].Size()) {
-			bool temp = false;
-
-			for (string each : points) {
-				if (arrayContains(conditions[i]["nopoints"], each)) {
-					temp = true;
-				}
-			}
-
-			if (temp) {
-				res = false;
-			}
-		}
-
-		out.push_back(res);
+		if (!in[i]) { out.push_back(false); continue; }
+		out.push_back(checkOneExitPoint(conditions[i], points));
 	}
-
 	return out;
 }
 
 vector<bool> CVFPCPlugin::checkRoute(const Value& conditions, vector<string> route, vector<bool> in) {
 	vector<bool> out{};
-
 	for (size_t i = 0; i < conditions.Size(); i++) {
-		if (!in[i]) {
-			out.push_back(false);
-			continue;
-		}
-
-		bool res = true;
-
-		if (conditions[i].HasMember("route") && conditions[i]["route"].IsArray() && conditions[i]["route"].Size() && !routeContains(route, conditions[i]["route"])) {
-			res = false;
-		}
-
-		if (conditions[i].HasMember("noroute") && res && conditions[i]["noroute"].IsArray() && conditions[i]["noroute"].Size() && routeContains(route, conditions[i]["noroute"])) {
-			res = false;
-		}
-
-		out.push_back(res);
+		if (!in[i]) { out.push_back(false); continue; }
+		out.push_back(checkOneRoute(conditions[i], route));
 	}
-
 	return out;
 }
 
@@ -1033,109 +962,28 @@ vector<bool> CVFPCPlugin::checkRestrictions(CFlightPlan flightPlan, const Value&
 
 vector<bool> CVFPCPlugin::checkMinMax(const Value& conditions, int RFL, vector<bool> in) {
 	vector<bool> out{};
-
 	for (size_t i = 0; i < conditions.Size(); i++) {
-		if (!in[i]) {
-			out.push_back(false);
-			continue;
-		}
-
-		bool res = true;
-
-		int Min, Max;
-
-		//Min Level
-		if (conditions[i].HasMember("min") && (Min = conditions[i]["min"].GetInt()) > 0 && (RFL / 100) < Min) {
-			res = false;
-		}
-
-		//Max Level
-		if (conditions[i].HasMember("max") && (Max = conditions[i]["max"].GetInt()) > 0 && (RFL / 100) > Max) {
-			res = false;
-		}
-
-		out.push_back(res);
+		if (!in[i]) { out.push_back(false); continue; }
+		out.push_back(checkOneMinMax(conditions[i], RFL));
 	}
-
 	return out;
 }
 
 vector<bool> CVFPCPlugin::checkDirection(const Value& conditions, int RFL, vector<bool> in) {
 	vector<bool> out{};
-
 	for (size_t i = 0; i < conditions.Size(); i++) {
-		if (!in[i]) {
-			out.push_back(false);
-			continue;
-		}
-
-		//Assume any level valid if no "EVEN" or "ODD" declaration
-		bool res = true;
-
-		if (conditions[i].HasMember("dir") && conditions[i]["dir"].IsString()) {
-			string direction = conditions[i]["dir"].GetString();
-			boost::to_upper(direction);
-
-			if (direction == EVEN_DIRECTION) {
-				//Assume invalid until condition matched
-				res = false;
-
-				//Non-RVSM (Above FL410)
-				if ((RFL > RVSM_UPPER && ((RFL - RVSM_UPPER) / 1000) % 4 == 2)) {
-					res = true;
-				}
-				//RVSM (FL290-410) or Below FL290
-				else if (RFL <= RVSM_UPPER && (RFL / 1000) % 2 == 0) {
-					res = true;
-				}
-			}
-			else if (direction == ODD_DIRECTION) {
-				//Assume invalid until condition matched
-				res = false;
-
-				//Non-RVSM (Above FL410)
-				if ((RFL > RVSM_UPPER && ((RFL - RVSM_UPPER) / 1000) % 4 == 0)) {
-					res = true;
-				}
-				//RVSM (FL290-410) or Below FL290
-				else if (RFL <= RVSM_UPPER && (RFL / 1000) % 2 == 1) {
-					res = true;
-				}
-			}
-		}
-
-		out.push_back(res);
+		if (!in[i]) { out.push_back(false); continue; }
+		out.push_back(checkOneDirection(conditions[i], RFL));
 	}
-
 	return out;
 }
 
 vector<bool> CVFPCPlugin::checkAlerts(const Value& conditions, bool *warn, vector<bool> in) {
 	vector<bool> out{};
-
 	for (size_t i = 0; i < conditions.Size(); i++) {
-		if (!in[i]) {
-			out.push_back(false);
-			continue;
-		}
-
-		bool res = true;
-
-		if (conditions[i]["alerts"].IsArray() && conditions[i]["alerts"].Size()) {
-			for (size_t j = 0; j < conditions[i]["alerts"].Size(); j++) {
-				if (conditions[i]["alerts"][j].HasMember("ban") && conditions[i]["alerts"][j]["ban"].GetBool()) {
-					res = false;
-				}
-
-				if (conditions[i]["alerts"][j].HasMember("warn") && conditions[i]["alerts"][j]["warn"].GetBool()) {
-					*warn = true;
-				}
-			}
-		}
-
-		out.push_back(res);
+		if (!in[i]) { out.push_back(false); continue; }
+		out.push_back(checkOneAlerts(conditions[i], *warn));
 	}
-
 	return out;
 }
 
