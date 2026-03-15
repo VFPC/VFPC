@@ -105,86 +105,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Test cases -->
+    <!-- Hand-written tests — built via VS as normal -->
+    <!-- Generated tests (153k cases) are run via scripts\run-generated-tests.ps1 -->
+    <!-- which compiles one checker group at a time to avoid MSVC heap exhaustion -->
     <ClCompile Include="TimeWindowTests.cpp" />
     <ClCompile Include="ApiConstraintTests.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Alerts_00.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Alerts_01.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Alerts_02.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Alerts_03.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Alerts_04.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Destination_00.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Destination_01.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Destination_02.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Destination_03.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Destination_04.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Destination_05.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Destination_06.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Destination_07.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Destination_08.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Destination_09.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Destination_10.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Destination_11.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Destination_12.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Destination_13.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Destination_14.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Destination_15.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Destination_16.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Direction_00.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Direction_01.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Direction_02.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Direction_03.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Direction_04.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Direction_05.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Direction_06.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Direction_07.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Direction_08.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Direction_09.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Direction_10.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_ExitPoint_00.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_ExitPoint_01.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_ExitPoint_02.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_ExitPoint_03.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_ExitPoint_04.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_ExitPoint_05.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_ExitPoint_06.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_ExitPoint_07.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_MinMax_00.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_MinMax_01.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_MinMax_02.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_MinMax_03.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_MinMax_04.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_MinMax_05.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_MinMax_06.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_MinMax_07.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_MinMax_08.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_MinMax_09.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_MinMax_10.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_MinMax_11.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_MinMax_12.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_MinMax_13.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_MinMax_14.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_MinMax_15.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_MinMax_16.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_MinMax_17.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_MinMax_18.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_MinMax_19.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_MinMax_20.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_MinMax_21.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_MinMax_22.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_MinMax_23.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_MinMax_24.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Route_00.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Route_01.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Route_02.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Route_03.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Route_04.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Route_05.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Route_06.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Route_07.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Route_08.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Route_09.cpp" />
-    <ClCompile Include="GeneratedConstraintTests_Route_10.cpp" />
 
     <!-- Google Test compiled directly — no separate gtest project needed -->
     <ClCompile Include="third_party\googletest\googletest\src\gtest-all.cc">
