@@ -8,14 +8,13 @@
 #include <fstream>
 #include <vector>
 #include <map>
-#include <boost/algorithm/string.hpp>
-#include <boost/format.hpp>
+#include <algorithm>
+#include <cctype>
 #include "rapidjson/document.h"
 #include "rapidjson/prettywriter.h"
 #include "rapidjson/stringbuffer.h"
 
 using namespace std;
-using namespace boost;
 using namespace rapidjson;
 using namespace EuroScopePlugIn;
 
@@ -179,7 +178,7 @@ public:
 
 			vector<string> current = split(r, ' ');
 			for (std::size_t j = 0; j < current.size(); j++) {
-				boost::to_upper(current[j]);
+				std::transform(current[j].begin(), current[j].end(), current[j].begin(), ::toupper);
 			}
 
 			bool admissible = true;

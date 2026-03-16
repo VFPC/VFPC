@@ -1,5 +1,9 @@
 #include "stdafx.h"
 #include "analyzeFP.hpp"
+#include "TimeWindow.hpp"
+#include "ConstraintChecks.hpp"
+
+using namespace ConstraintChecks;
 #include <curl/curl.h>
 #include <future>
 #include <chrono> // Ensure this is included
@@ -360,7 +364,7 @@ bool CVFPCPlugin::APICall(string endpoint, Document& out) {
 		if (out.Parse<0>(buf.c_str()).HasParseError())
 		{
 			sendMessage("An error occurred whilst reading data. The plugin will not automatically attempt to reload from the API. To restart data fetching, type \".vfpc load\".");
-			debugMessage("Error", str(boost::format("Config Download: %s (Offset: %i)\n'") % out.GetParseError() % out.GetErrorOffset()));
+			debugMessage("Error", string("Config Download parse error ") + out.GetParseError() + " (Offset: " + std::to_string(out.GetErrorOffset()) + ")\n'");
 			bufLog("API Call To " + url + ": Failed - Data Returned But Unreadable");
 			return false;
 
@@ -632,7 +636,7 @@ bool CVFPCPlugin::fileCall(Document &out) {
 
 		if (out.Parse<0>(ss.str().c_str()).HasParseError()) {
 			sendMessage("An error occurred whilst reading data. The plugin will not automatically attempt to reload. To restart data fetching from the API, type \"" + COMMAND_PREFIX + LOAD_COMMAND + "\". To reattempt loading data from the Sid.json file, type \"" + COMMAND_PREFIX + FILE_COMMAND + "\".");
-			debugMessage("Error", str(boost::format("Config Parse: %s (Offset: %i)\n'") % out.GetParseError() % out.GetErrorOffset()));
+			debugMessage("Error", string("Config Parse error ") + out.GetParseError() + " (Offset: " + std::to_string(out.GetErrorOffset()) + ")\n'");
 			bufLog("File Read Failed - Data Found But Unreadable");
 
 			out.Parse<0>("[]");
@@ -842,102 +846,28 @@ void CVFPCPlugin::getSids() {
 
 vector<bool> CVFPCPlugin::checkDestination(const Value& conditions, string destination, vector<bool> in) {
 	vector<bool> out{};
-
 	for (size_t i = 0; i < conditions.Size(); i++) {
-		if (!in[i]) {
-			out.push_back(false);
-			continue;
-		}
-
-		bool res = true;
-
-		if (conditions[i]["nodests"].IsArray() && conditions[i]["nodests"].Size()) {
-			string dest;
-			if (destArrayContains(conditions[i]["nodests"], destination.c_str()).size()) {
-				res = false;
-			}
-		}
-
-		if (conditions[i]["dests"].IsArray() && conditions[i]["dests"].Size()) {
-			string dest;
-			if (!destArrayContains(conditions[i]["dests"], destination.c_str()).size()) {
-				res = false;
-			}
-		}
-
-		out.push_back(res);
+		if (!in[i]) { out.push_back(false); continue; }
+		out.push_back(checkOneDestination(conditions[i], destination));
 	}
-
 	return out;
 }
 
 vector<bool> CVFPCPlugin::checkExitPoint(const Value& conditions, vector<string> points, vector<bool> in) {
 	vector<bool> out{};
-
 	for (size_t i = 0; i < conditions.Size(); i++) {
-		if (!in[i]) {
-			out.push_back(false);
-			continue;
-		}
-
-		bool res = true;
-
-		if (conditions[i].HasMember("points") && conditions[i]["points"].IsArray() && conditions[i]["points"].Size()) {
-			bool temp = false;
-
-			for (string each : points) {
-				if (arrayContains(conditions[i]["points"], each)) {
-					temp = true;
-				}
-			}
-
-			if (!temp) {
-				res = false;
-			}
-		}
-
-		if (conditions[i].HasMember("nopoints") && conditions[i]["nopoints"].IsArray() && conditions[i]["nopoints"].Size()) {
-			bool temp = false;
-
-			for (string each : points) {
-				if (arrayContains(conditions[i]["nopoints"], each)) {
-					temp = true;
-				}
-			}
-
-			if (temp) {
-				res = false;
-			}
-		}
-
-		out.push_back(res);
+		if (!in[i]) { out.push_back(false); continue; }
+		out.push_back(checkOneExitPoint(conditions[i], points));
 	}
-
 	return out;
 }
 
 vector<bool> CVFPCPlugin::checkRoute(const Value& conditions, vector<string> route, vector<bool> in) {
 	vector<bool> out{};
-
 	for (size_t i = 0; i < conditions.Size(); i++) {
-		if (!in[i]) {
-			out.push_back(false);
-			continue;
-		}
-
-		bool res = true;
-
-		if (conditions[i].HasMember("route") && conditions[i]["route"].IsArray() && conditions[i]["route"].Size() && !routeContains(route, conditions[i]["route"])) {
-			res = false;
-		}
-
-		if (conditions[i].HasMember("noroute") && res && conditions[i]["noroute"].IsArray() && conditions[i]["noroute"].Size() && routeContains(route, conditions[i]["noroute"])) {
-			res = false;
-		}
-
-		out.push_back(res);
+		if (!in[i]) { out.push_back(false); continue; }
+		out.push_back(checkOneRoute(conditions[i], route));
 	}
-
 	return out;
 }
 
@@ -980,98 +910,8 @@ vector<bool> CVFPCPlugin::checkRestriction(CFlightPlan flightPlan, string sid_su
 			}
 
 			if (restrictions[j].HasMember("start") && restrictions[j].HasMember("end")) {
-				bool date = false;
-				bool time = false;
-
-				int startdate;
-				int enddate;
-				int starttime[2] = { 0,0 };
-				int endtime[2] = { 0,0 };
-
-				if (restrictions[j]["start"].HasMember("date")
-					&& restrictions[j]["start"]["date"].IsInt()
-					&& restrictions[j]["end"].HasMember("date")
-					&& restrictions[j]["end"]["date"].IsInt()) {
-					date = true;
-
-					startdate = restrictions[j]["start"]["date"].GetInt();
-					enddate = restrictions[j]["end"]["date"].GetInt();
-				}
-
-				if (restrictions[j]["start"].HasMember("time")
-					&& restrictions[j]["start"]["time"].IsString()
-					&& restrictions[j]["end"].HasMember("time")
-					&& restrictions[j]["end"]["time"].IsString()) {
-					time = true;
-
-					string startstring = restrictions[j]["start"]["time"].GetString();
-					string endstring = restrictions[j]["end"]["time"].GetString();
-
-					starttime[0] = stoi(startstring.substr(0, 2));
-					starttime[1] = stoi(startstring.substr(2, 2));
-					endtime[0] = stoi(endstring.substr(0, 2));
-					endtime[1] = stoi(endstring.substr(2, 2));
-				}
-
-				bool valid = true;
-
-				if (date || time) {
-					fails[2] = true;
-					valid = false;
-
-					if (!date && time) {
-						if (starttime[0] > endtime[0] || (starttime[0] == endtime[0] && starttime[1] >= endtime[1])) {
-							if (timedata[3] > starttime[0] || (timedata[3] == starttime[0] && timedata[4] >= starttime[1]) || timedata[3] < endtime[0] || (timedata[3] == endtime[0] && timedata[4] <= endtime[1])) {
-								valid = true;
-							}
-						}
-						else {
-							if ((timedata[3] > starttime[0] || (timedata[3] == starttime[0] && timedata[4] >= starttime[1])) && (timedata[3] < endtime[0] || (timedata[3] == endtime[0] && timedata[4] <= endtime[1]))) {
-								valid = true;
-							}
-						}
-					}
-					else if (startdate == enddate) {
-						if (!time) {
-							valid = true;
-						}
-						else if ((timedata[3] > starttime[0] || (timedata[3] == starttime[0] && timedata[4] >= starttime[1])) && (timedata[3] < endtime[0] || (timedata[3] == endtime[0] && timedata[4] <= endtime[1]))) {
-							valid = true;
-						}
-					}
-					else if (startdate < enddate) {
-						if (timedata[5] > startdate && timedata[5] < enddate) {
-							valid = true;
-						}
-						else if (timedata[5] == startdate) {
-							if (!time || timedata[3] > starttime[0] || (timedata[3] == starttime[0] && timedata[4] >= starttime[1])) {
-								valid = true;
-							}
-						}
-						else if (timedata[5] == enddate) {
-							if (!time || timedata[3] < endtime[0] || (timedata[3] == endtime[0] && timedata[4] < endtime[1])) {
-								valid = true;
-							}
-						}
-					}
-					else if (startdate > enddate) {
-						if (timedata[5] < startdate || timedata[5] > enddate) {
-							valid = true;
-						}
-						else if (timedata[5] == startdate) {
-							if (!time || timedata[3] > starttime[0] || (timedata[3] == starttime[0] && timedata[4] >= starttime[1])) {
-								valid = true;
-							}
-						}
-						else if (timedata[5] == enddate) {
-							if (!time || timedata[3] < endtime[0] || (timedata[3] == endtime[0] && timedata[4] < endtime[1])) {
-								valid = true;
-							}
-						}
-					}
-				}
-
-				if (!valid) {
+				fails[2] = true;
+				if (!checkTimeWindow(timedata[5], timedata[3], timedata[4], restrictions[j])) {
 					temp = false;
 				}
 			}
@@ -1122,109 +962,28 @@ vector<bool> CVFPCPlugin::checkRestrictions(CFlightPlan flightPlan, const Value&
 
 vector<bool> CVFPCPlugin::checkMinMax(const Value& conditions, int RFL, vector<bool> in) {
 	vector<bool> out{};
-
 	for (size_t i = 0; i < conditions.Size(); i++) {
-		if (!in[i]) {
-			out.push_back(false);
-			continue;
-		}
-
-		bool res = true;
-
-		int Min, Max;
-
-		//Min Level
-		if (conditions[i].HasMember("min") && (Min = conditions[i]["min"].GetInt()) > 0 && (RFL / 100) < Min) {
-			res = false;
-		}
-
-		//Max Level
-		if (conditions[i].HasMember("max") && (Max = conditions[i]["max"].GetInt()) > 0 && (RFL / 100) > Max) {
-			res = false;
-		}
-
-		out.push_back(res);
+		if (!in[i]) { out.push_back(false); continue; }
+		out.push_back(checkOneMinMax(conditions[i], RFL));
 	}
-
 	return out;
 }
 
 vector<bool> CVFPCPlugin::checkDirection(const Value& conditions, int RFL, vector<bool> in) {
 	vector<bool> out{};
-
 	for (size_t i = 0; i < conditions.Size(); i++) {
-		if (!in[i]) {
-			out.push_back(false);
-			continue;
-		}
-
-		//Assume any level valid if no "EVEN" or "ODD" declaration
-		bool res = true;
-
-		if (conditions[i].HasMember("dir") && conditions[i]["dir"].IsString()) {
-			string direction = conditions[i]["dir"].GetString();
-			boost::to_upper(direction);
-
-			if (direction == EVEN_DIRECTION) {
-				//Assume invalid until condition matched
-				res = false;
-
-				//Non-RVSM (Above FL410)
-				if ((RFL > RVSM_UPPER && ((RFL - RVSM_UPPER) / 1000) % 4 == 2)) {
-					res = true;
-				}
-				//RVSM (FL290-410) or Below FL290
-				else if (RFL <= RVSM_UPPER && (RFL / 1000) % 2 == 0) {
-					res = true;
-				}
-			}
-			else if (direction == ODD_DIRECTION) {
-				//Assume invalid until condition matched
-				res = false;
-
-				//Non-RVSM (Above FL410)
-				if ((RFL > RVSM_UPPER && ((RFL - RVSM_UPPER) / 1000) % 4 == 0)) {
-					res = true;
-				}
-				//RVSM (FL290-410) or Below FL290
-				else if (RFL <= RVSM_UPPER && (RFL / 1000) % 2 == 1) {
-					res = true;
-				}
-			}
-		}
-
-		out.push_back(res);
+		if (!in[i]) { out.push_back(false); continue; }
+		out.push_back(checkOneDirection(conditions[i], RFL));
 	}
-
 	return out;
 }
 
 vector<bool> CVFPCPlugin::checkAlerts(const Value& conditions, bool *warn, vector<bool> in) {
 	vector<bool> out{};
-
 	for (size_t i = 0; i < conditions.Size(); i++) {
-		if (!in[i]) {
-			out.push_back(false);
-			continue;
-		}
-
-		bool res = true;
-
-		if (conditions[i]["alerts"].IsArray() && conditions[i]["alerts"].Size()) {
-			for (size_t j = 0; j < conditions[i]["alerts"].Size(); j++) {
-				if (conditions[i]["alerts"][j].HasMember("ban") && conditions[i]["alerts"][j]["ban"].GetBool()) {
-					res = false;
-				}
-
-				if (conditions[i]["alerts"][j].HasMember("warn") && conditions[i]["alerts"][j]["warn"].GetBool()) {
-					*warn = true;
-				}
-			}
-		}
-
-		out.push_back(res);
+		if (!in[i]) { out.push_back(false); continue; }
+		out.push_back(checkOneAlerts(conditions[i], *warn));
 	}
-
 	return out;
 }
 
@@ -1244,8 +1003,8 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 
 	returnOut[0].back() = returnOut[1].back() = "Failed";
 
-	string origin = flightPlan.GetFlightPlanData().GetOrigin(); boost::to_upper(origin);
-	string destination = flightPlan.GetFlightPlanData().GetDestination(); boost::to_upper(destination);
+	string origin = flightPlan.GetFlightPlanData().GetOrigin(); std::transform(origin.begin(), origin.end(), origin.begin(), ::toupper);
+	string destination = flightPlan.GetFlightPlanData().GetDestination(); std::transform(destination.begin(), destination.end(), destination.begin(), ::toupper);
 	SizeType origin_int;
 
 	// Airport defined
@@ -1266,7 +1025,8 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 
 	string rawroute = flightPlan.GetFlightPlanData().GetRoute();
 	bufLog(callsign + string(" Validate: Route - ") + rawroute);
-	boost::trim(rawroute);
+	rawroute.erase(0, rawroute.find_first_not_of(" \t\r\n"));
+	rawroute.erase(rawroute.find_last_not_of(" \t\r\n") + 1);
 
 	vector<string> route = split(rawroute, ' ');
 
@@ -1274,7 +1034,7 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 	route.erase(itr, route.end());
 
 	for (size_t i = 0; i < route.size(); i++) {
-		boost::to_upper(route[i]);
+		std::transform(route[i].begin(), route[i].end(), route[i].begin(), ::toupper);
 	}
 
 	vector<string> points{};
@@ -1285,14 +1045,14 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 	}
 
 
-	string sid = flightPlan.GetFlightPlanData().GetSidName(); boost::to_upper(sid);
+	string sid = flightPlan.GetFlightPlanData().GetSidName(); std::transform(sid.begin(), sid.end(), sid.begin(), ::toupper);
 	string first_wp = "";
 	string sid_suffix = "";
 
 	//Route with SID
 	if (sid.length()) {
 		// Remove any # characters from SID name
-		boost::erase_all(sid, OUTDATED_SID);
+		sid.erase(std::remove(sid.begin(), sid.end(), '#'), sid.end());
 
 		if (origin == "EGLL" && sid == "CHK") {
 			bufLog(callsign + string(" Validate: First Waypoint - EGLL CPT Easterly Procedure In Use"));
@@ -1303,7 +1063,7 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 			first_wp = sid.substr(0, sid.find_first_of("0123456789"));
 			sid_suffix = sid.back();
 			if (0 != first_wp.length())
-				boost::to_upper(first_wp);
+				std::transform(first_wp.begin(), first_wp.end(), first_wp.begin(), ::toupper);
 		}
 	}
 
@@ -2995,7 +2755,7 @@ void CVFPCPlugin::OnTimer(int Counter)
 			return;
 		}
 
-		// Optional: you can add the “logged in” transition later if you want
+		// Optional: you can add the ï¿½logged inï¿½ transition later if you want
 		// if (session_state_ == SessionState::Disconnected) { ... }
 
 		// ---------- APPLY COMPLETED ASYNC WORK ----------
@@ -3016,7 +2776,7 @@ void CVFPCPlugin::OnTimer(int Counter)
 		// ---------- CONNECTED HANDLING ----------
 		if (relCount == 0) {
 			fut = std::async(std::launch::async, &CVFPCPlugin::runWebCalls, this);
-			relCount = -1; // “disabled until future completes” reads clearer than relCount--
+			relCount = -1; // ï¿½disabled until future completesï¿½ reads clearer than relCount--
 		}
 
 		writeLog();
