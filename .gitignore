@@ -12,6 +12,9 @@ UpgradeLog.htm
 .vscode/
 
 
+# vcpkg package manager (install locally — do not commit)
+vcpkg/
+
 # Boost headers (large, not committed — install locally if needed)
 lib/include/boost/
 
