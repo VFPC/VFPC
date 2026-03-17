@@ -1,0 +1,11 @@
+{
+  "name": "vfpc",
+  "version-string": "1.0.0",
+  "dependencies": [
+    "spdlog",
+	"fmt",
+	"curl",
+	"rapidjson"
+  ],
+  "builtin-baseline": "3425f537d2f01c761d2d2cff59a7577eb4f568c0"
+}

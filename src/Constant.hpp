@@ -1,12 +1,12 @@
 #pragma once
 #include "stdafx.h"
 
-#define MY_PLUGIN_NAME			"VFPC (UK)"
-#define MY_PLUGIN_VERSION		"3.7.0.0"
-#define MY_PLUGIN_DEVELOPER		"Peter Richardson, Lenny Colton, Jan Fries, Hendrik Peter, Sven Czarnian"
-#define MY_PLUGIN_COPYRIGHT		"GPL v3"
-#define MY_PLUGIN_VIEW_AVISO	"VATSIM (UK) Flight Plan Checker"
-#define MY_API_ADDRESS			"https://vfpcplugin.org/"
+//#define MY_PLUGIN_NAME			"VFPC (UK)"
+//#define MY_PLUGIN_VERSION		"3.7.1"
+//#define MY_PLUGIN_DEVELOPER		"Peter Richardson, Lenny Colton, Jan Fries, Hendrik Peter, Sven Czarnian"
+//#define MY_PLUGIN_COPYRIGHT		"GPL v3"
+//#define MY_PLUGIN_VIEW_AVISO	"VATSIM (UK) Flight Plan Checker"
+//#define MY_API_ADDRESS			"https://vfpcplugin.org/"
 
 #define PLUGIN_WELCOME_MESSAGE	"Welcome to the (UK) VATSIM Flight Plan Checker"
 
