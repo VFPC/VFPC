@@ -245,9 +245,78 @@ TEST_F(RuntimeConstraintTest, Route_AllConstraints) {
     }
 }
 
-// ── checkOneDestination — dead-combo documentation ───────────────────────────
+// ── checkOneDestination ───────────────────────────────────────────────────────
 
-TEST_F(RuntimeConstraintTest, Destination_DeadCombo_Documented) {
+static bool dest_blocked_by_nodests(const std::string& dest, const Value& nodests) {
+    for (SizeType i = 0; i < nodests.Size(); i++) {
+        std::string prefix = nodests[i].GetString();
+        if (dest.rfind(prefix, 0) == 0) return true;
+    }
+    return false;
+}
+
+TEST_F(RuntimeConstraintTest, Destination_AllConstraints) {
+    if (!g_loaded) GTEST_SKIP();
+    for (SizeType a = 0; a < g_outJson.Size(); a++) {
+        const auto& airport = g_outJson[a];
+        const char* icao = airport["icao"].GetString();
+        const auto& sids = airport["sids"];
+        for (SizeType s = 0; s < sids.Size(); s++) {
+            const auto& constraints = sids[s]["constraints"];
+            for (SizeType c = 0; c < constraints.Size(); c++) {
+                const auto& con = constraints[c];
+                std::string id = constraint_id(icao, s, c);
+
+                bool hasDests   = con.HasMember("dests")   && con["dests"].IsArray()   && con["dests"].Size() > 0;
+                bool hasNodests = con.HasMember("nodests")  && con["nodests"].IsArray() && con["nodests"].Size() > 0;
+
+                if (hasDests) {
+                    // Find first dest not blocked by nodests — it should pass
+                    std::string unblocked;
+                    for (SizeType i = 0; i < con["dests"].Size(); i++) {
+                        std::string d = con["dests"][i].GetString();
+                        if (!hasNodests || !dest_blocked_by_nodests(d, con["nodests"])) {
+                            unblocked = d;
+                            break;
+                        }
+                    }
+                    if (!unblocked.empty()) {
+                        EXPECT_TRUE(checkOneDestination(con, unblocked))
+                            << id << " listed unblocked dest '" << unblocked << "' should pass";
+                    }
+
+                    // A dest clearly not in the list should fail
+                    EXPECT_FALSE(checkOneDestination(con, "ZZZZ"))
+                        << id << " unlisted dest 'ZZZZ' should fail when dests is present";
+                }
+
+                if (hasNodests) {
+                    // Pick a dest that matches a nodests prefix — should be blocked
+                    std::string blocked;
+                    for (SizeType i = 0; i < con["nodests"].Size(); i++) {
+                        std::string prefix = con["nodests"][i].GetString();
+                        // Construct a synthetic dest that starts with this prefix
+                        if (prefix == "EG") { blocked = "EGLL"; break; }
+                        if (prefix == "EI") { blocked = "EIDW"; break; }
+                        // Generic: append enough chars to make a 4-char code
+                        if (prefix.size() < 4) blocked = prefix + std::string(4 - prefix.size(), 'Z');
+                        else blocked = prefix;
+                        break;
+                    }
+                    if (!blocked.empty() && !hasDests) {
+                        // Only test nodests-block when there's no dests list that might allow it
+                        EXPECT_FALSE(checkOneDestination(con, blocked))
+                            << id << " nodests-blocked dest '" << blocked << "' should fail";
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ── checkOneDestination — dead-combo regression guard ────────────────────────
+
+TEST_F(RuntimeConstraintTest, Destination_DeadCombo_MustBeZero) {
     if (!g_loaded) GTEST_SKIP();
     int deadCombo = 0, total = 0;
     for (SizeType a = 0; a < g_outJson.Size(); a++) {
@@ -258,35 +327,26 @@ TEST_F(RuntimeConstraintTest, Destination_DeadCombo_Documented) {
             for (SizeType c = 0; c < constraints.Size(); c++) {
                 const auto& con = constraints[c];
                 total++;
-                if (!con.HasMember("dests") || !con["dests"].IsArray() || con["dests"].Size() == 0) continue;
-                if (!con.HasMember("nodests") || !con["nodests"].IsArray() || con["nodests"].Size() == 0) continue;
+                if (!con.HasMember("dests")   || !con["dests"].IsArray()   || con["dests"].Size() == 0) continue;
+                if (!con.HasMember("nodests")  || !con["nodests"].IsArray() || con["nodests"].Size() == 0) continue;
 
-                // Check if every dest is blocked by a nodests prefix
+                // Dead combo: every dests entry is blocked by a nodests prefix
                 bool allDead = true;
                 for (SizeType i = 0; i < con["dests"].Size(); i++) {
                     std::string dest = con["dests"][i].GetString();
-                    // Does nodests block this dest?
-                    bool blocked = false;
-                    for (SizeType j = 0; j < con["nodests"].Size(); j++) {
-                        std::string prefix = con["nodests"][j].GetString();
-                        if (dest.rfind(prefix, 0) == 0) { blocked = true; break; }
-                    }
-                    if (!blocked) { allDead = false; break; }
+                    if (!dest_blocked_by_nodests(dest, con["nodests"])) { allDead = false; break; }
                 }
                 if (allDead) deadCombo++;
             }
         }
     }
     g_deadComboCount = deadCombo;
-    // This is a documentation test — it always passes but records the count.
-    // These constraints have dests=[airport] AND nodests=["EG","EI"] simultaneously.
-    // This is INTENTIONAL: dests identifies the exit airport for metadata purposes;
-    // nodests correctly blocks all domestic EG/EI flights from using this route.
-    // The dests field being "unreachable" as a filter is by design, not a bug.
-    RecordProperty("airport_exit_constraints", deadCombo);
+    RecordProperty("dead_combo_constraints", deadCombo);
     RecordProperty("total_constraints", total);
-    std::cout << "\n  [INFO] Airport-exit constraints (dests=identity, nodests=filter): "
+    std::cout << "\n  [INFO] Dead-combo constraints (dests unreachable): "
               << deadCombo << " / " << total
               << " (" << (100*deadCombo/std::max(total,1)) << "%)\n";
-    SUCCEED();
+    // [RULE:DEST-NODESTS-AIRPORT] + [RULE:DEST-NODESTS-SCRUB] together guarantee 0 dead combos.
+    // If this fails, the ExitDestinationRules or OutputBuilder scrub has regressed.
+    EXPECT_EQ(0, deadCombo) << "Dead combos detected — check ExitDestinationRules.cs and OutputBuilder.PostProcessCleanup";
 }
