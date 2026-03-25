@@ -373,4 +373,110 @@ TEST(ApiConstraint_Integration, EGSC_EGPF_Line19488_LowBand)
     EXPECT_FALSE(checkOneMinMax (c, 10000));  // FL100 — below min
 }
 
+// ── SidApplicability — anySidLevelRestrictionApplicable ──────────────────────
+//
+// Regression tests for the EGPH/TLA jet case (issue #174).
+//
+// The bug: jets on EGPH TLA outside 2300-0559 got RST instead of RTE/DST.
+// Root cause: the only sidlevel=true restriction (types=["J"], 2300-0559)
+// was not applicable outside its time window, but the code treated
+// "no SID-level restriction applicable" as "SID-level restriction failed".
+//
+// Data mirror of in.json EGPH/TLA restrictions array (AIRAC 2603):
+//   Restriction 0: types=["T","P","E"], no sidlevel  → SID-level: skip
+//   Restriction 1: types=["J"], 2300-0559, sidlevel=true
+//
+// Day convention: Monday=0 … Sunday=6 (matches timedata[5] in production).
+
+#include "SidApplicability.hpp"
+using namespace SidApplicability;
+
+// The restrictions JSON used in all EGPH/TLA tests below.
+// Mirrors the live in.json EGPH TLA entry exactly.
+static const char* EGPH_TLA_RESTRICTIONS = R"([
+    {
+        "types": ["T","P","E"],
+        "alt":   ["GOSAM"]
+    },
+    {
+        "types":    ["J"],
+        "route":    ["N864","N57","L612","UN864","UN57","UL612"],
+        "start":    {"time":"2300"},
+        "end":      {"time":"0559"},
+        "sidlevel": true
+    }
+])";
+
+// ── Issue #174 core regression: jet outside 2300-0559 → no SID-level restriction applicable
+
+TEST(SidApplicability_EgphTla, Jet_OutsideWindow_NoSidLevelApplicable)
+{
+    // A jet (engine type "J") on TLA at 14:00 UTC (well outside 2300-0559).
+    // Restriction 0 is not sidlevel — skipped.
+    // Restriction 1 is sidlevel=true, types=["J"] matches, but time window fails.
+    // Expected: false — no SID-level restriction is applicable.
+    // This is the exact scenario that produced false RST before the #174 fix.
+    JSON(doc, EGPH_TLA_RESTRICTIONS);
+    ASSERT_FALSE(doc.HasParseError());
+    EXPECT_FALSE(anySidLevelRestrictionApplicable(doc, "J", "B738", "", 0, 14, 0))
+        << "Jet on TLA at 14:00 should have no applicable SID-level restriction";
+}
+
+// ── Jet inside the night window → SID-level restriction IS applicable
+
+TEST(SidApplicability_EgphTla, Jet_InsideWindow_SidLevelApplicable)
+{
+    // A jet (engine type "J") on TLA at 23:30 UTC (inside 2300-0559).
+    // Restriction 1: sidlevel=true, types=["J"] matches, time window passes.
+    // Expected: true — the SID-level night restriction applies.
+    JSON(doc, EGPH_TLA_RESTRICTIONS);
+    ASSERT_FALSE(doc.HasParseError());
+    EXPECT_TRUE(anySidLevelRestrictionApplicable(doc, "J", "B738", "", 0, 23, 30))
+        << "Jet on TLA at 23:30 should have an applicable SID-level restriction";
+}
+
+// ── Turboprop on TLA → restriction 0 is not sidlevel, restriction 1 type mismatch
+
+TEST(SidApplicability_EgphTla, Turboprop_NoSidLevelRestrictions)
+{
+    // A turboprop (engine type "T") on TLA — at any time.
+    // Restriction 0: types=["T","P","E"] matches, but it has NO sidlevel flag — skipped.
+    // Restriction 1: sidlevel=true, types=["J"] — type mismatch.
+    // Expected: false — no SID-level restriction applies to turboprops.
+    JSON(doc, EGPH_TLA_RESTRICTIONS);
+    ASSERT_FALSE(doc.HasParseError());
+    EXPECT_FALSE(anySidLevelRestrictionApplicable(doc, "T", "DH8D", "", 0, 14, 0))
+        << "Turboprop on TLA should have no applicable SID-level restriction";
+}
+
+// ── Empty restrictions array → never applicable
+
+TEST(SidApplicability_EdgeCases, EmptyArray_ReturnsFalse)
+{
+    JSON(doc, R"([])");
+    ASSERT_FALSE(doc.HasParseError());
+    EXPECT_FALSE(anySidLevelRestrictionApplicable(doc, "J", "B738", "", 0, 14, 0));
+}
+
+// ── No sidlevel restrictions at all → never applicable
+
+TEST(SidApplicability_EdgeCases, NoSidLevelRestrictions_ReturnsFalse)
+{
+    // Array with a non-sidlevel type restriction only.
+    JSON(doc, R"([{"types":["J"]}])");
+    ASSERT_FALSE(doc.HasParseError());
+    EXPECT_FALSE(anySidLevelRestrictionApplicable(doc, "J", "B738", "", 0, 14, 0));
+}
+
+// ── sidlevel restriction with no selectors → always applicable
+
+TEST(SidApplicability_EdgeCases, SidLevelNoSelectors_AlwaysApplicable)
+{
+    // A sidlevel restriction with no types, suffix, or time filter — applies to all flights.
+    JSON(doc, R"([{"sidlevel":true,"alt":["OTHER"]}])");
+    ASSERT_FALSE(doc.HasParseError());
+    EXPECT_TRUE(anySidLevelRestrictionApplicable(doc, "J", "B738", "", 0, 14, 0));
+    EXPECT_TRUE(anySidLevelRestrictionApplicable(doc, "T", "DH8D", "2C", 0, 3, 0));
+}
+
 // main() is defined in TimeWindowTests.cpp — one entry point for the whole suite.
