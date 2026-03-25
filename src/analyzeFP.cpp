@@ -2,6 +2,7 @@
 #include "analyzeFP.hpp"
 #include "TimeWindow.hpp"
 #include "ConstraintChecks.hpp"
+#include "SidApplicability.hpp"
 
 using namespace ConstraintChecks;
 #include <curl/curl.h>
@@ -1294,54 +1295,16 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 		// Scope: this is intentionally narrow. It does not change the case where a SID-level
 		// restriction IS applicable and fails — that still produces RST as before.
 		if (!sidwide) {
-			const Value& sidRestrictions = sid_ele["restrictions"];
-			bool anySidLevelApplicable = false;
+			// Delegate to SidApplicability.hpp — see that file for full documentation.
+			// If no SID-level restriction is currently applicable to this flight,
+			// fall back to the constraint-loop result rather than forcing RST.
+			bool anySidLevelApplicable = SidApplicability::anySidLevelRestrictionApplicable(
+				sid_ele["restrictions"],
+				flightPlan.GetFlightPlanData().GetEngineType(),
+				flightPlan.GetFlightPlanData().GetAircraftType(),
+				sid_suffix,
+				timedata[5], timedata[3], timedata[4]);
 
-			if (sidRestrictions.IsArray() && sidRestrictions.Size()) {
-				const string eng    = flightPlan.GetFlightPlanData().GetEngineType();
-				const string actype = flightPlan.GetFlightPlanData().GetAircraftType();
-
-				for (SizeType i = 0; i < sidRestrictions.Size(); i++) {
-					const Value& r = sidRestrictions[i];
-
-					// Only SID-level restrictions can make the SID-wide output path fire.
-					if (!r.HasMember("sidlevel") || !r["sidlevel"].GetBool()) {
-						continue;
-					}
-
-					bool applicable = true;
-
-					// Suffix selector: absent means applies to all suffixes.
-					if (r.HasMember("suffix") && r["suffix"].IsArray() && r["suffix"].Size()) {
-						if (!arrayContainsEnding(r["suffix"], sid_suffix)) {
-							applicable = false;
-						}
-					}
-
-					// Type selector: absent means applies to all types.
-					if (applicable && r.HasMember("types") && r["types"].IsArray() && r["types"].Size()) {
-						if (!arrayContains(r["types"], eng) &&
-							!arrayContains(r["types"], actype)) {
-							applicable = false;
-						}
-					}
-
-					// Time window selector: only active when both start and end are present.
-					if (applicable && r.HasMember("start") && r.HasMember("end")) {
-						if (!checkTimeWindow(timedata[5], timedata[3], timedata[4], r)) {
-							applicable = false;
-						}
-					}
-
-					if (applicable) {
-						anySidLevelApplicable = true;
-						break;
-					}
-				}
-			}
-
-			// No SID-level restriction applies to this flight right now.
-			// Fall back to the constraint-loop result rather than forcing RST.
 			if (!anySidLevelApplicable) {
 				sidwide = true;
 			}

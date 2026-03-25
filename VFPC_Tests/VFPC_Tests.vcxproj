@@ -102,6 +102,7 @@
   <ItemGroup>
     <ClInclude Include="$(SolutionDir)src\TimeWindow.hpp" />
     <ClInclude Include="$(SolutionDir)src\ConstraintChecks.hpp" />
+    <ClInclude Include="$(SolutionDir)src\SidApplicability.hpp" />
   </ItemGroup>
 
   <ItemGroup>

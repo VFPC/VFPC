@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="resource.h" />
     <ClInclude Include="src\analyzeFP.hpp" />
+    <ClInclude Include="src\SidApplicability.hpp" />
     <ClInclude Include="src\Constant.hpp" />
     <ClInclude Include="src\stdafx.h" />
     <ClInclude Include="src\targetver.h" />
