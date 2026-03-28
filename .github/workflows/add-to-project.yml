@@ -4,15 +4,11 @@ on:
   issues:
     types: [opened]
 
-permissions:
-  repository-projects: write
-
 jobs:
   add-to-project:
     runs-on: ubuntu-latest
     steps:
-      - name: Add issue to project
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh project item-add 26 --owner VFPC --url "${{ github.event.issue.html_url }}"
+      - uses: actions/add-to-project@v1.0.2
+        with:
+          project-url: https://github.com/orgs/VFPC/projects/26
+          github-token: ${{ secrets.PROJECT_TOKEN }}
