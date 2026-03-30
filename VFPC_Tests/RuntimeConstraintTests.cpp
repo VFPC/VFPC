@@ -33,10 +33,11 @@ using namespace rapidjson;
 
 // ── Out.json loader ───────────────────────────────────────────────────────────
 
-static Document g_outJson;
-static bool     g_loaded = false;
-static int      g_constraintCount = 0;
-static int      g_deadComboCount  = 0;
+static Document              g_outJson;
+static const Value*          g_airports = nullptr;
+static bool                  g_loaded = false;
+static int                   g_constraintCount = 0;
+static int                   g_deadComboCount  = 0;
 
 static bool LoadOutJson(const std::string& path) {
     std::ifstream ifs(path, std::ios::binary);
@@ -45,7 +46,16 @@ static bool LoadOutJson(const std::string& path) {
     ss << ifs.rdbuf();
     std::string content = ss.str();
     g_outJson.Parse<kParseDefaultFlags>(content.c_str());
-    return !g_outJson.HasParseError() && g_outJson.IsArray();
+    if (g_outJson.HasParseError()) return false;
+    // Support both bare array (legacy) and {cycle, airports} envelope (new parser)
+    if (g_outJson.IsArray()) {
+        g_airports = &g_outJson;
+    } else if (g_outJson.IsObject() && g_outJson.HasMember("airports") && g_outJson["airports"].IsArray()) {
+        g_airports = &g_outJson["airports"];
+    } else {
+        return false;
+    }
+    return true;
 }
 
 // ── Test fixture ──────────────────────────────────────────────────────────────
@@ -90,8 +100,8 @@ static std::string constraint_id(const char* icao, int sidIdx, int cIdx) {
 TEST_F(RuntimeConstraintTest, MinMax_AllConstraints) {
     if (!g_loaded) GTEST_SKIP();
     int tested = 0, failures = 0;
-    for (SizeType a = 0; a < g_outJson.Size(); a++) {
-        const auto& airport = g_outJson[a];
+    for (SizeType a = 0; a < g_airports->Size(); a++) {
+        const auto& airport = (*g_airports)[a];
         const char* icao = airport["icao"].GetString();
         const auto& sids = airport["sids"];
         for (SizeType s = 0; s < sids.Size(); s++) {
@@ -137,8 +147,8 @@ TEST_F(RuntimeConstraintTest, MinMax_AllConstraints) {
 TEST_F(RuntimeConstraintTest, Direction_AllConstraints) {
     if (!g_loaded) GTEST_SKIP();
     int tested = 0;
-    for (SizeType a = 0; a < g_outJson.Size(); a++) {
-        const auto& airport = g_outJson[a];
+    for (SizeType a = 0; a < g_airports->Size(); a++) {
+        const auto& airport = (*g_airports)[a];
         const char* icao = airport["icao"].GetString();
         const auto& sids = airport["sids"];
         for (SizeType s = 0; s < sids.Size(); s++) {
@@ -169,8 +179,8 @@ TEST_F(RuntimeConstraintTest, Direction_AllConstraints) {
 
 TEST_F(RuntimeConstraintTest, Alerts_AllConstraints) {
     if (!g_loaded) GTEST_SKIP();
-    for (SizeType a = 0; a < g_outJson.Size(); a++) {
-        const auto& airport = g_outJson[a];
+    for (SizeType a = 0; a < g_airports->Size(); a++) {
+        const auto& airport = (*g_airports)[a];
         const char* icao = airport["icao"].GetString();
         const auto& sids = airport["sids"];
         for (SizeType s = 0; s < sids.Size(); s++) {
@@ -198,8 +208,8 @@ TEST_F(RuntimeConstraintTest, Alerts_AllConstraints) {
 
 TEST_F(RuntimeConstraintTest, ExitPoint_AllConstraints) {
     if (!g_loaded) GTEST_SKIP();
-    for (SizeType a = 0; a < g_outJson.Size(); a++) {
-        const auto& airport = g_outJson[a];
+    for (SizeType a = 0; a < g_airports->Size(); a++) {
+        const auto& airport = (*g_airports)[a];
         const char* icao = airport["icao"].GetString();
         const auto& sids = airport["sids"];
         for (SizeType s = 0; s < sids.Size(); s++) {
@@ -224,8 +234,8 @@ TEST_F(RuntimeConstraintTest, ExitPoint_AllConstraints) {
 
 TEST_F(RuntimeConstraintTest, Route_AllConstraints) {
     if (!g_loaded) GTEST_SKIP();
-    for (SizeType a = 0; a < g_outJson.Size(); a++) {
-        const auto& airport = g_outJson[a];
+    for (SizeType a = 0; a < g_airports->Size(); a++) {
+        const auto& airport = (*g_airports)[a];
         const char* icao = airport["icao"].GetString();
         const auto& sids = airport["sids"];
         for (SizeType s = 0; s < sids.Size(); s++) {
@@ -257,8 +267,8 @@ static bool dest_blocked_by_nodests(const std::string& dest, const Value& nodest
 
 TEST_F(RuntimeConstraintTest, Destination_AllConstraints) {
     if (!g_loaded) GTEST_SKIP();
-    for (SizeType a = 0; a < g_outJson.Size(); a++) {
-        const auto& airport = g_outJson[a];
+    for (SizeType a = 0; a < g_airports->Size(); a++) {
+        const auto& airport = (*g_airports)[a];
         const char* icao = airport["icao"].GetString();
         const auto& sids = airport["sids"];
         for (SizeType s = 0; s < sids.Size(); s++) {
@@ -319,8 +329,8 @@ TEST_F(RuntimeConstraintTest, Destination_AllConstraints) {
 TEST_F(RuntimeConstraintTest, Destination_DeadCombo_MustBeZero) {
     if (!g_loaded) GTEST_SKIP();
     int deadCombo = 0, total = 0;
-    for (SizeType a = 0; a < g_outJson.Size(); a++) {
-        const auto& airport = g_outJson[a];
+    for (SizeType a = 0; a < g_airports->Size(); a++) {
+        const auto& airport = (*g_airports)[a];
         const auto& sids = airport["sids"];
         for (SizeType s = 0; s < sids.Size(); s++) {
             const auto& constraints = sids[s]["constraints"];
