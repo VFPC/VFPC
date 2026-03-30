@@ -1,6 +1,6 @@
 # VFPC Project Status
 
-_Last Updated: 2026-03-15 (time-handling-v2 build session)_
+_Last Updated: 2026-03-30 (PR #181 merged; PR #182 open and intentionally held for next AIRAC release timing)_
 
 > **Active task tracking is on GitHub Issues.**
 > See: https://github.com/VFPC/VFPC/issues
@@ -10,47 +10,39 @@ _Last Updated: 2026-03-15 (time-handling-v2 build session)_
 
 ## Current State
 
-**Branch:** `time-handling-v2`  
+**Branch:** `main`  
 **Version:** `3.7.1.0`  
-**Status:** DLL built and given to Peter (tester) — awaiting integration test result before PR
+**Status:** production plugin released; test-harness envelope fix merged; #174 plugin fix is on open PR `#182` and is being held until shortly before the next AIRAC / controller-pack rollout.
+
+### Current Branch Picture
+
+- `main` — clean, current default branch
+- `fix/174-sidwide-type-exclusion-rebased` — active PR `#182`
+- `Research-reported-issues` — Peter's separate refactor branch; keep preserved, do not merge into production
 
 ### What's Working ✅
 
-- **Core plugin** — builds as a 64-bit Windows DLL (`VFPC.dll`) targeting the EuroScope SDK.
-- **All flight plan checks** — route validity, SID validity, destination, altitude, type,
-  day/time restrictions, odd/even rules, and SRD ban/warning alerts.
-- **Time-handling patch** — 5 bugs fixed, all landed in `src/TimeWindow.hpp`:
-  - Cross-midnight time windows now correctly evaluated (Change 1)
-  - Same-day time windows use day-of-week correctly (Change 2)
-  - Adjacent overnight windows (e.g. Mon night → Tue morning) now handled (Change 3)
-  - Day-only restrictions (no time fields) now match all times on specified days (Change 4)
-  - End-boundary changed from exclusive (`<`) to inclusive (`<=`) for all window types (Change 5)
-- **Boost removed** — all `boost::` calls replaced with std equivalents; no external dependency
-- **Curl headers** — `lib/include/curl/` added (matching boost/rapidjson pattern); `libcurl_a.lib` was always present
-- **Test project** (`VFPC_Tests`) — 87 parameterized Google Test cases, all passing.
-  Build via `msbuild VFPC_Tests\VFPC_Tests.vcxproj /p:SolutionDir="C:\Users\jkino\Documents\GitHub\VFPC\"`
+- **Production plugin** — v3.7.1.0 released and in use
+- **Time-handling patch** — the earlier 5-bug `TimeWindow.hpp` fix set is already part of the shipped plugin
+- **Envelope-compatible runtime tests** — PR `#181` merged; `RuntimeConstraintTests` now accepts both legacy array `out.json` and the `{cycle,airports}` envelope
+- **#174 fix rebuilt cleanly** — PR `#182` contains the rebased `sidwide=false` fix plus `SidApplicability.hpp`
+- **Tests verified** — `VFPC_Tests` currently pass **94/94** on the `#182` branch
 
-### What Needs Work
+### Key Open Items
 
-See https://github.com/VFPC/VFPC/issues for the full list. Key open items:
+| Issue | Title | Current status |
+|-------|-------|----------------|
+| #174 | `sidwide=false` overrides constraint results | PR `#182` open; hold for release timing, not data blockers |
+| #165 | BST/GMT timezone offset in time comparisons | Open |
+| #169 | Replace server-polled UTC with `GetSystemTime()` | Open |
+| #170 | Evaluate time restrictions against EOBT | Blocked on #169 |
+| #171 | Respect `override` field to suppress restrictions | Blocked on wider data/API rollout |
 
-| Issue | Title | Dependency |
-|-------|-------|-----------|
-| #165  | BST/GMT timezone offset in time comparisons | Standalone |
-| #166  | JSON sort-order sign-off from maintainer | Blocked on New-SRDParser#6 |
-| #169  | Replace server-polled UTC with `GetSystemTime()` | Standalone |
-| #170  | Evaluate time restrictions against EOBT | Blocked on #169 |
-| #171  | Respect `override` field to suppress restrictions | Blocked on UKVFPCAPI#68 |
+### Recent Closures
 
----
-
-## Branch Strategy
-
-`time-handling` contains the 5-bug patch plus the test infrastructure. It branches from the
-current HEAD of whatever branch was active in January 2026 (pre-patch).
-
-Do not merge until at least one other maintainer has reviewed and all tests pass in their
-environment.
+- `#177` closed via merged PR `#181`
+- Earlier blocker narrative from SRDData `#195` / New-SRDParser `#58` is no longer active:
+  `#58` was closed as parser-correct, and `#195` was closed as stale after re-checking the live AIRAC 2603 desktop data
 
 ---
 
@@ -58,39 +50,26 @@ environment.
 
 | Item | Value |
 |------|-------|
-| Language standard | C++17 (VFPC_Tests), C++14 (VFPC.dll) |
-| DLL target platform | Win32 (32-bit) |
+| Language standard | C++17 (`VFPC_Tests`), C++14 (`VFPC.dll`) |
+| DLL target platform | Win32 |
 | Test target platform | x64 |
 | Toolset | v143 (VS 2022) |
-| Test framework | Google Test v1.15.2 (submodule at `VFPC_Tests/third_party/googletest`) |
-| Tests | 87 passing, 0 failing |
-| Version | 3.7.1.0 (Constant.hpp + Resource.rc) |
+| Test framework | Google Test v1.15.2 |
+| Tests | 94 passing, 0 failing on PR `#182` |
+| Version | 3.7.1.0 |
 
 ---
 
-## Committed Work
+## Immediate Guidance
 
-| Commit | Description |
-|--------|-------------|
-| `01da6ef8` | time-handling: 5-bug patch, checkTimeWindow extraction, 52 tests, docs |
+1. Do **not** merge PR `#182` early unless you want users to start seeing stale-plugin update prompts before the next AIRAC.
+2. When release timing is right, merge `#182`, build the DLL, and publish through the normal controller-pack/update path.
+3. Leave `Research-reported-issues` untouched; it is a preserved rewrite branch, not a cleanup target.
 
 ---
 
-## Key Design Decisions
+## Key Design Notes
 
-1. **`checkTimeWindow()` is a free function** in `src/TimeWindow.hpp`. It takes only
-   primitive ints and a `rapidjson::Value` — no EuroScope dependency — making it
-   independently testable.
-
-2. **Test project is a standalone executable**, not a DLL. It compiles `gtest-all.cc`
-   directly (no precompiled headers) and links nothing from the main VFPC project except
-   the header `src/TimeWindow.hpp`.
-
-3. **End-boundary is inclusive** because production rules are authored ending on minute 59.
-   e.g. `"0759"` means "up to and including 07:59", not "up to but not including 07:59".
-
-4. **Day-of-week is Monday=0** throughout the data pipeline. The single conversion point
-   from Sunday=0 (Windows SYSTEMTIME) is in `versionCall()` using `(day+6)%7`.
-
-5. **`checkRestriction()`** in `analyzeFP.cpp` remains unchanged from the user's perspective;
-   it now delegates to `checkTimeWindow()` for the pure date/time logic.
+1. **`SidApplicability.hpp`** is now the clean standalone expression of the #174 applicability rule and is useful for any future rewrite work.
+2. **`checkTimeWindow()`** remains the pure, testable entry point for time-window logic.
+3. **`RuntimeConstraintTests`** are once again meaningful on current parser output because PR `#181` taught the loader to accept the envelope format.

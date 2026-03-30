@@ -1,6 +1,6 @@
 # Next Session Prompt — VFPC
 
-_Generated: 2026-03-15 (build fixes + version bump session)_
+_Last updated: 2026-03-30 (PR #181 merged; PR #182 open; repo cleanup normalized)_
 
 ## Read the Project Hub First
 
@@ -17,48 +17,38 @@ Before starting work, read the project-wide butler:
 
 ## Current State
 
-- **Branch:** `time-handling-v2`
-- **Version:** `3.7.1.0` (Constant.hpp + Resource.rc)
-- **Status:** DLL given to Peter for integration testing — awaiting result before committing + PR
-- **5 bug fixes** in `src/TimeWindow.hpp` (Changes 1–5)
-- **87/87 tests passing**
-- **All changes uncommitted** (boost removal, curl headers, version bump, ParseError fix)
+- **Branch:** `main` locally, clean
+- **Version:** `3.7.1.0`
+- **Recent merge:** PR `#181` — `RuntimeConstraintTests` now accept both legacy array and `{cycle,airports}` envelope
+- **Active PR:** `#182` — rebased `#174` fix on branch `fix/174-sidwide-type-exclusion-rebased`
+- **Tests on PR branch:** `94/94` passing
+- **Release decision:** `#182` is intentionally being held until shortly before the next AIRAC / controller-pack rollout
 
 ---
 
 ## What Needs Doing Next
 
-### Immediate (this session)
+### Immediate (when resuming work here)
 
-1. **Await Peter's test result.** If he confirms the DLL works, commit all pending changes:
-   - `src/analyzeFP.cpp`, `src/analyzeFP.hpp`, `src/Constant.hpp`, `Resource.rc`
-   - `lib/include/curl/` (untracked — `git add lib/include/curl/`)
-   - `vcpkg` submodule + `.gitmodules` (already staged)
-   - `VFPC_Tests/VFPC_Tests.vcxproj`
-
-2. **Verify tests still pass** before committing:
-
-   ```powershell
-   $msbuild = "D:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe"
-   & $msbuild "VFPC_Tests\VFPC_Tests.vcxproj" /p:Configuration=Release /p:Platform=x64 /p:SolutionDir="C:\Users\jkino\Documents\GitHub\VFPC\" /t:Rebuild
-   & "bin\Release\tests\VFPC_Tests.exe"
-   ```
-
-   Expected: `[  PASSED  ] 87 tests.`
-
-3. **Raise the PR** for `time-handling-v2` → main on `VFPC/VFPC`.
+1. **Do not merge PR `#182` yet** unless the release timing decision changes.
+2. **When the next AIRAC / controller-pack window approaches:**
+   - merge PR `#182`
+   - rebuild the plugin DLL
+   - publish through the normal plugin / controller-pack flow
+3. **If more VFPC work is needed before then:**
+   - start from clean `main`
+   - leave `Research-reported-issues` untouched
+   - keep `#182` as the only live production-fix branch for issue `#174`
 
 ### Soon (tracked as GitHub issues)
 
 | Priority | Issue | Action needed |
 |----------|-------|---------------|
-| High | #165 (BST/GMT offset) | Implement BST/GMT offset logic in time comparison |
-| High | #169 (PC clock) | Replace server-polled UTC with `GetSystemTime()` |
-| Medium | #170 (EOBT) | After #169, evaluate restrictions against EOBT |
-| Medium | #171 (override field) | After UKVFPCAPI#68, read `override` from Sid.json |
-| Low | #166 (JSON sort order) | Await New-SRDParser#6 sign-off |
-| Low | #167 (VATSIM reg check) | New feature — separate from time-handling work |
-| Low | #168 (version enforcement) | New feature — separate from time-handling work |
+| High | #174 | Merge PR `#182` at the right release moment |
+| High | #165 | Implement BST/GMT offset logic in time comparison |
+| High | #169 | Replace server-polled UTC with `GetSystemTime()` |
+| Medium | #170 | After #169, evaluate restrictions against EOBT |
+| Medium | #171 | After wider data/API rollout, read `override` from Sid.json |
 
 ---
 
@@ -70,12 +60,14 @@ Before starting work, read the project-wide butler:
 3. **End-boundary:** Inclusive (`<=`). Production rules end at XX:59.
 4. **`checkTimeWindow()`** — the testable entry point. Add new tests to `TimeWindowTests.cpp`
    whenever logic changes. Run via `VFPC_Tests.exe`.
-5. **Building DLL:** Release Win32 via `msbuild VFPC.vcxproj /p:Configuration=Release /p:Platform=Win32`.
+5. **`SidApplicability.hpp`** now holds the pure applicability rule used by issue `#174`.
+   Keep future `sidwide` logic changes test-backed there or in adjacent pure helpers.
+6. **Building DLL:** Release Win32 via `msbuild VFPC.vcxproj /p:Configuration=Release /p:Platform=Win32`.
    Output goes to `%APPDATA%\EuroScope\UK\Data\Plugin\VFPC\VFPC.dll` (live install location).
    **Building tests:** must pass `/p:SolutionDir` when building `.vcxproj` directly (see above).
-6. **Override field** — three-repo dependency. VFPC cannot consume it until UKVFPCAPI#68 lands.
-7. **Never recursively list Go/C# repo directories** — use `Glob` + `Grep` (see performance rules).
-8. **PowerShell heredocs don't work** — write multi-line content to a file, use `--body-file`.
+7. **Override field** — still a cross-repo dependency.
+8. **Never recursively list Go/C# repo directories** — use `Glob` + `Grep` (see performance rules).
+9. **PowerShell heredocs don't work** — write multi-line content to a file, use `--body-file`.
 
 ---
 

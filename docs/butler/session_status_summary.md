@@ -1,6 +1,31 @@
 # VFPC Session Status Summary
 
-**Last Updated:** 2026-03-15
+**Last Updated:** 2026-03-30
+
+---
+
+## Session 2026-03-30: envelope fix merged; #174 rebuilt cleanly; release timing hold chosen
+
+**Branch state:**
+- local `main` clean and normalized
+- active fix branch: `fix/174-sidwide-type-exclusion-rebased`
+- preserved rewrite branch: `Research-reported-issues`
+
+**Completed:**
+- PR `#181` merged — `RuntimeConstraintTests` now accept both legacy array `out.json` and the `{cycle,airports}` envelope
+- Old `#174` branch replayed cleanly on top of current `main`
+- PR `#182` opened for the rebased `sidwide=false` fix
+- `VFPC_Tests` rebuilt and verified **94/94 passing**
+- Superseded old branch `fix/174-sidwide-type-exclusion` deleted locally and on origin
+
+**Cross-repo conclusion update:**
+- New-SRDParser `#58` had already established that parser/output behavior was correct
+- SRDData `#195` was re-checked against live desktop AIRAC 2603 data and closed as stale
+- Result: issue `#174` is no longer blocked by the earlier data/passthrough narrative
+
+**Decision made:**
+- PR `#182` is intentionally being held until shortly before the next AIRAC / controller-pack rollout
+- Reason: merging early would prompt users to update the plugin before the preferred release window
 
 ---
 
