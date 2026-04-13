@@ -2,6 +2,7 @@
 #include "analyzeFP.hpp"
 #include "TimeWindow.hpp"
 #include "ConstraintChecks.hpp"
+#include "SidApplicability.hpp"
 
 using namespace ConstraintChecks;
 #include <curl/curl.h>
@@ -1255,16 +1256,58 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 		int round = 0;
 		vector<bool> validity, new_validity;
 		vector<string> results;
-		bool sidFails[4]{ 0 };
+		// sidFails: written to only by sidlevel=true restrictions. Controls the SID-wide RST
+		// fallback output path below. Initialised with suffix-fail true (index 0) to match the
+		// original convention that a suffix failure is assumed until a restriction clears it.
+		bool sidFails[4]{ true, false, false, false };
+		// constFails: written to by non-sidlevel (constraint-level) restrictions. Kept separate
+		// from sidFails so that constraint-level failures cannot pollute the SID-wide output path.
+		// This buffer is not read after the checkRestriction call; it just gives the function
+		// somewhere to write non-sidlevel failure flags without contaminating sidFails.
+		bool constFails[4]{ true, false, false, false };
 		bool restFails[4]{ 0 }; // 0 = Suffix, 1 = Aircraft/Engines, 2 = Date/Time Restrictions
 		bool warn = false;
 
 		//SID-Level Restrictions Array
-		sidFails[0] = true;
-		vector<bool> temp = checkRestriction(flightPlan, sid_suffix, sid_ele["restrictions"], sidFails, sidFails);
+		vector<bool> temp = checkRestriction(flightPlan, sid_suffix, sid_ele["restrictions"], sidFails, constFails);
 		bool sidwide = false;
 		if (temp[0] || temp[1]) {
 			sidwide = true;
+		}
+
+		// Issue #174 fix: if sidwide is still false, it may be because no SID-level restriction
+		// is currently applicable to this flight — not because one actively blocked it.
+		//
+		// A SID-level restriction is "applicable" only when ALL of its selectors match:
+		//   - sidlevel == true
+		//   - suffix matches, or no suffix selector exists
+		//   - type matches, or no type selector exists
+		//   - time window passes, or no time selector exists
+		//
+		// If no SID-level restriction is applicable, forcing RST is wrong. Instead we fall
+		// through to the normal constraint-loop result (DST, RTE, etc.).
+		//
+		// Concrete case this fixes: EGPH TLA, jet aircraft, outside 2300-0559.
+		//   Restriction 0 (types T/P/E): not applicable — type mismatch.
+		//   Restriction 1 (sidlevel, types J, 2300-0559): not applicable outside the window.
+		//   => no SID-level restriction applies => use constraint-loop round result, not RST.
+		//
+		// Scope: this is intentionally narrow. It does not change the case where a SID-level
+		// restriction IS applicable and fails — that still produces RST as before.
+		if (!sidwide) {
+			// Delegate to SidApplicability.hpp — see that file for full documentation.
+			// If no SID-level restriction is currently applicable to this flight,
+			// fall back to the constraint-loop result rather than forcing RST.
+			bool anySidLevelApplicable = SidApplicability::anySidLevelRestrictionApplicable(
+				sid_ele["restrictions"],
+				flightPlan.GetFlightPlanData().GetEngineType(),
+				flightPlan.GetFlightPlanData().GetAircraftType(),
+				sid_suffix,
+				timedata[5], timedata[3], timedata[4]);
+
+			if (!anySidLevelApplicable) {
+				sidwide = true;
+			}
 		}
 
 		//Initialise validity array to fully true#
@@ -1442,7 +1485,9 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 				returnOut[0][6] = "Valid Suffix.";
 				returnOut[1][6] = "Valid " + SuffixOutput(flightPlan, sid_ele);
 
-				//sidFails[1], [2], or [3] must be false to get here
+				// Reaching here means at least one SID-level restriction was applicable to this
+				// flight (suffix/type/time all matched) and it failed — RST is the correct result.
+				// sidFails now contains SID-level failures only (constFails was separated above).
 				returnOut[1][8] = returnOut[0][8] = "Failed " + RestrictionsOutput(flightPlan, sid_ele, sidFails[1], sidFails[2], sidFails[3]) + " " + AlternativesOutput(flightPlan, sid_ele);
 			}
 		}
