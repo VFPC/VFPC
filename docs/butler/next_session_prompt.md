@@ -1,6 +1,6 @@
 # Next Session Prompt — VFPC
 
-_Last updated: 2026-03-30 (PR #181 merged; PR #182 open; repo cleanup normalized)_
+_Last updated: 2026-04-13 (v3.7.2.0 released; PR #182 merged; repo state reconciled)_
 
 ## Read the Project Hub First
 
@@ -18,11 +18,11 @@ Before starting work, read the project-wide butler:
 ## Current State
 
 - **Branch:** `main` locally, clean
-- **Version:** `3.7.1.0`
+- **Version:** `3.7.2.0`
 - **Recent merge:** PR `#181` — `RuntimeConstraintTests` now accept both legacy array and `{cycle,airports}` envelope
-- **Active PR:** `#182` — rebased `#174` fix on branch `fix/174-sidwide-type-exclusion-rebased`
-- **Tests on PR branch:** `94/94` passing
-- **Release decision:** `#182` is intentionally being held until shortly before the next AIRAC / controller-pack rollout
+- **Recent merge:** PR `#182` — rebased `#174` fix merged to `main`
+- **Tests on held release branch:** `94/94` passing before merge
+- **Release state:** `v3.7.2.0` DLL built and published from `main`
 
 ---
 
@@ -30,21 +30,15 @@ Before starting work, read the project-wide butler:
 
 ### Immediate (when resuming work here)
 
-1. **Do not merge PR `#182` yet** unless the release timing decision changes.
-2. **When the next AIRAC / controller-pack window approaches:**
-   - merge PR `#182`
-   - rebuild the plugin DLL
-   - publish through the normal plugin / controller-pack flow
-3. **If more VFPC work is needed before then:**
-   - start from clean `main`
-   - leave `Research-reported-issues` untouched
-   - keep `#182` as the only live production-fix branch for issue `#174`
+1. **Start from clean `main`** at `v3.7.2.0` for any future production work here.
+2. **Leave `Research-reported-issues` untouched**; it remains the preserved rewrite branch.
+3. **Treat `fix/174-sidwide-type-exclusion-rebased` as historical only**; it has already been pruned and is no longer an active production branch.
 
 ### Soon (tracked as GitHub issues)
 
 | Priority | Issue | Action needed |
 |----------|-------|---------------|
-| High | #174 | Merge PR `#182` at the right release moment |
+| High | #174 | Shipped in `v3.7.2.0`; keep only as historical release traceability |
 | High | #165 | Implement BST/GMT offset logic in time comparison |
 | High | #169 | Replace server-polled UTC with `GetSystemTime()` |
 | Medium | #170 | After #169, evaluate restrictions against EOBT |

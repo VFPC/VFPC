@@ -1,6 +1,6 @@
 # VFPC Project Status
 
-_Last Updated: 2026-03-30 (PR #181 merged; PR #182 open and intentionally held for next AIRAC release timing)_
+_Last Updated: 2026-04-13 (v3.7.2.0 released; PR #182 merged and shipped)_
 
 > **Active task tracking is on GitHub Issues.**
 > See: https://github.com/VFPC/VFPC/issues
@@ -11,28 +11,28 @@ _Last Updated: 2026-03-30 (PR #181 merged; PR #182 open and intentionally held f
 ## Current State
 
 **Branch:** `main`  
-**Version:** `3.7.1.0`  
-**Status:** production plugin released; test-harness envelope fix merged; #174 plugin fix is on open PR `#182` and is being held until shortly before the next AIRAC / controller-pack rollout.
+**Version:** `3.7.2.0`  
+**Status:** production plugin released; PR `#181` envelope compatibility is on `main`; PR `#182` is merged and the `#174` plugin fix is shipped.
 
 ### Current Branch Picture
 
 - `main` — clean, current default branch
-- `fix/174-sidwide-type-exclusion-rebased` — active PR `#182`
+- `fix/174-sidwide-type-exclusion-rebased` — merged release branch; pruned after `v3.7.2.0`
 - `Research-reported-issues` — Peter's separate refactor branch; keep preserved, do not merge into production
 
 ### What's Working ✅
 
-- **Production plugin** — v3.7.1.0 released and in use
+- **Production plugin** — v3.7.2.0 released and in use
 - **Time-handling patch** — the earlier 5-bug `TimeWindow.hpp` fix set is already part of the shipped plugin
 - **Envelope-compatible runtime tests** — PR `#181` merged; `RuntimeConstraintTests` now accepts both legacy array `out.json` and the `{cycle,airports}` envelope
-- **#174 fix rebuilt cleanly** — PR `#182` contains the rebased `sidwide=false` fix plus `SidApplicability.hpp`
-- **Tests verified** — `VFPC_Tests` currently pass **94/94** on the `#182` branch
+- **#174 fix shipped** — PR `#182` merged the rebased `sidwide=false` fix plus `SidApplicability.hpp`
+- **Tests verified** — `VFPC_Tests` passed **94/94** on the held `#182` branch before merge; the release DLL then built successfully for `Release|x86`
 
 ### Key Open Items
 
 | Issue | Title | Current status |
 |-------|-------|----------------|
-| #174 | `sidwide=false` overrides constraint results | PR `#182` open; hold for release timing, not data blockers |
+| #174 | `sidwide=false` overrides constraint results | Fixed in merged PR `#182`; shipped in `v3.7.2.0` |
 | #165 | BST/GMT timezone offset in time comparisons | Open |
 | #169 | Replace server-polled UTC with `GetSystemTime()` | Open |
 | #170 | Evaluate time restrictions against EOBT | Blocked on #169 |
@@ -55,16 +55,16 @@ _Last Updated: 2026-03-30 (PR #181 merged; PR #182 open and intentionally held f
 | Test target platform | x64 |
 | Toolset | v143 (VS 2022) |
 | Test framework | Google Test v1.15.2 |
-| Tests | 94 passing, 0 failing on PR `#182` |
-| Version | 3.7.1.0 |
+| Tests | 94 passing, 0 failing on the held `#182` branch before merge |
+| Version | 3.7.2.0 |
 
 ---
 
 ## Immediate Guidance
 
-1. Do **not** merge PR `#182` early unless you want users to start seeing stale-plugin update prompts before the next AIRAC.
-2. When release timing is right, merge `#182`, build the DLL, and publish through the normal controller-pack/update path.
-3. Leave `Research-reported-issues` untouched; it is a preserved rewrite branch, not a cleanup target.
+1. Treat `main` + tag `v3.7.2.0` as the current production baseline.
+2. Leave `Research-reported-issues` untouched; it is a preserved rewrite branch, not a cleanup target.
+3. Treat issue `#174` and the old `fix/174...` branch as historical only; both release-side cleanup actions are complete.
 
 ---
 

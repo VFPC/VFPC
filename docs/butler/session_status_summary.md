@@ -1,6 +1,26 @@
 # VFPC Session Status Summary
 
-**Last Updated:** 2026-03-30
+**Last Updated:** 2026-04-13
+
+---
+
+## Session 2026-04-13: #174 merged and shipped as v3.7.2.0
+
+**Branch state:**
+- local `main` clean and pushed
+- tag `v3.7.2.0` pushed
+- `fix/174-sidwide-type-exclusion-rebased` pruned locally and on origin
+- preserved rewrite branch: `Research-reported-issues`
+
+**Completed:**
+- PR `#182` merged — the rebased `sidwide=false` fix landed on `main`
+- plugin version bumped to `3.7.2.0`
+- Win32/x86 release path cleaned enough to build the live EuroScope DLL successfully
+- `VFPC.dll` built and published as the `v3.7.2.0` release asset
+
+**Outcome:**
+- issue `#174` is closed and no longer waiting on release timing
+- next VFPC work, if any, should start from released `main`, not from the old fix branch
 
 ---
 
