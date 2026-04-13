@@ -1070,10 +1070,10 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 
 	// Matches Speed/Alt Data In Route
 	regex spdlvl("(N|M|K)[0-9]{3,4}((A|F)[0-9]{3}|(S|M)[0-9]{4})");
-	regex spdlvlslash("\/(N|M|K)[0-9]{3,4}((A|F)[0-9]{3}|(S|M)[0-9]{4})((A|F)[0-9]{3}|(S|M)[0-9]{4})?");
-	regex icaorwy("[A-Z]{4}(\/[0-9]{2}(L|C|R)?)?");
-	regex sidstarrwy("[A-Z]{2,5}[0-9][A-Z](\/[0-9]{2}(L|C|R)?)?");
-	regex dctspdlvl("DCT\/(N|M|K)[0-9]{3,4}((A|F)[0-9]{3}|(S|M)[0-9]{4})");
+	regex spdlvlslash(R"(\/(N|M|K)[0-9]{3,4}((A|F)[0-9]{3}|(S|M)[0-9]{4})((A|F)[0-9]{3}|(S|M)[0-9]{4})?)");
+	regex icaorwy(R"([A-Z]{4}(\/[0-9]{2}(L|C|R)?)?)");
+	regex sidstarrwy(R"([A-Z]{2,5}[0-9][A-Z](\/[0-9]{2}(L|C|R)?)?)");
+	regex dctspdlvl(R"(DCT\/(N|M|K)[0-9]{3,4}((A|F)[0-9]{3}|(S|M)[0-9]{4}))");
 	//regex wpt("[A-Z]{2}([A-Z]([A-Z]{2})?)?(/(N|M|K)[0-9]{3,4}((A|F)[0-9]{3}|(S|M)[0-9]{4}))?");
 	//regex coord("([0-9]{4}(N|S))|([0-9]{2}(N|S)[0-9]{2,3}(E|W))(/(N|M|K)[0-9]{3,4}((A|F)[0-9]{3}|(S|M)[0-9]{4}))?");
 	regex awy("(U)?[A-Z][0-9]{1,3}([A-Z])?");
@@ -1300,8 +1300,8 @@ vector<vector<string>> CVFPCPlugin::validateSid(CFlightPlan flightPlan) {
 			// fall back to the constraint-loop result rather than forcing RST.
 			bool anySidLevelApplicable = SidApplicability::anySidLevelRestrictionApplicable(
 				sid_ele["restrictions"],
-				flightPlan.GetFlightPlanData().GetEngineType(),
-				flightPlan.GetFlightPlanData().GetAircraftType(),
+				std::string(1, flightPlan.GetFlightPlanData().GetEngineType()),
+				std::string(1, flightPlan.GetFlightPlanData().GetAircraftType()),
 				sid_suffix,
 				timedata[5], timedata[3], timedata[4]);
 
