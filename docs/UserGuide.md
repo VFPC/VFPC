@@ -182,7 +182,7 @@ applies to the specific situation (e.g. CDR2 routes may be allowed by event NOTA
 
 ## 8. Getting Help
 
-- **Discord:** https://discord.gg/xucfd2K523
+- **Discord:** https://discord.gg/zcgkBfayDz
 - **GitHub Issues:** https://github.com/VFPC/VFPC/issues (for bugs and feature requests)
 - **Disclaimer:** This plugin is maintained by volunteers and is provided as-is.
   The developers accept no liability for any issues encountered. Always apply your own

@@ -16,7 +16,7 @@ solution to more serious issues (e.g. SID filed routes in completely the wrong d
 - **[Changelog](docs/CHANGELOG.md)** — notable changes per release
 
 ## Community
-You can join the community Discord Server at: https://discord.gg/xucfd2K523
+You can join the community Discord Server at: https://discord.gg/zcgkBfayDz
 
 ## READ BEFORE USE
 This plugin only works with the latest sector files and navigation data. Please ensure that your EuroScope sector files are always up-to-date.
